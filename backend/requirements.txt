@@ -25,7 +25,6 @@ mem0ai
 langsmith
 arize-phoenix
 openlit
-git+https://github.com/Hi1talib1World/langgraph-mcp-coding-assistant-project.git
 zep-python
 llmlingua
 gptcache
