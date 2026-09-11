@@ -1,40 +1,106 @@
 # 🎨 TeraSprint - Frontend
 
-Bienvenue dans la section Frontend de TeraSprint.
+Bienvenue dans la section **Frontend** de TeraSprint. L'interface utilisateur est pensée pour être dynamique, fluide et hautement réactive afin d'offrir la meilleure expérience de gestion de projet (Kanban) et de développement automatisé (Workspace).
 
-Ce projet est construit avec **React**, **TypeScript**, et **Vite**, offrant une expérience de développement ultra-rapide et un typage strict pour éviter les erreurs. Le style est géré par **TailwindCSS**.
+## 🛠️ Technologies Utilisées
 
-## 📁 Architecture du Dossier
+- **Framework UI** : [React](https://react.dev/) 18+.
+- **Bundler** : [Vite](https://vitejs.dev/) pour un rechargement à chaud (HMR) ultra-rapide.
+- **Langage** : **TypeScript** pour la sécurité et l'autocomplétion.
+- **Styling** : **TailwindCSS** pour un design moderne, épuré et entièrement responsive.
+- **Communication Temps Réel** : **WebSockets** natifs pour le streaming de la génération de code par l'IA.
 
-- **`src/`** : Le cœur de l'application React.
-  - **`components/`** : Composants réutilisables de l'interface (Boutons, Modals, Cartes, etc.).
-  - **`pages/`** : Les vues principales de l'application (Dashboard, Vue Kanban, Workspace de génération de code).
-  - **`services/`** : Les fonctions d'appels API vers le backend FastAPI (REST et connexions WebSockets).
-  - **`hooks/`** : Custom React Hooks pour la gestion d'état complexe.
-  - **`assets/`** : Images, icônes, et fichiers statiques globaux.
-- **`public/`** : Fichiers statiques accessibles directement.
-- **`vite.config.ts`** : Configuration du bundler Vite.
-- **`tailwind.config.js`** : Configuration du design system et des classes utilitaires de Tailwind.
+---
+
+## 🏗️ Architecture et Composants
+
+L'application suit une structure classique par "Vues" (Pages) qui appellent des composants réutilisables.
+
+### Diagramme de Navigation
+
+```mermaid
+graph TD
+    Auth[Page de Connexion SSO] -->|JWT Token| Dashboard[Dashboard - Liste des Projets]
+    
+    Dashboard --> CreateProject[Générateur IA de Backlog]
+    CreateProject -->|L'IA génère les tâches| Kanban[Vue Kanban du Projet]
+    
+    Dashboard --> Kanban
+    
+    Kanban -->|Clic sur 'Start Dev'| Workspace[Coding Workspace]
+    
+    subgraph Workspace Composants
+        Chat[Chat IA]
+        FileTree[Arborescence des Fichiers]
+        Editor[Éditeur de Code]
+        Preview[Aperçu / Logs Sandbox]
+        
+        Workspace --> Chat
+        Workspace --> FileTree
+        Workspace --> Editor
+        Workspace --> Preview
+    end
+```
+
+### Le Cycle de Vie du "Coding Workspace"
+
+Le cœur innovant du frontend est le **Workspace**. C'est ici que l'utilisateur dialogue avec l'orchestrateur de code.
+
+```mermaid
+sequenceDiagram
+    participant UI as React Workspace
+    participant WS as WebSocket Backend
+    participant Agent as IA Orchestrateur
+
+    UI->>WS: Connexion WSS & Envoi du Contexte Tâche
+    UI->>WS: "Créé-moi le bouton de connexion"
+    WS->>Agent: Transmission
+    
+    Agent-->>WS: Stream de la réponse (Texte)
+    WS-->>UI: Mise à jour du Chat UI en temps réel
+    
+    Agent-->>WS: JSON des fichiers générés
+    WS-->>UI: Met à jour l'arborescence et l'éditeur
+    
+    Agent-->>WS: Résultat de la Sandbox E2B (Succès/Erreur)
+    WS-->>UI: Affiche les logs dans le terminal
+```
+
+---
+
+## 📁 Structure du Projet
+
+- **`src/`**
+  - **`assets/`** : Images, fonts, et CSS globaux.
+  - **`components/`** : 
+    - `ui/` : Composants de base (Boutons, Inputs, Modals, Badges).
+    - `kanban/` : Cartes de tâches, colonnes glisser-déposer.
+    - `workspace/` : Éditeur de code (souvent avec Monaco Editor ou similaire), Terminal, File Explorer.
+  - **`pages/`** : Les grandes vues de l'application (Auth, Dashboard, ProjectBoard, WorkspacePage).
+  - **`services/`** : 
+    - `api.ts` : Fonctions pour interagir avec l'API REST via `fetch` ou `axios`.
+    - `socket.ts` : Gestionnaire de la connexion WebSocket.
+  - **`App.tsx`** : Le routeur principal (React Router).
+  - **`main.tsx`** : Point de montage React.
+
+---
 
 ## 🚀 Installation & Démarrage
 
-Assurez-vous d'avoir [Node.js](https://nodejs.org/) installé sur votre machine.
+1. **Prérequis** : Avoir `Node.js` (v18+) installé.
 
-1. **Installer les dépendances** :
-   Dans ce dossier `frontend/`, exécutez la commande suivante :
+2. **Installer les dépendances** :
+   Depuis le dossier `frontend/`, exécutez :
    ```bash
    npm install
    ```
 
-2. **Démarrer le serveur de développement** :
+3. **Lancer le serveur Vite** :
    ```bash
    npm run dev
    ```
 
-Le Frontend sera accessible généralement sur `http://localhost:5173`. 
-*(Vérifiez bien que votre backend tourne sur le port `8000` pour que l'API et les WebSockets communiquent correctement).*
-
-## 🔌 Connexion au Backend
-
-Les appels API (pour créer un projet, s'authentifier, etc.) se font via des requêtes HTTP (fetch ou axios). 
-Pour l'espace de travail collaboratif et de génération de code (le `Workspace`), le frontend utilise des **WebSockets** pour recevoir le code généré en temps réel, caractère par caractère, depuis les agents d'IA du Backend.
+4. **Accéder à l'application** :
+   Le serveur démarre généralement sur `http://localhost:5173`. 
+   
+   *(Attention : le frontend est configuré pour communiquer avec l'API du backend. Assurez-vous que le backend FastAPI tourne bien sur `http://localhost:8000` ou ajustez les variables d'environnement dans un fichier `.env.local` du frontend si nécessaire).*
