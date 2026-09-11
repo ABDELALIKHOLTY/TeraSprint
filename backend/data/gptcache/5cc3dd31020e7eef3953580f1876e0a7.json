@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Initialisation des repositories et configuration du monorepo (Node.js/TypeScript)",
+      "description": "Cette tâche consiste à structurer l'arborescence du projet en utilisant une approche monorepo (via Nx ou Turborepo) pour gérer simultanément le frontend (React) et le backend (Express). L'objectif est d'instaurer une base de code propre, avec des configurations TypeScript strictes partagées, des scripts npm/pnpm standardisés pour le développement, le build et le test, ainsi que la mise en place des fichiers de configuration essentiels (.env.example, .gitignore, tsconfig.json) pour garantir la reproductibilité de l'environnement de développement pour toute l'équipe.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Initialiser le repository Git principal et créer la structure de dossiers 'apps/frontend' et 'apps/backend' pour séparer clairement les responsabilités des deux applications.",
+        "Configurer le fichier 'package.json' racine avec les scripts de gestion des dépendances (install, dev, build, lint) et installer les outils de gestion de monorepo comme Turborepo ou Nx.",
+        "Mettre en place la configuration TypeScript stricte ('tsconfig.json') avec les options 'strict: true' et 'noImplicitAny' pour assurer la qualité du code statique sur l'ensemble du projet.",
+        "Créer les fichiers de configuration d'environnement ('.env.example') documentant les variables nécessaires (DATABASE_URL, JWT_SECRET, PORT) et les fichiers '.gitignore' pour exclure les fichiers sensibles et les artefacts de build."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Configuration du Backend Express.js et intégration de l'ORM Prisma (PostgreSQL)",
+      "description": "L'objectif de cette tâche est de mettre en place le squelette de l'application backend en utilisant Node.js et Express.js, avec une architecture modulaire (routes, controllers, services). Il est crucial d'intégrer Prisma comme ORM pour gérer la connexion à la base de données PostgreSQL, en définissant le schéma initial des entités ('User', 'Category', 'Task') conformément au rapport d'architecture, et de configurer les middlewares de base (CORS, JSON parsing, validation Joi) pour préparer l'API à recevoir les requêtes.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Initialiser le projet backend avec Express.js et TypeScript, en créant la structure de dossiers 'src/routes', 'src/controllers', 'src/services' et 'src/middlewares' pour une séparation des couches claire.",
+        "Installer et configurer Prisma avec le fournisseur PostgreSQL, en créant le fichier 'schema.prisma' qui définit les modèles 'User', 'Category' et 'Task' avec leurs relations et types de données exacts (UUID, ENUM).",
+        "Implémenter les middlewares de sécurité et de gestion d'erreurs globaux, y compris la configuration du CORS pour autoriser le frontend et l'interception des erreurs Prisma pour des réponses API cohérentes.",
+        "Intégrer la bibliothèque Joi pour la validation des entrées, en créant des schémas de validation réutilisables pour les payloads des futures routes d'authentification et de gestion des tâches."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Initialisation du Frontend React.js et configuration de l'infrastructure UI (Tailwind, Redux, Axios)",
+      "description": "Cette tâche vise à scaffolder l'application frontend avec React.js (Vite ou Create React App) et TypeScript, en intégrant Tailwind CSS pour le styling et Redux Toolkit pour la gestion de l'état global. L'accent est mis sur la configuration de l'intercepteur Axios pour la gestion automatique des tokens JWT et la mise en place de la structure de composants de base (Layout, ProtectedRoute) qui servira de fondation pour l'implémentation des fonctionnalités de gestion de tâches et de statistiques.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 3,
+      "subtasks": [
+        "Générer le projet React avec TypeScript et configurer Tailwind CSS, en définissant les classes utilitaires de base et les variables de thème (couleurs des catégories) dans le fichier 'tailwind.config.js'.",
+        "Installer et configurer Redux Toolkit avec React-Redux, en créant les slices initiaux pour l'authentification ('authSlice') et les tâches ('taskSlice') pour centraliser la gestion de l'état applicatif.",
+        "Configurer Axios avec des intercepteurs de requête et de réponse pour injecter automatiquement le header 'Authorization: Bearer <token>' et gérer les erreurs 401 (redirection vers le login).",
+        "Créer la structure de composants de base, y compris un composant 'Layout' avec une barre latérale pour les catégories et un composant 'ProtectedRoute' pour sécuriser les pages nécessitant une authentification."
+      ]
+    }
+  ]
+}

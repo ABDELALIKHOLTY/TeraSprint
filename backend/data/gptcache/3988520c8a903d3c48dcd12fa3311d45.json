@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Modélisation des entités NestJS et migrations PostgreSQL pour la gestion des stocks",
+      "description": "Cette tâche consiste à définir les modèles de données essentiels au module Stock, en créant les entités TypeORM correspondant aux tables ('stock_items'), ('stock_item_batches'), ('zones') et ('warehouses') avec leurs champs clés tels que ('id' UUID), ('sku'), ('quantity'), ('reorder_point'), ('batch_number'), ('expiry_date') et les relations FK appropriées. Elle inclut la génération de migrations SQL via le CLI TypeORM afin de créer les tables dans PostgreSQL 15 avec l'extension PostGIS pour les colonnes géographiques. Le but est d'assurer l'intégrité référentielle, les index sur les colonnes de recherche fréquente et la conformité aux contraintes métier (ex. quantité non négative). Enfin, il faut documenter les schémas dans le repository et valider les migrations sur l'environnement de test avant le déploiement.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer l'entité TypeORM 'StockItem' avec les colonnes ('id' UUID primary key), ('sku' varchar unique), ('product_name' varchar), ('quantity' integer), ('reorder_point' integer) et les relations ManyToOne vers les tables ('warehouses') et ('zones') en utilisant les décorateurs @ManyToOne et @JoinColumn, tout en ajoutant les contraintes de validation de domaine.",
+        "Développer l'entité 'StockItemBatch' incluant les champs ('id' UUID), ('batch_number' varchar), ('expiry_date' timestamp), ('quantity' integer) et la relation ManyToOne vers ('stock_items'), puis configurer les index composés sur ('batch_number', 'stock_item_id') pour optimiser les recherches de lots.",
+        "Implémenter les entités 'Warehouse' et 'Zone' avec les colonnes ('id' UUID), ('name' varchar), ('location' geography(Point,4326)) pour 'warehouses' et ('code' varchar), ('description' text) pour 'zones', en définissant les relations OneToMany appropriées afin de permettre la navigation bidirectionnelle entre entrepôts, zones et articles.",
+        "Générer les migrations TypeORM correspondantes en exécutant 'typeorm migration:generate', vérifier que les scripts créent les tables avec les contraintes FK, les index et les colonnes géographiques, puis appliquer les migrations sur la base de données de développement et valider le schéma via des requêtes de test."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Implémentation des services et contrôleurs REST NestJS pour la gestion des achats (Purchase Orders)",
+      "description": "Cette tâche vise à mettre en place le flux complet de création, validation et suivi des bons de commande, en développant le service métier 'PurchaseService' et le contrôleur 'PurchaseOrderController' exposant les routes REST nécessaires. Le service devra gérer la logique de réservation de stock, la mise à jour des quantités disponibles et l'émission d'événements asynchrones vers RabbitMQ pour la synchronisation avec les systèmes externes. Les contrôleurs fourniront les endpoints sécurisés, notamment la route ('POST /api/purchases/orders') pour créer un bon de commande et la route ('GET /api/purchases/orders/:id') pour récupérer son état, tout en appliquant les guards d'authentification et de rôle. Enfin, il faut intégrer la validation des DTOs avec class-validator et assurer la persistance atomique via des transactions PostgreSQL.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Définir les DTOs 'CreatePurchaseOrderDto' et 'PurchaseOrderLineDto' avec les champs ('supplier_id' UUID), ('warehouse_id' UUID), ('order_number' varchar), ('status' enum), ('lines' array) et appliquer les décorateurs @IsUUID, @IsNotEmpty, @ValidateNested pour garantir la conformité des données entrantes.",
+        "Implémenter le service 'PurchaseService' contenant la méthode 'createOrder' qui crée une entité 'PurchaseOrder' (table 'purchase_orders') et ses lignes associées ('purchase_order_lines'), effectue une transaction PostgreSQL pour décrémenter les quantités réservées dans 'stock_items' et publie un événement 'purchase_order.created' sur RabbitMQ avec le payload JSON contenant l'ID du bon et les détails des articles.",
+        "Créer le contrôleur 'PurchaseOrderController' exposant la route ('POST /api/purchases/orders') qui invoque le service, utilise le guard 'JwtAuthGuard' et le 'RolesGuard' avec le rôle 'PURCHASE_MANAGER', et renvoie une réponse HTTP 201 contenant l'objet complet du bon de commande créé ainsi que les liens HATEOAS pertinents.",
+        "Ajouter la route ('GET /api/purchases/orders/:id') dans le même contrôleur, implémenter la méthode 'findOne' qui récupère le bon de commande avec ses lignes via le repository TypeORM, applique le filtre de visibilité selon l'entreprise de l'utilisateur et retourne un DTO 'PurchaseOrderResponseDto' enrichi des informations de fournisseur et d'entrepôt."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Mise en place du suivi GPS temps réel des camions via WebSocket NestJS",
+      "description": "Cette tâche a pour objectif de développer l'infrastructure de réception, stockage et diffusion des positions GPS des camions, en créant une passerelle WebSocket sécurisée et le service métier associé. Les positions seront enregistrées dans la table ('truck_locations') avec les colonnes ('id' UUID), ('truck_id' UUID), ('timestamp' timestamptz), ('position' geography(Point,4326)). Le service devra calculer les distances parcourues, détecter les dépassements de géofence et publier les mises à jour aux clients abonnés via le canal ('/ws/truck-location'). La solution utilisera les guards JWT pour authentifier les connexions et intégrera un mécanisme de reconnexion automatique côté serveur.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le module NestJS 'TruckLocationModule' incluant le gateway 'TruckLocationGateway' décoré avec @WebSocketGateway, configurer le namespace '/ws/truck-location' et appliquer le guard 'JwtAuthGuard' afin de n'autoriser que les utilisateurs authentifiés à établir la connexion WebSocket.",
+        "Développer le service 'LocationService' qui expose la méthode 'saveLocation' persistant chaque point reçu dans la table ('truck_locations') via le repository TypeORM, en s'assurant que le champ ('position') utilise le type PostGIS geography et que le champ ('timestamp') soit automatiquement renseigné avec la date serveur.",
+        "Implémenter la logique de diffusion dans le gateway : à chaque appel du handler 'handleLocationUpdate' (recevant le payload contenant ('truck_id'), ('latitude'), ('longitude')), appeler 'LocationService.saveLocation', puis émettre l'événement 'locationUpdate' à tous les clients abonnés avec les coordonnées converties en GeoJSON et le temps de réception.",
+        "Ajouter un job cron (NestJS Schedule) qui, chaque minute, interroge les dernières positions de chaque camion, calcule la distance parcourue depuis la dernière mise à jour en utilisant la fonction PostGIS ST_DistanceSphere, détecte les dépassements de zones géographiques prédéfinies et enregistre les alertes dans la table ('audit_logs') via le service 'AuditService'."
+      ]
+    }
+  ]
+}

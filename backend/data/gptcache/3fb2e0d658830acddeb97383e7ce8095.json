@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Configuration de l'Architecture Frontend (React, TypeScript, Redux Toolkit, Tailwind CSS)",
+      "description": "Cette tâche fondamentale consiste à initialiser le projet frontend en respectant strictement la stack technique définie dans le rapport d'architecture. L'objectif est de mettre en place une structure de projet robuste, typée avec TypeScript, et configurée pour utiliser React.js (v18+) avec Redux Toolkit pour la gestion centralisée de l'état. Il est impératif d'intégrer Tailwind CSS pour le styling utilitaire et de configurer l'intercepteur Axios pour injecter automatiquement le JWT dans les headers d'authentification. Cette configuration de base garantit la cohérence du code, la sécurité des requêtes API et la rapidité de développement des composants UI ultérieurs.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Initialiser le projet Vite avec React et TypeScript, puis installer les dépendances essentielles : Redux Toolkit, React-Redux, Tailwind CSS, Axios, React Hook Form et Lucide React.",
+        "Configurer le store Redux Toolkit en créant les slices pour l'authentification ('authSlice'), les tâches ('taskSlice') et les catégories ('categorySlice'), en définissant les états initiaux et les actions asynchrones (thunks) pour les appels API.",
+        "Mettre en place l'intercepteur Axios global pour intercepter les requêtes sortantes et injecter le header 'Authorization: Bearer <token>' récupéré depuis le localStorage ou le cookie httpOnly, ainsi que gérer les erreurs 401 avec une redirection vers la page de login.",
+        "Configurer Tailwind CSS avec un thème personnalisé incluant les couleurs de base de l'application et les classes utilitaires nécessaires pour les composants de base (boutons, inputs, cartes), en s'assurant que le préprocesseur PostCSS est correctement lié au build."
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Développement des Composants UI pour la Gestion des Tâches et Catégories (React Hook Form, shadcn/ui)",
+      "description": "Cette tâche se concentre sur la création de l'interface utilisateur interactive permettant à l'utilisateur de gérer ses tâches et catégories. L'objectif est de développer des composants réutilisables et accessibles en utilisant shadcn/ui (ou Chakra UI) et React Hook Form pour la gestion des formulaires complexes. Les composants doivent permettre la création, la modification et la suppression de tâches avec sélection de catégorie, ainsi que la gestion des catégories avec choix de couleur. L'interface doit être intuitive, responsive et fournir un retour visuel immédiat sur les actions de l'utilisateur, en synchronisant l'état local avec le store Redux pour une réactivité optimale.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Développer le composant 'TaskForm' utilisant React Hook Form avec validation Zod, incluant des champs pour le titre ('title'), la description ('description'), la date d'échéance ('due_date') et un sélecteur de catégorie ('category_id') alimenté dynamiquement depuis le store Redux.",
+        "Créer le composant 'CategoryManager' permettant la CRUD des catégories, avec un sélecteur de couleur hexadécimale ('color_code') et un champ de nom ('name'), en intégrant des icônes Lucide React pour une meilleure identification visuelle des catégories (Travail, Personnel, Sport, etc.).",
+        "Implémenter la liste des tâches ('TaskList') avec des filtres par statut ('PENDING', 'IN_PROGRESS', 'COMPLETED') et par catégorie, en utilisant des composants de carte ('Card') shadcn/ui pour afficher chaque tâche avec ses métadonnées et des actions rapides (compléter, supprimer, éditer).",
+        "Intégrer la logique de dispatch Redux dans les composants pour déclencher les thunks d'API ('POST /api/tasks', 'PUT /api/categories/:id', etc.) lors de la soumission des formulaires, et gérer les états de chargement et d'erreur avec des composants de feedback (spinners, toasts)."
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Intégration du Dashboard Statistiques et Visualisation des Données (Recharts, API Stats)",
+      "description": "Cette tâche vise à implémenter la vue de synthèse qui permet à l'utilisateur de visualiser ses statistiques de productivité. L'objectif est de consommer l'endpoint 'GET /api/stats/summary' pour récupérer les agrégats de données (total des tâches, taux de complétion par catégorie) et de les visualiser de manière claire et engageante à l'aide de la bibliothèque Recharts. Le dashboard doit afficher des graphiques interactifs (barres ou camembert) représentant la répartition des tâches par catégorie et leur statut, ainsi que des indicateurs clés de performance (KPIs) pour le taux de complétion global. Cette fonctionnalité ajoute la 'petite touche en plus' demandée dans l'idée de base, transformant la simple gestion de tâches en un outil d'analyse personnelle.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le composant 'StatsDashboard' qui effectue un appel asynchrone à la route ('GET /api/stats/summary') via un thunk Redux dédié, en gérant le cache des données pour éviter les appels redondants lors de la navigation.",
+        "Développer un graphique en barres avec Recharts pour visualiser le nombre de tâches par catégorie ('category_id') et leur statut ('status'), en utilisant les codes couleur ('color_code') des catégories pour une cohérence visuelle avec le reste de l'application.",
+        "Implémenter un graphique en camembert ou en anneau pour afficher le taux de complétion global et par catégorie, en calculant les pourcentages côté frontend à partir des données brutes fournies par l'API (COUNT, GROUP BY).",
+        "Ajouter des cartes de KPIs (Key Performance Indicators) au-dessus des graphiques pour afficher des métriques clés telles que le total des tâches, le nombre de tâches complétées cette semaine, et le taux de complétion global, avec une mise en page responsive Tailwind CSS."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Développement API REST d'authentification (NestJS, Keycloak)",
+      "description": "Cette tâche consiste à mettre en place l'ensemble des endpoints d'authentification nécessaires à la sécurisation du système ERP, en s'appuyant sur Keycloak comme fournisseur d'identité OIDC et sur les JWT pour la gestion des sessions. Elle inclut la configuration du client OIDC, la création du contrôleur d'authentification avec les routes appropriées, ainsi que l'implémentation des gardes et intercepteurs de sécurité afin de garantir que chaque appel REST soit correctement validé. L'objectif est de fournir des endpoints fiables, documentés et prêts à être consommés par les applications frontales et les partenaires externes, tout en respectant les meilleures pratiques de sécurité (httpOnly cookies, CSRF, rate‑limit).",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Configurer le client OIDC dans Keycloak en créant un realm dédié, un client public nommé 'erp-frontend' avec les redirect‑uris appropriées, puis exporter les métadonnées pour les utiliser dans le module AuthService de NestJS afin d'établir la connexion sécurisée entre le serveur et le fournisseur d'identité.",
+        "Implémenter le contrôleur AuthController avec les routes ('POST /api/auth/login'), ('POST /api/auth/refresh'), ('POST /api/auth/logout') en utilisant les services de Keycloak pour valider les credentials, générer les tokens JWT, les placer dans des cookies httpOnly et renvoyer les informations d'utilisateur nécessaires au front.",
+        "Développer le JwtAuthGuard et le RolesGuard afin de protéger tous les endpoints REST, en injectant le service JwtStrategy qui décodera les JWT, vérifiera la signature, la date d'expiration et les scopes, puis ajoutera l'objet user au request pour les contrôleurs subséquents.",
+        "Intégrer le middleware RateLimitMiddleware (express-rate-limit) sur le préfixe ('/api/auth') avec une limite de 10 requêtes par minute par adresse IP, afin de prévenir les attaques par force brute, et configurer Helmet pour ajouter les en‑têtes de sécurité (CSP, HSTS, X‑Content‑Type‑Options)."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Création des endpoints REST de gestion des stocks (NestJS, PostgreSQL)",
+      "description": "Cette tâche vise à exposer l'ensemble des opérations CRUD sur les articles en stock ainsi que la gestion des lots, tout en intégrant un mécanisme d'alerte de rupture de stock. Elle repose sur la définition précise des entités TypeORM correspondant aux tables ('stock_items') et ('stock_item_batches'), ainsi que sur la mise en place de contrôleurs REST conformes aux conventions de l'API. Les endpoints devront être sécurisés, documentés via Swagger et capables de supporter la pagination, le filtrage et la validation des données d'entrée. Un service d'alerte sera également ajouté pour publier des notifications lorsqu'un article atteint son point de réapprovisionnement.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Définir l'entité TypeORM StockItem mappée à la table ('stock_items') avec les colonnes ('id' UUID PK), ('sku' VARCHAR), ('product_name' VARCHAR), ('quantity' INTEGER), ('reorder_point' INTEGER) et créer la migration correspondante via TypeORM CLI pour synchroniser le schéma avec PostgreSQL.",
+        "Implémenter le StockItemController exposant les routes ('GET /api/stock/items'), ('POST /api/stock/items'), ('PUT /api/stock/items/:id'), ('DELETE /api/stock/items/:id') ; chaque méthode devra valider les DTOs avec class‑validator, gérer les erreurs de contrainte d'unicité et retourner des réponses standardisées incluant les métadonnées de pagination.",
+        "Créer l'entité Batch liée à la table ('stock_item_batches') contenant les champs ('id' UUID PK), ('stock_item_id' UUID FK), ('batch_number' VARCHAR), ('expiry_date' TIMESTAMP), ('quantity' INTEGER) ; ajouter le BatchController avec les routes ('GET /api/stock/items/:id/batches'), ('POST /api/stock/items/:id/batches') pour permettre la création et la consultation des lots associés à chaque article.",
+        "Développer le StockAlertService qui s'abonne aux événements d'update de la quantité d'articles, calcule le seuil de réapprovisionnement en comparant ('quantity') à ('reorder_point'), puis publie une notification via NotificationService (email et webhook) et persiste l'événement dans la table ('audit_logs') pour traçabilité."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Mise en place des API REST pour les expéditions et le suivi des camions (NestJS, Redis)",
+      "description": "Cette tâche a pour objectif de fournir les endpoints nécessaires à la création, la mise à jour et le suivi des expéditions ainsi qu'à la gestion de la flotte de camions, incluant la récupération des dernières positions GPS stockées en cache Redis. Les entités Shipment et Truck seront modélisées, les contrôleurs exposeront les routes REST attendues par les partenaires e‑commerce, et un mécanisme de mise en cache sera mis en œuvre pour optimiser les requêtes de localisation en temps réel. La sécurité, la validation et la documentation Swagger seront appliquées à chaque endpoint.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Définir l'entité Shipment mappée à la table ('shipments') avec les colonnes ('id' UUID PK), ('sales_order_id' UUID FK), ('tracking_number' VARCHAR), ('status' VARCHAR), ('departure_at' TIMESTAMP), ('arrival_estimated' TIMESTAMP) et générer la migration correspondante afin d'assurer la persistance des informations d'expédition dans PostgreSQL.",
+        "Implémenter le ShipmentController exposant les routes ('POST /api/shipments') pour créer une nouvelle expédition, ('GET /api/shipments/:id') pour récupérer les détails, ('PATCH /api/shipments/:id/status') pour mettre à jour le statut, et ('GET /api/shipments/:id/items') pour lister les articles associés, en appliquant les guards JwtAuthGuard et RolesGuard pour restreindre l'accès aux utilisateurs autorisés.",
+        "Modéliser l'entité Truck liée à la table ('trucks') avec les champs ('id' UUID PK), ('license_plate' VARCHAR), ('model' VARCHAR), ('capacity' INTEGER) ainsi que l'entité TruckLocation associée à la table ('truck_locations') contenant ('id' UUID PK), ('truck_id' UUID FK), ('timestamp' TIMESTAMP), ('position' GEOGRAPHY) ; créer le TruckController avec les routes ('GET /api/trucks'), ('POST /api/trucks'), ('GET /api/trucks/:id/locations') pour récupérer les positions historiques.",
+        "Intégrer Redis comme cache de la dernière position GPS en stockant la clé 'truck:{id}:latest' contenant les coordonnées JSON, mettre à jour ce cache depuis le service LocationService chaque fois qu'une nouvelle position est enregistrée, et ajouter un interceptor qui, pour la route ('GET /api/trucks/:id/locations'), tente de lire la position la plus récente depuis Redis avant de fallback sur la base PostgreSQL."
+      ]
+    }
+  ]
+}

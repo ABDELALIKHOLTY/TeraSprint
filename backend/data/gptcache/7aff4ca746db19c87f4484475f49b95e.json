@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "FFLOW-101",
+      "title": "Initialisation du projet Frontend (Vite, React, TypeScript, TailwindCSS)",
+      "description": "Cette tâche consiste à scaffolder l'application frontend 'FeedbackFlow' en utilisant Vite comme outil de build pour garantir des temps de démarrage et de compilation optimisés. L'objectif est d'intégrer immédiatement TypeScript pour la sécurité des types et TailwindCSS pour le styling utilitaire, conformément au rapport d'architecture. Il est crucial de configurer correctement les alias de chemins et les variables d'environnement dès le départ pour éviter les erreurs de configuration ultérieures lors de l'intégration des composants UI (Headless UI, Lucide React).",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Exécuter la commande 'npm create vite@latest frontend -- --template react-ts' pour initialiser le projet React avec TypeScript et configurer le package.json avec les scripts de build et dev.",
+        "Installer et configurer TailwindCSS en exécutant 'npm install -D tailwindcss postcss autoprefixer' et en créant le fichier 'tailwind.config.js' avec le contenu du dossier 'src' pour le scan des classes.",
+        "Créer le fichier '.env.example' à la racine du frontend avec la variable 'VITE_API_BASE_URL' pointant vers l'URL de base du backend (ex: http://localhost:3000/api) pour la gestion des requêtes HTTP.",
+        "Installer les dépendances UI 'headlessui' et 'lucide-react' et vérifier que la compilation TypeScript passe sans erreur avec la configuration 'tsconfig.json' stricte."
+      ]
+    },
+    {
+      "id": "FFLOW-102",
+      "title": "Initialisation du projet Backend (Node.js, Express, TypeScript, Prisma)",
+      "description": "Cette tâche vise à mettre en place l'infrastructure serveur de 'FeedbackFlow' en utilisant Node.js et Express.js avec TypeScript pour assurer la robustesse et la maintenabilité du code. L'intégration de Prisma comme ORM est essentielle pour gérer la relation avec la base de données PostgreSQL de manière type-safe. La configuration des variables d'environnement (JWT_SECRET, DATABASE_URL) est critique pour la sécurité de l'authentification et la connectivité à la base de données, conformément aux exigences de l'architecture globale.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Initialiser le projet backend avec 'npm init -y' et installer les dépendances 'express', 'typescript', 'ts-node-dev', 'prisma', '@prisma/client', 'bcrypt', 'jsonwebtoken' et 'cors' pour le serveur et l'ORM.",
+        "Créer le fichier 'prisma/schema.prisma' en définissant le datasource PostgreSQL et les modèles 'User', 'Idea', 'Tag', 'Vote' et 'IdeaTag' avec les relations N-N et contraintes d'unicité spécifiées dans le rapport.",
+        "Générer le client Prisma en exécutant 'npx prisma generate' et créer le fichier '.env' avec les variables 'DATABASE_URL' (connexion PostgreSQL) et 'JWT_SECRET' (clé secrète pour le token).",
+        "Configurer le fichier 'tsconfig.json' pour le backend avec les options 'outDir', 'rootDir' et 'strict' activé, et créer le point d'entrée 'src/index.ts' qui initialise l'application Express et écoute sur le port 3000."
+      ]
+    },
+    {
+      "id": "FFLOW-103",
+      "title": "Configuration des outils de Linting, Formatting et Docker Compose",
+      "description": "Cette tâche a pour but d'instaurer une cohérence de code stricte à travers le monorepo en configurant ESLint et Prettier pour les deux applications (frontend et backend). L'objectif est d'éliminer les erreurs de style et les bugs potentiels avant même l'exécution du code, garantissant ainsi une qualité de code professionnelle. De plus, la création du fichier 'docker-compose.yml' est indispensable pour containeriser les services (PostgreSQL, Frontend, Backend) et assurer un environnement de développement reproductible et isolé pour toute l'équipe.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 2,
+      "subtasks": [
+        "Installer 'eslint', 'prettier', 'eslint-plugin-react', 'eslint-plugin-typescript' et configurer les fichiers '.eslintrc.json' et '.prettierrc' à la racine du projet pour imposer les règles de style TypeScript et React.",
+        "Créer le fichier 'docker-compose.yml' à la racine du projet définissant les services 'db' (PostgreSQL 14), 'backend' (Node.js) et 'frontend' (Vite/Node.js) avec leurs volumes de données et réseaux internes.",
+        "Configurer les scripts 'lint' et 'format' dans les fichiers 'package.json' du frontend et du backend pour exécuter automatiquement ESLint et Prettier lors du développement ou via un hook Git (pre-commit).",
+        "Vérifier la montée en charge de l'environnement complet en exécutant 'docker-compose up' et tester la connectivité entre le backend et la base de données PostgreSQL via le réseau Docker."
+      ]
+    }
+  ]
+}

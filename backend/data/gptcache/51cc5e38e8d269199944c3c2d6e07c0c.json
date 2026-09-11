@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Rédaction de la Documentation Technique API (OpenAPI/Swagger)",
+      "description": "Cette tâche consiste à générer et maintenir la documentation technique exhaustive de l'API RESTful en utilisant la spécification OpenAPI 3.0 (Swagger). L'objectif est de fournir une référence unique et à jour pour les développeurs frontend et les intégrateurs, détaillant chaque endpoint ('POST /api/auth/register', 'GET /api/tasks', etc.) avec leurs schémas de requête et de réponse. Il est crucial de documenter les codes d'erreur HTTP spécifiques (400, 401, 404, 500) et les structures de données renvoyées par les services ('AuthService', 'TaskService') pour assurer une intégration fluide et réduire les allers-retours entre les équipes. La documentation doit inclure des exemples de payloads valides et invalides pour chaque route, ainsi que les mécanismes d'authentification JWT.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Intégrer la bibliothèque 'swagger-jsdoc' ou 'express-openapi-validator' dans le backend Node.js pour générer automatiquement le fichier 'openapi.json' à partir des annotations des contrôleurs.",
+        "Définir les schémas JSON complets pour les entités 'User', 'Category' et 'Task' en respectant strictement les types TypeScript et les contraintes de validation Joi (ex: format UUID, enum status).",
+        "Documenter les endpoints d'authentification ('POST /api/auth/login', 'GET /api/auth/me') en précisant le format du token JWT attendu dans le header 'Authorization' et les erreurs de session expirée.",
+        "Créer la documentation détaillée des endpoints de gestion des tâches ('GET /api/tasks', 'PUT /api/tasks/:id') en illustrant les filtres possibles par ('category_id'), ('status') et ('due_date') avec des exemples de query parameters."
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Configuration du Pipeline CI/CD avec GitHub Actions",
+      "description": "Cette tâche vise à mettre en place un pipeline d'intégration continue et de déploiement continu (CI/CD) robuste utilisant GitHub Actions. Le workflow doit être déclenché à chaque push sur la branche 'main' et exécuter une suite de tests automatisés (unitaires et d'intégration) avant de permettre le déploiement. L'objectif est d'automatiser la construction des images Docker pour le frontend (React) et le backend (Node.js), ainsi que la base de données (PostgreSQL), garantissant ainsi la reproductibilité des environnements. Le pipeline doit inclure des étapes de linting (ESLint/Prettier) et de vérification de sécurité (npm audit) pour maintenir la qualité du code et détecter les vulnérabilités potentielles avant la mise en production.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le fichier de workflow '.github/workflows/ci-cd.yml' qui définit les triggers sur les événements 'push' et 'pull_request' vers la branche principale du dépôt GitHub.",
+        "Configurer les jobs de build pour le backend en utilisant 'node:18-alpine' comme image de base, en exécutant 'npm ci', 'npm run lint', et 'npm run test' pour valider la stabilité du code avant la compilation.",
+        "Configurer les jobs de build pour le frontend en utilisant 'node:18-alpine', en exécutant les tests Jest/React Testing Library et la compilation TypeScript pour générer les assets statiques optimisés.",
+        "Implémenter l'étape de build Docker en utilisant 'docker/build-push-action' pour construire les images 'task-manager-backend' et 'task-manager-frontend' et les pousser vers un registre Docker (ex: Docker Hub ou GHCR) avec des tags de version dynamiques."
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Conteneurisation et Orchestration Docker Compose",
+      "description": "Cette tâche porte sur la finalisation de la conteneurisation de l'application et la configuration de l'orchestration via Docker Compose pour un déploiement local et de staging cohérent. Il s'agit de créer un fichier 'docker-compose.yml' qui orchestre les services 'backend', 'frontend', et 'postgres' en définissant leurs dépendances, leurs ports d'exposition et leurs variables d'environnement. L'objectif est de garantir que l'application fonctionne de manière identique en développement et en production, en gérant correctement les volumes de persistance pour la base de données PostgreSQL et les secrets via un fichier '.env'. Cette configuration permet au Product Owner et aux développeurs de déployer l'application complète avec une seule commande, facilitant la démonstration et les tests d'acceptation.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Rédiger le fichier 'Dockerfile' pour le backend Node.js en utilisant une image multi-stage pour minimiser la taille finale, en copiant les dépendances et le code compilé dans une image 'node:18-alpine' finale.",
+        "Rédiger le fichier 'Dockerfile' pour le frontend React en utilisant une image 'nginx:alpine' pour servir les assets statiques compilés, en configurant les redirections SPA pour le routing client-side.",
+        "Créer le fichier 'docker-compose.yml' qui définit les services 'db' (postgres:14), 'backend' et 'frontend', en configurant les réseaux, les volumes pour la persistance des données PostgreSQL, et les variables d'environnement sensibles.",
+        "Configurer les scripts de démarrage ('entrypoint.sh') pour le backend afin d'attendre la disponibilité de la base de données avant d'exécuter les migrations Prisma ('npx prisma migrate deploy') et de démarrer le serveur Express."
+      ]
+    }
+  ]
+}

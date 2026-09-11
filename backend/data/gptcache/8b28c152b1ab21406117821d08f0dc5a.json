@@ -1,0 +1,74 @@
+
+
+{
+  "$defs": {
+    "Task": {
+      "properties": {
+        "id": {
+          "description": "ID façon Jira (ex: TERA-1)",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "description": "Titre de la tâche technique",
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description détaillée. Expliquer l'architecture, les technos, le but exact et le détail des sous-tâches.",
+          "title": "Description",
+          "type": "string"
+        },
+        "status": {
+          "description": "Statut : DOIT TOUJOURS être 'TO DO'",
+          "title": "Status",
+          "type": "string"
+        },
+        "priority": {
+          "description": "Priorité : 'Highest', 'High', 'Medium', 'Low'",
+          "title": "Priority",
+          "type": "string"
+        },
+        "story_points": {
+          "description": "Estimation (Fibonacci: 1, 2, 3, 5, 8...)",
+          "title": "Story Points",
+          "type": "integer"
+        },
+        "subtasks": {
+          "default": [],
+          "description": "Liste de sous-tâches LONGUES (minimum 15-20 mots par sous-tâche) détaillant l'implémentation technique.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Subtasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "status",
+        "priority",
+        "story_points"
+      ],
+      "title": "Task",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "tasks": {
+      "description": "Liste des Tâches techniques pour une User Story",
+      "items": {
+        "$ref": "#/$defs/Task"
+      },
+      "title": "Tasks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "tasks"
+  ],
+  "title": "TasksList",
+  "type": "object"
+}

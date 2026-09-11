@@ -1,0 +1,48 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Setup de l'architecture Frontend, Routage et State Management (React Router, Vite, TailwindCSS)",
+      "description": Cette tâche est cruciale pour poser les bases techniques de l'application LivePoll en utilisant un stack moderne. Nous allons initialiser le projet avec Vite pour bénéficier d'une compilation ultra-rapide et d'un développement à chaud, tout en configurant React Router pour distinguer nettement l'espace de gestion du présentateur de l'espace de vote du participant. La configuration de TailwindCSS permettra d'instaurer une charte graphique cohérente et responsive, tandis que la mise en place d'un système de state management global (via le Context API ou un store externe) centralisera les données critiques comme les informations de session et les tokens d'accès. Cette architecture modulaire garantira une scalabilité à long terme et une séparation claire des préoccupations dès le départ.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Initialiser le projet React avec le build tool Vite pour configurer un environnement de développement optimal, puis installer et configurer la bibliothèque React Router pour définir les routes dynamiques '/presenter' et '/vote/:pinCode'.",
+        "Installer et configurer le framework CSS TailwindCSS en créant un fichier de configuration personnalisé pour définir les variables de design, les breakpoints responsifs et les thèmes de couleurs de l'application.",
+        "Créer un contexte global React pour centraliser l'état de la table ('sessions') avec le champ ('pin_code'), gérer le token d'authentification du participant stocké localement dans le 'localStorage', et suivre l'état active du ('polls').",
+        "Développer un composant de layout principal et de navigation globale qui utilise les hooks de React Router pour conditionnellement afficher l'interface présentateur ou participant selon l'URL courante."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Développement de l'Interface de Vote du Participant (React Hooks, Appels REST, TailwindCSS)",
+      "description": Cette tâche se concentre sur la conception de l'expérience utilisateur du participant, qui doit être simple, intuitive et visuellement attrayante. Le participant devra pouvoir saisir son code PIN pour rejoindre la session, visualiser la question posée et voter pour l'option de son choix en un seul clic. Nous utiliserons des hooks React locaux pour gérer l'état des sélections et effectuer des appels asynchrones aux endpoints REST du backend pour récupérer les métadonnées et enregistrer les votes. L'ensemble de cette interface sera stylisée grâce à TailwindCSS pour offrir une prise en main ergonomique et responsive sur tous les appareils, du mobile au bureau.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le composant de saisie 'JoinSessionForm' pour que l'utilisateur entre le ('pin_code') de la session, valider la longueur et le format du code côté frontend avant d'envoyer la requête d'authentification.",
+        "Développer le composant 'QuestionDisplay' pour interroger la Route ('GET /api/questions/{id}') et afficher dynamiquement le champ ('text') de la table ('questions') ainsi que la liste des options de vote depuis la table ('options') avec ('text').",
+        "Implémenter la logique de sélection et de soumission du vote en créant un hook personnalisé qui envoie une requête HTTP POST à la Route ('POST /api/votes') en associant le ('voter_id') stocké localement et l' ('option_id') choisi.",
+        "Concevoir des composants d'interface reuseables et animés avec TailwindCSS, tels que les cartes de questions et les boutons d'option de vote ('OptionButton'), pour garantir une transitions visuelles fluides et une ergonomie d'accès optimale."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Intégration du Client WebSocket et des Graphiques Animés en Temps Réel (Recharts, STOMP, WebSockets)",
+      "description": Cette tâche technique permet de finaliser le cœur de l'application LivePoll : la visualisation instantanée et animée des résultats sans aucun rafraîchissement de page. Elle consiste à implémenter un client STOMP en React pour se connecter au broker WebSocket du backend et s'abonner aux mises à jour en temps réel. Les données de vote reçues devront alimenter un composant de graphique dynamique (basé sur Recharts ou Chart.js) qui animera les transitions de barres ou de camemberts à mesure que les votes arrivent. Cette intégration temps réel est essentielle pour le présentateur, qui pourra suivre l'évolution des scores de son audience de manière fluide et visuelle.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Initialiser la bibliothèque de client WebSocket en installant 'sockjs-client' et 'stomp.js' au sein de l'application React pour préparer la connexion bidirectionnelle avec le serveur Spring Boot.",
+        "Écrire un hook de connexion WebSocket qui établit la socket et effectue la souscription au Topic ('/topic/polls/{pollId}/results') afin de recevoir les mises à jour de pourcentage en direct.",
+        "Développer le composant 'LiveResultsChart' en utilisant le moteur de graphiques Recharts pour afficher les résultats sous forme de graphique circulaire ou à barres, en liant son état aux données reçues via WebSocket.",
+        "Appliquer des effets d'animation CSS et des transitions de données internes de Recharts pour que les variations de pourcentages de chaque ('option_id') se fassent de manière visuellement fluide et instantanée."
+      ]
+    }
+  ]
+}

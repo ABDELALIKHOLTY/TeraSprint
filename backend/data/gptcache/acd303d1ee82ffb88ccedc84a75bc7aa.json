@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Mise en place de l'authentification OIDC avec Keycloak et gestion des tokens JWT (NestJS)",
+      "description": "Cette tâche consiste à configurer l'intégration de Keycloak (version 22.x) en tant que fournisseur d'identité OpenID Connect afin de sécuriser toutes les API REST du backend NestJS. Elle inclut la création du client Keycloak dédié, la mise en œuvre du contrôleur d'authentification avec les routes exactes ('POST /api/auth/login') et ('POST /api/auth/refresh'), ainsi que la génération et la validation des tokens JWT signés. Le token d'accès sera renvoyé dans un cookie httpOnly sécurisé, tandis que le token de rafraîchissement sera stocké dans Redis (clé 'auth:refresh:<userId>') avec une expiration appropriée. Enfin, un guard NestJS (JwtAuthGuard) et un interceptor de logs seront ajoutés pour protéger chaque endpoint et consigner les tentatives d'accès.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Configurer un client Keycloak nommé 'erp-frontend' avec le flux d'authentification standard, définir les redirect URIs vers l'application React et activer le protocole PKCE pour renforcer la sécurité des échanges.",
+        "Implémenter le contrôleur 'AuthController' avec la route ('POST /api/auth/login') qui valide les credentials auprès de Keycloak, crée un JWT contenant les claims ('sub', 'role', 'exp') et le renvoie dans un cookie httpOnly avec les attributs SameSite=Strict et Secure.",
+        "Développer la route ('POST /api/auth/refresh') qui récupère le refresh token depuis le cookie, le vérifie dans Redis, génère un nouveau JWT d'accès et met à jour le refresh token avec une nouvelle expiration, tout en gérant les scénarios d'invalidation.",
+        "Créer le guard 'JwtAuthGuard' appliqué globalement via le module 'APP_GUARD' afin de décoder le JWT, de vérifier la signature avec la clé publique de Keycloak et de rejeter les requêtes non authentifiées avec un code HTTP 401, tout en enregistrant chaque tentative dans la table ('audit_logs') avec les champs ('user_id'), ('action'), ('timestamp')."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Développement du service d'appel API REST côté frontend (React + TypeScript) avec Axios et gestion centralisée des erreurs",
+      "description": "Cette tâche vise à créer une couche d'abstraction HTTP robuste dans le client React afin de consommer toutes les API REST du backend tout en assurant la sécurité, la résilience et la traçabilité des appels. Un client Axios sera configuré avec un interceptor qui injecte automatiquement le token d'accès provenant du cookie httpOnly dans l'en-tête Authorization, et qui déclenche le flux de rafraîchissement en appelant la route ('POST /api/auth/refresh') en cas de réponse 401. Le service inclura également la gestion des limites de taux via la bibliothèque rate-limit et la journalisation des erreurs dans le store Redux. Des interfaces TypeScript strictes seront définies pour chaque ressource (ex. StockItem, Truck, Shipment) afin de garantir la cohérence des données côté client.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le fichier 'apiClient.ts' qui initialise une instance Axios avec baseURL '/api', timeout de 30 s, et un interceptor de requête ajoutant l'en-tête ('Authorization: Bearer <access_token>') extrait du cookie httpOnly sécurisé.",
+        "Implémenter un interceptor de réponse qui, dès qu'une réponse HTTP 401 est reçue, invoque automatiquement la route ('POST /api/auth/refresh'), met à jour le cookie d'accès et rejoue la requête initiale, tout en gérant les cas d'échec avec une redirection vers la page de login.",
+        "Définir des interfaces TypeScript détaillées pour les DTOs attendus, telles que 'interface StockItem { id: string; sku: string; quantity: number; reorder_point: number; }' et les exporter depuis le répertoire 'src/types', afin d'assurer le typage strict dans tout le codebase.",
+        "Intégrer le client Axios dans un slice Redux Toolkit nommé 'apiSlice' qui expose des thunks async pour chaque endpoint (ex. fetchStockItems, createShipment) et utilise 'createAsyncThunk' pour gérer les états loading, succeeded et failed, tout en enregistrant les erreurs dans le store global."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Implémentation du flux WebSocket GPS pour suivi en temps réel des camions (NestJS + Socket.io + React)",
+      "description": "Cette tâche a pour objectif de mettre en place un canal de communication bidirectionnel permettant aux camions d'envoyer leurs positions GPS en temps réel et aux utilisateurs du tableau de bord de visualiser ces données instantanément. Le backend NestJS utilisera un Gateway WebSocket exposé sous le chemin ('/ws/truck-location') avec Socket.io, qui diffusera chaque mise à jour reçue vers tous les clients abonnés après l'avoir persistée dans la table ('truck_locations') contenant les champs ('id'), ('truck_id'), ('timestamp'), ('position (geography)'). Le frontend React intégrera un client Socket.io qui gérera la reconnexion automatique, mettra à jour le store Redux avec les dernières coordonnées et déclenchera les calculs de géofencing via le service 'LocationService'.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Développer le Gateway NestJS nommé 'TruckLocationGateway' avec le décorateur '@WebSocketGateway({ namespace: \"/truck-location\", transports: [\"websocket\", \"polling\"] })' et implémenter la méthode 'handleLocationUpdate' qui reçoit les messages contenant ('truckId', 'latitude', 'longitude', 'timestamp').",
+        "Dans la méthode susmentionnée, convertir les coordonnées en type PostGIS 'geography', insérer un enregistrement dans la table ('truck_locations') avec les champs appropriés, puis publier l'événement via Redis Pub/Sub afin que d'autres services (ex. NotificationService) puissent réagir.",
+        "Configurer le client Socket.io dans le répertoire 'src/services/websocket.ts' du frontend, incluant la logique de reconnexion exponentielle, la validation du token d'accès via query paramètre, et l'abonnement à l'événement 'locationUpdate' pour mettre à jour le slice Redux 'truckLocationSlice'.",
+        "Créer un sélecteur Redux qui agrège les dernières positions par 'truckId', calcule les distances parcourues à l'aide de la fonction haversine, et déclenche une notification visuelle dans le tableau de bord lorsqu'un camion sort d'une zone géographique définie dans la table ('zones') via le service 'LocationService'."
+      ]
+    }
+  ]
+}

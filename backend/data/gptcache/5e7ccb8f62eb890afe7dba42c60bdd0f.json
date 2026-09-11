@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "INTEG-1",
+      "title": "Développement API d'authentification JWT (NestJS)",
+      "description": "Cette tâche consiste à implémenter l'ensemble des endpoints d'authentification nécessaires au flux JWT, en créant les routes sécurisées, en générant les access tokens courts (15 min) et les refresh tokens longs (30 jours) stockés dans un cookie httpOnly, et en persistant le hash du refresh token dans la table ('sessions') avec les colonnes ('id'), ('user_id'), ('refresh_token_hash'), ('expires_at'). L'API doit également gérer l'inscription, la connexion, le rafraîchissement et la déconnexion, tout en appliquant les guards NestJS et les stratégies JWT (RS256). Cette couche garantit la conformité aux exigences de sécurité du rapport d'architecture et fournit les bases pour les appels RTK Query côté client.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le contrôleur ('AuthController') avec les routes exactes ('POST /api/auth/register'), ('POST /api/auth/login'), ('POST /api/auth/refresh'), ('POST /api/auth/logout') et implémenter la validation d'entrée via class‑validator pour chaque payload.",
+        "Développer le service ('AuthService') qui génère les JWT signés avec RS256, crée le refresh token sécurisé, stocke le hash du refresh token dans la table ('sessions') et renvoie le cookie httpOnly contenant l'access token au client.",
+        "Mettre en place la stratégie ('JwtStrategy') et le guard ('JwtAuthGuard') afin de protéger les routes nécessitant une authentification, en décodant le token depuis le cookie et en vérifiant son expiration et sa signature.",
+        "Implémenter le service de rafraîchissement ('RefreshTokenService') qui valide le refresh token présent dans le cookie, compare le hash avec la valeur en base, génère un nouveau access token et met à jour le cookie httpOnly, tout en gérant la rotation sécurisée du refresh token."
+      ]
+    },
+    {
+      "id": "INTEG-2",
+      "title": "Intégration RTK Query pour le Frontend Web et Mobile (React & React‑Native)",
+      "description": "Cette tâche vise à créer une couche d'accès aux API backend unifiée via RTK Query, en définissant des slices d'API pour les appels d'authentification, de comptes bancaires, de transactions et de budgets, tout en configurant un middleware Axios qui intercepte les réponses 401 pour déclencher automatiquement le rafraîchissement du JWT via la route ('POST /api/auth/refresh'). Les slices doivent être typés avec TypeScript, générer des hooks personnalisés pour chaque endpoint, et être partagés entre le projet Next.js et l'application Expo afin d'assurer une expérience cohérente sur le web et le mobile.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Initialiser un fichier central ('src/app/api/apiSlice.ts') qui configure RTK Query avec la baseUrl du serveur, ajoute un 'prepareHeaders' pour inclure le cookie d'access token et définit un 'baseQuery' utilisant fetchBaseQuery avec gestion des erreurs 401.",
+        "Définir les endpoints d'authentification dans le slice ('authApi') incluant les mutations pour ('login'), ('register'), ('logout') et la query pour ('refresh') en appelant les routes exactes ('POST /api/auth/login'), ('POST /api/auth/register'), ('POST /api/auth/logout'), ('POST /api/auth/refresh').",
+        "Créer les slices d'API supplémentaires ('bankApi', 'transactionApi', 'budgetApi') avec les queries et mutations correspondant aux routes REST du backend, en typant les réponses selon les modèles Prisma et en incluant les paramètres de pagination et de filtrage requis.",
+        "Implémenter un interceptor global dans le store Redux qui, à la réception d'une réponse 401, déclenche la mutation 'refresh' du 'authApi', met à jour le cookie d'access token, puis refait la requête initiale, tout en affichant un toast d'erreur si le rafraîchissement échoue."
+      ]
+    },
+    {
+      "id": "INTEG-3",
+      "title": "Mise en place des notifications temps réel (Socket.io) pour alertes budgétaires",
+      "description": "Cette tâche consiste à déployer un système de notifications push en temps réel afin d'informer les utilisateurs dès qu'un budget est dépassé ou qu'une alerte est générée, en utilisant Socket.io côté serveur (NestJS Gateway) et le client Socket.io dans les applications Web (React) et Mobile (React‑Native). Le serveur doit écouter les événements d'insertion dans la table ('alerts') via Prisma et publier les messages via le canal ('/alerts'), tandis que les clients doivent s'abonner à ce canal, gérer la reconnexion et afficher les notifications sous forme de toasts ou de push notifications natives.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le gateway NestJS ('AlertGateway') qui initialise le serveur Socket.io, définit le namespace '/alerts', authentifie les connexions via le cookie JWT et expose les méthodes 'emitAlert' pour pousser les nouvelles alertes aux sockets connectés.",
+        "Développer un service ('AlertService') qui écoute les changements de la table ('alerts') grâce à Prisma $subscribe ou à un trigger RabbitMQ, et qui invoque 'AlertGateway.emitAlert' avec les données complètes de l'alerte (id, type, triggered_at, budget_id).",
+        "Intégrer le client Socket.io dans le projet Next.js en créant un hook ('useAlertSocket') qui se connecte au namespace '/alerts' après la validation du JWT, gère les événements 'newAlert' et déclenche un composant toast MUI avec le message approprié.",
+        "Intégrer le client Socket.io dans l'application Expo en ajoutant un contexte ('AlertProvider') qui utilise la bibliothèque '@socket.io/client', écoute les événements 'newAlert', et utilise 'expo-notifications' pour afficher une notification native lorsqu'une alerte budgétaire est reçue."
+      ]
+    }
+  ]
+}

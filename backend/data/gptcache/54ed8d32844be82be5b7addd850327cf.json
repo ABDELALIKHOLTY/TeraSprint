@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Modélisation du schéma relationnel PostgreSQL avec Prisma",
+      "description": "Cette tâche consiste à définir le modèle de données complet de l'application de gestion financière en utilisant le DSL de Prisma. Elle doit refléter fidèlement le rapport d'architecture fourni, incluant toutes les tables, colonnes, clés primaires, clés étrangères et relations auto‑référencées. L'objectif est de garantir que chaque entité métier (utilisateur, compte bancaire, transaction, catégorie, budget, alerte, recommandation, job IA, session, audit) possède les contraintes d'intégrité nécessaires pour assurer la cohérence des données dès le départ.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Déclarer le modèle Prisma pour la table ('users') avec les champs ('id' UUID primary key), ('email' unique varchar), ('password_hash' varchar), ('created_at' timestamp) et ajouter la relation 1‑N vers la table ('bank_accounts') via le champ ('user_id').",
+        "Définir le modèle Prisma pour la table ('bank_accounts') incluant ('id' UUID PK), ('user_id' FK vers 'users.id'), ('provider' varchar), ('external_id' varchar), ('access_token' encrypted text), ('created_at' timestamp) et établir la relation 1‑N vers la table ('transactions') via le champ ('account_id').",
+        "Créer les modèles Prisma pour les tables ('transactions'), ('categories'), ('budgets'), ('alerts'), ('recommendations'), ('ai_jobs'), ('sessions') et ('audit_logs') en spécifiant chaque colonne requise, les clés étrangères correspondantes, les contraintes d'unicité et les relations auto‑référencées (ex. 'categories.parent_id' FK vers 'categories.id').",
+        "Ajouter les index Prisma nécessaires pour optimiser les requêtes fréquentes, notamment un index composite sur ('transactions.account_id', 'transactions.date'), un index unique sur ('sessions.refresh_token_hash'), et un index sur ('audit_logs.timestamp') afin de soutenir les filtres de logs."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Création des migrations Prisma et génération du script SQL",
+      "description": "Cette tâche génère les migrations qui matérialisent le modèle Prisma dans la base PostgreSQL 16. Elle doit produire des scripts SQL fiables, incluant les contraintes de clé étrangère avec les actions ON DELETE/ON UPDATE appropriées, ainsi que les index précédemment définis. Les migrations seront versionnées et testées afin d'assurer une évolution contrôlée du schéma en environnement CI/CD.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 3,
+      "subtasks": [
+        "Exécuter la commande 'prisma migrate dev' pour créer la première migration contenant les tables ('users'), ('bank_accounts'), ('transactions'), ('categories'), ('budgets'), ('alerts'), ('recommendations'), ('ai_jobs'), ('sessions') et ('audit_logs') avec leurs colonnes et contraintes exactes.",
+        "Vérifier le script SQL généré afin de s'assurer que chaque clé étrangère possède l'option ON DELETE CASCADE ou SET NULL selon le besoin métier, par exemple que la suppression d'un ('users') entraîne la suppression en cascade des ('bank_accounts') et ('sessions').",
+        "Modifier manuellement la migration si nécessaire pour ajouter des contraintes d'unicité supplémentaires, comme un index unique sur ('bank_accounts.external_id') afin d'éviter les doublons d'identifiants externes provenant de Plaid.",
+        "Committer les fichiers de migration dans le dépôt Git, mettre à jour le fichier 'prisma/schema.prisma' avec les commentaires de documentation et ajouter un job GitHub Actions qui exécute 'prisma migrate deploy' sur une base de test pour valider la migration à chaque push."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Mise en place des seeds et des scripts de vérification d'intégrité",
+      "description": "Cette tâche crée des scripts de seed permettant de peupler la base avec des données de référence indispensables au bon fonctionnement de l'application, comme les catégories de dépenses par défaut et un compte administrateur. Elle inclut également des tests d'intégrité automatisés qui valident les relations et les contraintes après chaque migration, garantissant ainsi la stabilité du schéma dans les pipelines CI/CD.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 3,
+      "subtasks": [
+        "Écrire un script de seed Prisma ('prisma/seed.ts') qui insère les catégories racines ('Alimentation', 'Logement', 'Transport', etc.) dans la table ('categories') avec le champ ('is_user_defined') à false, ainsi qu'un utilisateur de démonstration dans la table ('users') avec un mot de passe hashé.",
+        "Ajouter des enregistrements de test dans les tables ('bank_accounts') et ('transactions') liés à l'utilisateur de démonstration afin de pouvoir exécuter des requêtes de reporting dès le premier déploiement.",
+        "Implémenter un test d'intégrité automatisé (ex. avec Jest) qui lance 'prisma migrate reset' puis le seed, et qui vérifie que toutes les clés étrangères sont respectées, que les index existent et que les contraintes d'unicité ne sont pas violées.",
+        "Intégrer ce test d'intégrité dans le workflow GitHub Actions, de façon à ce qu'il s'exécute après chaque migration et avant le déploiement en production, garantissant ainsi que le schéma reste cohérent à chaque évolution."
+      ]
+    }
+  ]
+}

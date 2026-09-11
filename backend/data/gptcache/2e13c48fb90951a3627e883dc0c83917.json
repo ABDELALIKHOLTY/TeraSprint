@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Configuration de l'Infrastructure de Test Backend (Jest + Supertest)",
+      "description": "Cette tâche consiste à initialiser et configurer l'environnement de test unitaire et d'intégration pour le backend Node.js/Express. L'objectif est d'installer Jest comme framework de test principal et Supertest pour simuler les requêtes HTTP contre les routes Express. Il est impératif de configurer le fichier 'jest.config.ts' pour supporter TypeScript via 'ts-jest' et de définir les variables d'environnement de test (comme 'DATABASE_URL' pointant vers une instance PostgreSQL éphémère ou un conteneur Docker dédié) afin d'isoler les tests de la base de données de développement. Cette configuration garantit que chaque test s'exécute dans un environnement propre et reproductible, essentiel pour la fiabilité du CI/CD.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Installer les dépendances de développement 'jest', 'ts-jest', 'supertest' et '@types/jest' via npm ou yarn dans le répertoire racine du backend.",
+        "Créer le fichier de configuration 'jest.config.ts' en spécifiant le preset 'ts-jest', le module file regex pour les fichiers '.test.ts' et le test environment 'node'.",
+        "Configurer le fichier '.env.test' pour définir la variable 'DATABASE_URL' pointant vers une instance PostgreSQL isolée (ex: 'postgres://test:test@localhost:5432/test_db') distincte de la base de développement.",
+        "Mettre à jour le fichier 'package.json' pour ajouter les scripts 'test', 'test:watch' et 'test:coverage' afin de faciliter l'exécution des tests via les commandes npm standard."
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Développement des Tests d'Intégration des Services Métier (Auth, Task, Stats)",
+      "description": "Cette tâche porte sur la rédaction de tests d'intégration pour les couches de service ('AuthService', 'TaskService', 'StatsService') qui interagissent directement avec l'ORM Prisma et la base de données PostgreSQL. L'objectif est de vérifier la logique métier complexe, notamment le hashage des mots de passe dans 'AuthService', la gestion des relations entre 'User', 'Category' et 'Task' dans 'TaskService', et les requêtes d'agrégation SQL (COUNT, GROUP BY) dans 'StatsService'. Les tests doivent utiliser des fixtures de données propres (setup/teardown) pour s'assurer que chaque test commence avec un état de base de données connu et vide, validant ainsi la cohérence des données persistées et la correction des requêtes Prisma générées.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Écrire des tests pour 'AuthService' vérifiant que la méthode 'register' hash correctement le mot de passe avec bcrypt et que la méthode 'login' génère un JWT valide avec les claims appropriés.",
+        "Développer des tests pour 'TaskService' qui valident la création d'une tâche ('POST') avec une relation correcte vers une catégorie existante et la mise à jour du statut ('PUT') de 'PENDING' à 'COMPLETED'.",
+        "Créer des tests pour 'StatsService' qui exécutent la requête d'agrégation et vérifient que le taux de complétion par catégorie est calculé correctement (ex: 2 tâches complétées sur 4 = 50%).",
+        "Implémenter des hooks 'beforeEach' et 'afterEach' pour vider les tables ('users', 'categories', 'tasks') et insérer des données de test spécifiques à chaque cas de test pour garantir l'indépendance des tests."
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Rédaction des Tests d'Intégration des Contrôleurs REST (Routes API)",
+      "description": "Cette tâche vise à tester les endpoints RESTful exposés par le contrôleur Express, en simulant des requêtes HTTP réelles via Supertest. L'objectif est de valider le contrat d'API, y compris les codes de statut HTTP (200, 201, 400, 401, 404), la structure des réponses JSON, et la validation des entrées via Joi. Les tests doivent couvrir les cas nominaux (création réussie d'une tâche via 'POST /api/tasks') et les cas d'erreur (requête non autorisée sans token JWT, validation Joi échouée pour un titre de tâche vide). Cette couche de test assure que l'interface publique de l'API se comporte exactement comme spécifié dans le rapport d'architecture, protégeant ainsi les clients frontend contre les régressions contractuelles.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Tester la route 'POST /api/auth/register' en envoyant un payload valide et en vérifiant la réponse 201 ainsi que la présence du token JWT dans le corps de la réponse.",
+        "Tester la route 'GET /api/tasks' avec des filtres spécifiques (ex: 'status=COMPLETED') et vérifier que la liste retournée ne contient que les tâches correspondant au filtre et appartenant à l'utilisateur authentifié.",
+        "Valider la sécurité des routes protégées en testant 'GET /api/categories' sans header 'Authorization' et en s'assurant que la réponse est un 401 Unauthorized.",
+        "Tester la validation Joi sur la route 'POST /api/tasks' en envoyant un payload manquant le champ obligatoire ('title') et en vérifiant la réponse 400 Bad Request avec un message d'erreur clair."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Tests Unitaires Java avec JUnit et Mockito (VoteService & SessionService)",
+      "description": "Cette tâche consiste à concevoir et rédiger des tests unitaires rigorosos pour les services métiers Java de l'application LivePoll, en l'occurrence `VoteService` et `SessionService`. L'objectif est de valider la logique métier pure en isolant chaque service de ses dépendances externes comme les repositories JPA ou le template WebSocket `SimpMessagingTemplate`. Les tests doivent s'assurer que le système applique correctement les règles métiers critiques, telles que l'empêchement des votes multiples pour un même participant dans une question donnée via une contrainte d'unicité logique sur la paire (`voter_id`, `question_id` via `option_id`), et que la génération des codes PIN aléatoires pour la table `sessions` est robuste et unique. L'utilisation de mocks permet de simuler les comportements des repositories sans coûts de base de données réels.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Rédiger des tests unitaires pour la méthode `submitVote` de la classe `VoteService` en mockant les repositories JPA associés aux tables `votes`, `options`, et `questions` pour vérifier l'incrémentation correcte des votes et la détection des doublons sur les colonnes `voter_id` et `option_id`.",
+        "Simuler l'appel du `SimpMessagingTemplate` dans la classe `VoteService` lors de la soumission d'un vote, et assertions sur l'envoi d'un message STOMP vers le topic `/topic/polls/{pollId}/results` contenant les données de pourcentage mises à jour.",
+        "Développer des scénarios de test pour la classe `SessionService` afin de valider la création de nouvelles instances dans la table `sessions` avec une génération robuste du champ `pin_code` et la gestion des transitions d'états de la colonne `status` (par exemple, passage de 'ACTIVE' à 'CLOSED').",
+        "Écrire des cas de test négatifs pour le service `VoteService` afin de s'assurer que la couche de gestion des erreurs déclenche correctement des exceptions métier personnalisées lors de tentatives de vote sur des options ou des sessions inexistantes ou fermées dans la table `sessions`."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Tests d'Intégration API REST (Spring Boot & MockMvc / TestRestTemplate)",
+      "description": "Cette tâche porte sur l'implémentation de tests d'intégration pour l'ensemble des contrôleurs REST exposés par l'application Java Spring Boot, couvrant les endpoints de gestion des sessions, des polls, des questions et des votes. Le but est de valider le flux complet d'une requête HTTP (de la désérialisation JSON à la persistance JPA et à la sérialisation de la réponse) en utilisant une base de données en mémoire (H2) ou des conteneurs Testcontainers pour PostgreSQL. Les tests vérifieront les statuts HTTP retournés, la validation des entrées JSON, et la cohérence des schémas relationnels pour les tables `sessions`, `polls`, `questions`, `options`, et `votes`. Cette couche de test garantit que le frontend React pourra échanger des métadonnées de manière fiable avec le backend.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Configurer l'environnement de test Spring Boot avec une base de données H2 reproduisant le schéma relationnel de la table `sessions` et écrire des tests d'intégration pour la route `POST /api/sessions` en utilisant MockMvc pour valider la création d'une session et la persistance du `pin_code` unique.",
+        "Implémenter des tests d'intégration HTTP complets pour la route `POST /api/votes` en utilisant `TestRestTemplate` pour envoyer des requêtes JSON contenant le `voter_id` et l'`option_id`, puis vérifier la persistance des données dans la table `votes` et le statut de réponse HTTP 201 attendu.",
+        "Développer des scénarios de test pour la route `GET /api/polls/{pollId}/questions` afin de valider la récupération correcte des questions associées à un poll et de leurs options respectives depuis les tables `questions` et `options` via la clé étrangère `question_id`.",
+        "Rédiger des tests de validation de formules et de gestion d'erreurs sur la route `POST /api/polls` en envoyant des JSON invalides (manquant le champ `title` ou `session_id`) pour s'assurer que le contrôleur renvoie un HTTP 400 avec des messages d'erreur structurés."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Tests d'Intégration WebSocket STOMP (Spring WebSocket & SimpMessagingTemplate)",
+      "description": "Cette tâche est dédiée à la validation de l'architecture de communication en temps réel basée sur le protocole STOMP via Spring WebSocket. L'objectif est de tester l'intégrité de la diffusion instantanée des résultats de vote aux clients connectés (le frontend React) suite à un événement de vote. Nous allons configurer des clients de test STOMP pour s'abonner au topic dynamique `/topic/polls/{pollId}/results` et vérifier que la structure JSON des messages de mise à jour (contenant les pourcentages calculés pour chaque option) est correctement diffusée par le `WebSocketBroker` lorsque le `VoteService` déclenche la mise à jour. Cela assure la fiabilité du mécanisme de rafraîchissement dynamique des graphiques sans rafraîchissement de page.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Écrire un test d'intégration configurant un client STOMP pour se connecter au broker Spring et s'abonner à la destination `/topic/polls/{pollId}/results` afin de vérifier la bonne initialisation de la session WebSocket.",
+        "Simuler la soumission d'un vote via le service `VoteService` et déclencher l'envoi d'un message de mise à jour via le `SimpMessagingTemplate`, puis assertions sur la réception en temps réel d'un message contenant les clés JSON des options de vote de la table `options` et leurs pourcentages respectifs.",
+        "Valider la structure interne du payload JSON transmis sur le topic `/topic/polls/{pollId}/results` pour s'assurer qu'il contient les identifiants uniques des options (`id`) et leurs libellés (`text`) nécessaires à la mise à jour du graphique frontend.",
+        "Tester les mécanismes de sécurité et d'interception du handshake WebSocket pour valider que les sessions sont correctement identifiées et associées au `voter_id` lors de la connexion au broker de messages."
+      ]
+    }
+  ]
+}

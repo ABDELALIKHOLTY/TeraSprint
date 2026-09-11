@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Initialisation du Monorepo et Configuration des Outils de Développement (Docker Compose, Linting, Formatting)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche constitue le socle fondamental du projet ERP Logistique. Elle consiste à initialiser un monorepo structuré (par exemple via Nx ou Turborepo) contenant les workspaces 'frontend', 'backend', et 'shared' (pour les types TypeScript et schémas Zod partagés). L'objectif est de garantir un environnement reproductible pour toute l'équipe grâce à Docker Compose (orchestrant PostgreSQL 16 avec extension PostGIS, Redis 7, et MinIO), et de standardiser la qualité du code via ESLint, Prettier, Husky (pre-commit hooks) et Commitlint (Conventional Commits). Cette configuration assure que chaque développeur, en lançant une seule commande ('make up' ou 'docker-compose up'), dispose d'une stack technique identique à celle de production, éliminant ainsi les bugs liés aux différences d'environnement et facilitant l'onboarding de nouveaux collaborateurs.",
+      "subtasks": [
+        "Initialiser le monorepo avec workspaces ('frontend', 'backend', 'shared') en utilisant Nx ou Turborepo, et configurer le 'package.json' racine avec les scripts globaux (lint, format, test, build)",
+        "Créer le fichier 'docker-compose.yml' définissant les services 'postgres' (image 'postgis/postgis:16-3.4' avec volume persistant et healthcheck), 'redis' (image 'redis:7-alpine'), 'minio' (image 'minio/minio' avec buckets 'erp-files' et 'erp-backups') et 'mailhog' pour les tests d'emails",
+        "Configurer ESLint avec les plugins TypeScript, React, et NestJS, Prettier avec un fichier '.prettierrc' partagé, et Husky pour exécuter les hooks pre-commit (lint-staged) et commit-msg (Commitlint)",
+        "Mettre en place un fichier '.editorconfig', un '.gitignore' exhaustif (couvrant 'node_modules', 'dist', '.env', 'coverage', '*.log'), et un '.nvmrc' épinglant la version Node.js 20 LTS pour homogénéiser l'exécution"
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Bootstrap Backend NestJS avec Prisma, PostGIS et Configuration Environnement (.env, ConfigModule)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche vise à mettre en place le squelette du backend Node.js avec NestJS 10+ et l'ORM Prisma connecté à PostgreSQL 16+PostGIS. Elle inclut la configuration du '@nestjs/config' avec validation de schéma via Joi (pour garantir qu'aucune variable d'environnement critique ne soit manquante), l'installation des dépendances clés (Passport JWT, class-validator, Swagger, Socket.IO, Schedule), et la mise en place de la première migration Prisma incluant les modèles principaux ('User', 'Role', 'Warehouse', 'Zone', 'Product', 'Category', 'Supplier', 'Customer', 'Order', 'OrderItem', 'InventoryItem', 'StockMovement', 'Shipment', 'ShipmentItem', 'Driver', 'Vehicle', 'GpsPosition', 'DeliveryRoute', 'Address', 'AuditLog'). L'activation manuelle de l'extension PostGIS et la définition des champs géospatiaux ('GEOGRAPHY(POINT)' et 'GEOGRAPHY(POLYGON)') avec index GIST sont critiques pour les futures fonctionnalités de tracking GPS et de géofencing.",
+      "subtasks": [
+        "Initialiser le projet NestJS ('nest new backend') avec TypeScript strict, installer Prisma ('@prisma/client', 'prisma') et configurer 'schema.prisma' avec le provider 'postgresql' et l'URL depuis 'DATABASE_URL'",
+        "Activer l'extension PostGIS via une migration SQL initiale ('CREATE EXTENSION IF NOT EXISTS postgis;') et définir dans 'schema.prisma' les types géospatiaux natifs pour les champs 'warehouses.location', 'zones.boundary', 'gps_positions.coords' et 'addresses.coords' avec index GIST",
+        "Configurer le '@nestjs/config' avec validation Joi (schéma 'env.schema.ts' validant 'JWT_SECRET', 'JWT_EXPIRES_IN', 'REDIS_HOST', 'MINIO_ENDPOINT', 'SMTP_HOST', etc.) et créer les fichiers '.env', '.env.example', et '.env.test' distincts par environnement",
+        "Installer et configurer Swagger via '@nestjs/swagger' (endpoint '/api/docs' avec Bearer Auth), installer '@nestjs/throttler' pour le rate limiting, 'helmet' pour les headers de sécurité, et 'class-validator/class-transformer' activés globalement via 'ValidationPipe' avec 'whitelist: true' et 'transform: true'"
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Bootstrap Frontend React+Vite, Pipeline CI/CD GitHub Actions et Pipeline de Tests (Vitest, Playwright)",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "description": "Cette tâche établit le socle technique du frontend React 18+ avec Vite et TypeScript, et met en place la chaîne d'intégration continue (CI/CD) sur GitHub Actions. Elle couvre l'installation de Redux Toolkit et RTK Query (avec configuration du store, du slice 'auth', et de l'API de base vers '/api/v1'), l'intégration de React Router v6, la configuration de l'UI Library (MUI v5 ou Ant Design) avec un thème personnalisé ERP (couleurs logistiques), et l'installation des outils de cartographie (Leaflet + React-Leaflet) et graphiques (Recharts). La pipeline CI exécute lint (ESLint), type-check (tsc --noEmit), tests unitaires (Vitest avec coverage minimum 70%), build de production Vite, et analyse de sécurité (npm audit). Pour le déploiement (CD), elle prépare la conteneurisation Docker multi-stage et le déploiement sur Kubernetes via Helm, garantissant ainsi un cycle de livraison fiable et automatisé pour toute l'équipe.",
+      "subtasks": [
+        "Initialiser le projet Vite+React+TypeScript ('npm create vite@latest frontend -- --template react-ts'), configurer 'tsconfig.json' avec 'strict: true', 'noUncheckedIndexedAccess: true', et 'paths' (alias '@/*' vers 'src/*'), et installer Redux Toolkit, React Router v6, MUI v5 et React Hook Form + Zod",
+        "Configurer Vitest avec jsdom ('vitest.config.ts'), ajouter les dépendances '@testing-library/react', '@testing-library/jest-dom', et créer un test smoke vérifiant le rendu du composant racine 'App.tsx' et du provider Redux 'Provider'",
+        "Créer le workflow GitHub Actions '.github/workflows/ci.yml' avec jobs parallélisés 'lint' (ESLint), 'typecheck' (tsc), 'test-frontend' (Vitest avec upload coverage Codecov), 'test-backend' (Jest + Supertest avec PostgreSQL service container), 'build' (Docker buildx multi-stage), et exécution uniquement sur branches 'main', 'develop' et PR",
+        "Créer le 'Dockerfile' multi-stage du frontend (étape 'build' avec Node 20 Alpine, étape 'serve' avec NGINX Alpine incluant config SPA 'try_files $uri $uri/ /index.html'), le chart Helm 'helm/erp-frontend' (templates 'deployment.yaml', 'service.yaml', 'ingress.yaml' avec annotations Let's Encrypt), et le workflow CD '.github/workflows/deploy.yml' déclenché sur tag 'v*' avec déploiement rolling-update sur cluster Kubernetes"
+      ]
+    }
+  ]
+}

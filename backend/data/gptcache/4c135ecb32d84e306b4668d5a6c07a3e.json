@@ -1,0 +1,51 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Implémentation des modules NestJS d'authentification, utilisateurs, rôles et entrepôts (Auth, Users, Roles, Warehouses)",
+      "description": "Cette tâche couvre la mise en place du socle fondamental du backend NestJS, à savoir l'authentification JWT (Access + Refresh), la gestion des utilisateurs et des rôles (RBAC), ainsi que la gestion des entrepôts. L'objectif est de poser les briques de sécurité (guards, décorateurs) et d'accès multi-sites qui seront réutilisées par tous les autres modules métier. On s'appuiera sur Passport.js, class-validator/class-transformer, et la structure modulaire de NestJS pour garantir une injection de dépendances propre, une validation stricte des DTOs et une séparation claire des responsabilités (Controller / Service / Repository). Cette étape est critique car elle conditionne la sécurité globale de l'ERP et l'isolation des données par rôle et par site logistique.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le module 'AuthModule' avec les endpoints 'POST /api/v1/auth/login', 'POST /api/v1/auth/refresh', 'POST /api/v1/auth/logout' et 'POST /api/v1/auth/register', en implémentant la stratégie Passport JWT avec access token (15 min) et refresh token (7 jours) stocké en cookie HttpOnly Secure, et en hachant les mots de passe avec Argon2 ou Bcrypt.",
+        "Implémenter le 'UsersModule' exposant les routes CRUD 'GET/POST/PATCH/DELETE /api/v1/users' avec pagination, tri et filtrage, en mappant la table 'users' (colonnes 'id' UUID, 'email', 'password_hash', 'role_id', 'is_active', 'created_at') et en validant chaque DTO avec les décorateurs @IsEmail, @IsString, @IsUUID de class-validator.",
+        "Implémenter le 'RolesModule' avec l'entité 'Role' (colonnes 'id', 'name' unique, 'permissions' JSONB) et le décorateur personnalisé @Roles() couplé au 'RolesGuard' qui vérifie l'appartenance du rôle de l'utilisateur courant (récupéré via @CurrentUser()) aux rôles autorisés sur la route, en s'appuyant sur un Reflector pour lire les métadonnées.",
+        "Implémenter le 'WarehousesModule' avec la route 'GET /api/v1/warehouses' et 'GET /api/v1/warehouses/:id/inventory' en gérant la table 'warehouses' (colonnes 'id' UUID, 'name', 'address_id', 'manager_id', 'location' GEOGRAPHY(POINT) PostGIS) ainsi que la table de jonction 'users_warehouses' pour les droits d'accès multi-sites via un WarehouseAccessGuard personnalisé.",
+        "Configurer les pipes globaux de validation (ValidationPipe avec whitelist, forbidNonWhitelisted, transform), les filtres d'exception globaux (HttpExceptionFilter), l'intercepteur de logging des requêtes, ainsi que la configuration Swagger via @nestjs/swagger avec les bearer auth et les schémas de DTOs documentés sur la route '/api/docs'."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Développement des modules métier Inventaire, Produits, Commandes (Inventory, Products, Orders) avec services transactionnels",
+      "description": "Cette tâche implémente le cœur métier de l'ERP logistique : la gestion du catalogue produits et catégories, la gestion des stocks (réservations, mouvements, transferts inter-entrepôts) et le workflow complet de commande client. L'objectif est de garantir la cohérence transactionnelle des opérations de stock via des transactions Prisma/TypeORM et l'usage de verrous pessimistes ou d'une gestion optimiste par version. Le OrderService implémente la machine d'état de la commande (draft → confirmed → shipped → delivered) tandis que l'InventoryService gère la réservation atomique du stock lors de la confirmation pour éviter les surventes. Les routes doivent être protégées par RBAC et audit-loguées pour toute action critique (mouvement de stock, changement de statut commande).",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Implémenter le 'ProductsModule' avec les routes 'GET/POST /api/v1/products' et 'GET /api/v1/products/:id/stock' en gérant les tables 'products' (colonnes 'id', 'sku' unique, 'name', 'category_id', 'supplier_id', 'unit_price', 'weight_kg'), 'categories' (auto-référentielle avec 'parent_id') et 'suppliers' avec leurs DTOs de création/ mise à jour validés par class-validator.",
+        "Implémenter le 'InventoryModule' exposant 'GET /api/v1/inventory/stock', 'POST /api/v1/inventory/movements' et 'POST /api/v1/inventory/transfers' avec le 'InventoryService' qui orchestre des transactions Prisma atomiques sur les tables 'inventory_items' (colonnes 'id', 'product_id', 'warehouse_id', 'zone_id', 'quantity', 'reserved_quantity', 'version') et 'stock_movements' (colonnes 'id', 'product_id', 'from_warehouse_id', 'to_warehouse_id', 'quantity', 'movement_type' ENUM, 'user_id', 'created_at') afin d'éviter toute incohérence de stock.",
+        "Implémenter la logique de réservation de stock dans 'InventoryService.reserve(orderId, items)' qui décrémente 'available_quantity' et incrémente 'reserved_quantity' sur 'inventory_items' dans une transaction sérialisable, avec rollback complet en cas d'échec et levée d'une exception InsufficientStockException si la quantité disponible est insuffisante pour au moins un 'product_id'.",
+        "Implémenter le 'OrdersModule' avec les routes 'GET/POST /api/v1/orders' et 'PATCH /api/v1/orders/:id/status' en s'appuyant sur la machine d'état du 'OrderService' (statuts 'draft', 'confirmed', 'preparing', 'shipped', 'delivered', 'cancelled') qui déclenche la réservation de stock à 'confirmed', la génération automatique des 'shipment_items' à 'preparing', et la libération du stock réservé à 'cancelled' via la table 'order_items' (colonnes 'id', 'order_id', 'product_id', 'quantity', 'unit_price').",
+        "Écrire les tests unitaires Jest pour 'InventoryService' (cas de race condition sur stock concurrent) et 'OrderService' (transitions de statut interdites, rollback réservation) ainsi que les tests d'intégration Supertest sur les endpoints 'POST /api/v1/orders' et 'POST /api/v1/inventory/movements' avec une base PostgreSQL de test éphémère."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Implémentation des modules Expéditions, Tracking GPS temps réel, Flotte, Géofencing, Rapports et Notifications (Shipments, Tracking, Fleet, Geo, Reports, Notification)",
+      "description": "Cette tâche finalise le backend en couvrant toute la chaîne aval : planification des expéditions et tournées de livraison, ingestion et diffusion temps réel des positions GPS via WebSocket, gestion de la flotte (véhicules, chauffeurs), calculs géospatiaux PostGIS (distances, polygones de zones, geofencing), génération de rapports KPI et exports, et système de notifications multi-canal. L'enjeu principal est la performance de l'ingestion GPS (table append-only partitionnée par date) et la diffusion efficace aux clients connectés via Socket.IO. Le TrackingService doit être découplé de la persistance via une file d'événements (BullMQ sur Redis) pour absorber les pics d'écriture IoT, tandis que le GeofencingService exploite les index GIST PostGIS pour des requêtes d'intersection (ST_Within, ST_DWithin) à faible latence.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Implémenter le 'ShipmentsModule' avec les routes 'GET/POST /api/v1/shipments' et 'PATCH /api/v1/shipments/:id/assign' en s'appuyant sur la table 'shipments' (colonnes 'id', 'order_id', 'vehicle_id', 'driver_id', 'from_warehouse_id', 'status' ENUM 'planned','in_transit','delivered','cancelled', 'planned_departure', 'planned_arrival') et la table 'shipment_items' (colonnes 'id', 'shipment_id', 'order_item_id', 'quantity'), avec un 'ShipmentService' qui calcule le trajet optimal via PostGIS 'ST_Distance' et pgRouting en s'appuyant sur la table 'delivery_routes' (colonnes 'id', 'shipment_id', 'waypoints' JSONB, 'distance_km', 'estimated_duration_min').",
+        "Implémenter le 'TrackingModule' avec un 'TrackingGateway' WebSocket (Socket.IO namespace '/tracking') exposant les événements 'joinShipment' (room = shipmentId) et 'positionUpdate' (broadcast aux clients de la room), couplé à une route REST 'POST /api/v1/tracking/positions' qui pousse les coordonnées GPS dans une queue BullMQ (Redis) traitée par un worker dédié écrivant dans la table partitionnée 'gps_positions' (colonnes 'id', 'shipment_id', 'coords' GEOGRAPHY(POINT) avec index GIST, 'speed_kmh', 'heading', 'recorded_at') pour absorber les hautes fréquences d'ingestion IoT.",
+        "Implémenter le 'FleetModule' avec les routes CRUD sur 'vehicles' (colonnes 'id', 'plate_number' unique, 'model', 'max_load_kg', 'current_lat', 'current_lng', 'last_position_at') et 'drivers' (colonnes 'id', 'user_id', 'license_number', 'phone'), ainsi que la route 'GET /api/v1/fleet/live' qui agrège la dernière position GPS par véhicule via une vue matérialisée PostgreSQL rafraîchie toutes les 30 secondes par une tâche @Cron du '@nestjs/schedule'.",
+        "Implémenter le 'GeoModule' avec le 'GeofencingService' qui exploite les colonnes PostGIS 'warehouses.location' (GEOGRAPHY(POINT)) et 'zones.boundary' (GEOGRAPHY(POLYGON)) pour détecter via les fonctions SQL 'ST_Within' et 'ST_DWithin' l'entrée ou la sortie d'un véhicule d'une zone d'entrepôt, et publier un événement interne 'geofence.event' écouté par le 'NotificationService' pour alerter les responsables logistique en temps réel.",
+        "Implémenter le 'ReportsModule' (route 'GET /api/v1/reports/kpi' retournant des agrégats sur 'orders', 'shipments', 'inventory_items' via des requêtes SQL groupées sur les 7/30/90 derniers jours) et le 'GET /api/v1/reports/export' générant des fichiers CSV/Excel streamed via 'StreamableFile' de NestJS, ainsi que le 'NotificationService' multi-canal (email via Nodemailer, SMS via Twilio, push via Firebase Cloud Messaging) déclenché sur les événements 'low_stock', 'shipment_delayed' (cron comparant 'planned_arrival' à now()) et 'geofence_violation', le tout historisé dans la table 'notifications' (colonnes 'id', 'user_id', 'channel', 'payload' JSONB, 'sent_at')."
+      ]
+    }
+  ]
+}
+```

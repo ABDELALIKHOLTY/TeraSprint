@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Configuration du conteneurisation Docker et orchestration Docker Compose",
+      "description": "Cette tâche consiste à établir l'infrastructure de conteneurisation pour l'application de gestion de tâches en utilisant Docker et Docker Compose. L'objectif est de créer un environnement de développement reproductible qui isole les services Backend (Node.js/Express), Frontend (React) et la Base de Données (PostgreSQL). Nous devons définir les fichiers Dockerfile pour chaque service afin de gérer les dépendances Node.js, les installations npm et les scripts de build TypeScript, tout en configurant le fichier docker-compose.yml pour orchestrer le démarrage simultané des conteneurs avec les variables d'environnement appropriées pour la connexion à la base de données.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer un fichier 'Dockerfile' pour le service Backend basé sur l'image 'node:18-alpine' en installant les dépendances de production et de développement nécessaires pour le framework Express.js et le compilateur TypeScript.",
+        "Définir un fichier 'Dockerfile' pour le service Frontend basé sur 'node:18-alpine' qui installe les dépendances React.js et configure le script de build pour générer les assets statiques optimisés pour la production.",
+        "Rédiger le fichier 'docker-compose.yml' qui définit les services 'backend', 'frontend' et 'db' (PostgreSQL v14+), en configurant les ports d'exposition (3000, 5173, 5432) et les volumes pour persister les données de la base de données.",
+        "Configurer les variables d'environnement dans le fichier '.env' et les mapper dans 'docker-compose.yml' pour assurer la connexion sécurisée entre le Backend et la base de données PostgreSQL via les identifiants ('POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB')."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Mise en place de l'outillage de linting ESLint et Prettier",
+      "description": "L'objectif de cette tâche est d'intégrer les outils de qualité de code ESLint et Prettier dans les projets Frontend (React/TypeScript) et Backend (Node/TypeScript) pour garantir la cohérence stylistique et détecter les erreurs potentielles. Nous devons configurer les règles strictes de TypeScript, les conventions de nommage et les formats de code pour éviter les conflits lors des revues de code. Cette configuration est essentielle pour maintenir une base de code propre et lisible, en s'assurant que chaque commit respecte les standards définis par l'équipe technique.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 3,
+      "subtasks": [
+        "Installer les paquets 'eslint', 'prettier', '@typescript-eslint/eslint-plugin' et '@typescript-eslint/parser' dans les répertoires 'backend' et 'frontend' via npm pour activer la vérification statique du code TypeScript.",
+        "Créer et configurer le fichier '.eslintrc.json' avec les règles strictes pour TypeScript, en activant les plugins spécifiques à React pour le frontend et à Node.js pour le backend afin de détecter les anti-patterns courants.",
+        "Définir le fichier '.prettierrc' avec des options de formatage standardisées (taille de ligne 100, guillemets simples, point-virgule obligatoire) pour uniformiser la mise en forme du code entre tous les développeurs.",
+        "Ajouter les scripts npm 'lint' et 'format' dans le fichier 'package.json' de chaque service pour permettre l'exécution manuelle ou automatisée de la correction et de la vérification du code avant chaque commit."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Intégration des hooks Git et scripts de pré-commit",
+      "description": "Cette tâche vise à automatiser la vérification de la qualité du code directement dans le flux de travail Git en utilisant des hooks de pré-commit. L'objectif est d'empêcher la soumission de code qui ne respecte pas les règles de linting ou de formatage définies précédemment, assurant ainsi que la branche principale reste toujours dans un état fonctionnel et propre. Nous allons utiliser l'outil 'husky' pour gérer les hooks Git et 'lint-staged' pour n'analyser que les fichiers modifiés, ce qui optimise le temps de validation et améliore l'expérience de développement.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 2,
+      "subtasks": [
+        "Installer les paquets 'husky' et 'lint-staged' dans la racine du projet pour gérer l'exécution des scripts lors des événements Git tels que le 'pre-commit' et le 'commit-msg'.",
+        "Configurer le fichier '.husky/pre-commit' pour exécuter le script 'lint-staged' qui détecte les fichiers TypeScript modifiés et lance les commandes ESLint et Prettier uniquement sur ces fichiers spécifiques.",
+        "Définir la configuration 'lint-staged' dans le fichier 'package.json' ou '.lintstagedrc' pour associer les extensions '.ts' et '.tsx' aux commandes de linting et de formatage appropriées pour chaque type de fichier.",
+        "Tester le processus de commit en introduisant volontairement une erreur de linting pour vérifier que le hook Git bloque la soumission et affiche les erreurs de formatage ou de syntaxe de manière claire et actionnable."
+      ]
+    }
+  ]
+}

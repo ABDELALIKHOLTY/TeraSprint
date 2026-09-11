@@ -1,0 +1,130 @@
+
+
+# Rapport d'Architecture : Application LiveText (Messagerie en Temps Réel)
+
+---
+
+## 1. Setup & Stack Technique
+
+*   **Frontend :** 
+    *   React (bibliothèque UI).
+    *   Vite (environnement de développement et outil de build).
+    *   TailwindCSS (framework CSS utility-first).
+    *   React Router DOM (navigation SPA).
+    *   Axios (client HTTP pour les appels REST).
+    *   `@stomp/stompjs` (client STOMP pour la communication WebSocket).
+*   **Backend :**
+    *   Java (langage de programmation).
+    *   Spring Boot (framework d'application).
+    *   Spring Security (gestion de l'authentification et filtration JWT).
+    *   Spring Web (exposition des endpoints REST).
+    *   Spring Messaging (configuration et support des WebSockets via protocole STOMP).
+    *   Spring Data JPA (couche d'accès aux données, ORM Hibernate).
+*   **Base de Données (BDD) :**
+    *   PostgreSQL (base de données relationnelle SQL).
+*   **Déploiement / DevOps :**
+    *   Docker et Docker Compose (conteneurisation de l'application et de la base de données).
+    *   Maven / Gradle (gestion des dépendances et compilation).
+    *   Serveur web intégré Tomcat (conteneur servlet Spring Boot).
+
+---
+
+## 2. Schéma Relationnel de la Base de Données
+
+Le modèle de données repose sur quatre tables principales structurées autour des entités `users`, `rooms`, `messages` et les relations d'appartenance (`room_members`).
+
+### Tables et Colonnes :
+
+*   **Table `users`**
+    *   `id` : BIGINT, Clé Primaire (auto-généré).
+    *   `username` : VARCHAR(50), Unique, Non Null.
+    *   `email` : VARCHAR(100), Unique, Non Null.
+    *   `password_hash` : VARCHAR(255), Non Null.
+    *   `status` : VARCHAR(20), Valeurs par défaut : `OFFLINE` / `ONLINE`.
+*   **Table `rooms`**
+    *   `id` : BIGINT, Clé Primaire (auto-généré).
+    *   `name` : VARCHAR(100), Non Null.
+    *   `creator_id` : BIGINT, Clé Étrangère vers `users.id`.
+*   **Table `messages`**
+    *   `id` : BIGINT, Clé Primaire (auto-généré).
+    *   `content` : TEXT, Non Null.
+    *   `sent_at` : TIMESTAMP, Valeur par défaut : date/heure actuelle.
+    *   `sender_id` : BIGINT, Clé Étrangère vers `users.id`.
+    *   `room_id` : BIGINT, Clé Étrangère vers `rooms.id`.
+*   **Table `room_members` (Table d'association)**
+    *   `user_id` : BIGINT, Clé Étrangère vers `users.id`.
+    *   `room_id` : BIGINT, Clé Étrangère vers `rooms.id`.
+    *   `joined_at` : TIMESTAMP.
+    *   *Clé Primaire composite :* `(user_id, room_id)`.
+
+### Relations :
+
+*   **Utilisateur et Message (1-N) :** Un utilisateur peut envoyer plusieurs messages. Un message est lié à un unique expéditeur (`sender_id`).
+*   **Salon et Message (1-N) :** Un salon contient plusieurs messages historiques. Un message appartient à un unique salon (`room_id`).
+*   **Utilisateur et Salon (N-N via `room_members`) :** Un utilisateur peut rejoindre plusieurs salons ; un salon peut contenir plusieurs membres.
+*   **Utilisateur et Salon (1-N via `rooms.creator_id`) :** Un utilisateur peut créer plusieurs salons ; chaque salon est lié à un créateur unique.
+
+---
+
+## 3. Architecture Backend & APIs
+
+L'architecture backend repose sur une exposition de services REST couplée à un bus de messages en temps réel STOMP.
+
+### API REST (HTTP/JSON)
+
+*   **Groupe d'authentification (`/api/v1/auth`) :**
+    *   `POST /register` : Création d'un compte utilisateur.
+    *   `POST /login` : Authentification, génération et retour d'un token JWT.
+*   **Groupe utilisateur (`/api/v1/users`) :**
+    *   `GET /{id}` : Récupération du profil d'un utilisateur.
+    *   `GET /online` : Récupération de la liste des utilisateurs actuellement en ligne.
+*   **Groupe salon (`/api/v1/rooms`) :**
+    *   `GET /` : Liste des salons publics.
+    *   `POST /` : Création d'un nouveau salon.
+    *   `GET /{roomId}` : Détails d'un salon (membres, métadonnées).
+*   **Groupe message (`/api/v1/messages`) :**
+    *   `GET /room/{roomId}/messages` : Récupération paginée de l'historique des messages d'un salon.
+
+### API Temps Réel (WebSocket / STOMP)
+
+*   **Endpoint de connexion :** `/ws` (avec fallback SockJS).
+*   **Configuration Broker :** Utilisation d'un broker interne `/topic` pour la diffusion publique.
+*   **Destinations de messages :**
+    *   *Envoi (Input) :* `/app/chat.send` (Le client envoie un message pour un salon).
+    *   *Diffusion (Output) :* `/topic/rooms/{roomId}` (Broadcasting d'un message à tous les abonnés du salon).
+    *   *Présence (Output) :* `/topic/users.status` (Diffusion globale des mises à jour de statut online/offline).
+
+### Composants Java (Packages et Classes)
+
+*   `Controllers (REST) :` `AuthController`, `RoomController`, `MessageController`, `UserController`.
+*   `WebSocket Controller :` `ChatController` (méthodes annotées `@MessageMapping` pour la réception temps réel).
+*   `Services :` `AuthService`, `UserService`, `RoomService`, `MessageService`, `PresenceService` (gestion du statut en ligne).
+*   `Security :` `SecurityFilterChain` (chaîne de filtres JWT), `JwtTokenProvider` (validation et génération de token).
+
+---
+
+## 4. Architecture Frontend et Intégration
+
+L'application frontest une Single Page Application (SPA) structurée de manière modulaire, synchronisée en temps réel avec le backend.
+
+### Outils UI et Structure
+
+*   **Composants UI :** React fonctionnelle avec hooks, styling global par TailwindCSS.
+*   **Routage :** React Router DOM pour la séparation des vues (`/login`, `/rooms`, `/rooms/:roomId`).
+*   **Gestion d'état :** Context API ou Redux Toolkit pour le stockage global (token, liste des salons, messages en cache, statut des utilisateurs).
+
+### Sécurité et Authentification
+
+*   **Transport du JWT :** Stockage du token dans le `localStorage` ou `memory` du navigateur.
+*   **Intercepteur HTTP :** Axios intercepteur de requêtes injectant l'en-tête `Authorization: Bearer {token}` sur les appels REST protégés.
+*   **Authentification WebSocket :** Transmission du JWT via les en-têtes de connexion ou paramètres de query string lors de la connexion STOMP (`connectHeaders`).
+
+### Mécanismes de Communication
+
+*   **Appels REST (Axios) :**
+    *   Utilisés pour les opérations synchrones : authentification, création de salon, récupération de l'historique des messages (au chargement de la page).
+*   **Communication en Temps Réel (STOMP via `@stomp/stompjs`) :**
+    *   Le client initialise une socket persistante vers le serveur Java.
+    *   *Abonnements actifs :*
+        *   Abonnement au topic `/topic/rooms/{roomId}` pour l'affichage instantané des nouveaux messages sans rechargement.
+        *   Abonnement aux mises à jour de statut des utilisateurs pour l'affichage visuel des indicateurs de connexion (points vert/rouge).

@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "CAR-101",
+      "title": "Développement UI - Page de connexion (React, Material‑UI, Redux Toolkit)",
+      "description": "Cette tâche vise à implémenter la première interface utilisateur de l'application Desktop de location de voiture, permettant aux utilisateurs de s'authentifier de manière sécurisée. Elle combine React pour la logique de rendu, Material‑UI pour le design cohérent et Redux Toolkit pour la gestion centralisée du token JWT. Le résultat doit garantir une expérience fluide, une validation côté client robuste et une intégration transparente avec le backend via la route d'authentification. La mise en place du store et des actions Redux est également cruciale pour propager l'état d'authentification à travers toute l'application Electron.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Configurer le store Redux avec le slice ('authSlice') contenant les champs ('token'), ('user'), ('status'), en utilisant createSlice de Redux Toolkit et en ajoutant le middleware thunk pour les appels asynchrones d'authentification.",
+        "Créer le composant fonctionnel React 'LoginPage' en utilisant les composants MUI (Box, TextField, Button, Alert) et appliquer le thème global, en veillant à gérer les états locaux pour les champs email et password.",
+        "Implémenter la logique d’appel API avec Axios vers la route ('POST /api/auth/login'), en incluant le corps JSON contenant ('email') et ('password'), gérer les réponses success et error, et dispatcher les actions Redux appropriées pour stocker le JWT dans le cookie HttpOnly via Electron session.",
+        "Ajouter la validation côté client avec Yup et Formik, afficher les messages d’erreur détaillés sous chaque champ, et écrire des tests unitaires avec Jest + React Testing Library pour vérifier le rendu, la validation et le dispatch des actions Redux."
+      ]
+    },
+    {
+      "id": "CAR-102",
+      "title": "Développement UI - Catalogue de voitures (React, Material‑UI, Redux Toolkit)",
+      "description": "Cette tâche consiste à créer l'écran principal où les utilisateurs peuvent parcourir, filtrer et sélectionner les véhicules disponibles. Le catalogue doit être réactif, exploiter le composant DataGrid de Material‑UI pour une présentation tabulaire riche, et être alimenté par le slice Redux dédié aux voitures. Les appels au backend se font via la route d'obtention des voitures, avec prise en charge de la pagination et du filtrage côté serveur. L'objectif est de fournir une interface intuitive, performante et testée, prête à être intégrée dans le flux de réservation.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Définir le slice Redux ('carsSlice') contenant les propriétés ('list'), ('loading'), ('error'), créer les thunks async pour récupérer les données depuis la route ('GET /api/cars') via Axios, et gérer la mise à jour du state en fonction des actions pending/fulfilled/rejected.",
+        "Concevoir le composant 'CarCatalog' qui utilise le composant MUI DataGrid pour afficher les colonnes ('make'), ('model'), ('year'), ('daily_rate'), ('status'), en ajoutant la pagination, le tri et le filtrage côté client, tout en respectant le design responsive de l'application.",
+        "Implémenter un système de recherche avancée avec des champs MUI TextField et Select permettant de filtrer par ('status') et ('city') en appelant la route ('GET /api/cars?status=available&city=Paris'), et synchroniser les paramètres de recherche avec l’URL via React Router v6.",
+        "Écrire des tests d’intégration avec Jest + React Testing Library pour vérifier que le composant charge les données, affiche correctement les lignes du tableau, gère les états de chargement et d’erreur, et que les actions Redux sont correctement dispatchées."
+      ]
+    },
+    {
+      "id": "CAR-103",
+      "title": "Développement UI - Formulaire de location (React, Material‑UI, Redux Toolkit)",
+      "description": "Cette tâche porte sur la création du formulaire qui permet à l'utilisateur de réserver un véhicule, de choisir les dates et de visualiser le prix total. Le formulaire utilise les composants Material‑UI avancés comme DatePicker et Dialog, et s'appuie sur le slice Redux dédié aux locations pour gérer l'état de la réservation en cours. Les données sont envoyées au backend via la route de création de location, avec validation stricte et retour d'information en temps réel. Des tests complets garantissent la robustesse du flux de réservation avant l'intégration finale.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le slice Redux ('rentalSlice') avec les champs ('currentRental'), ('status'), ('error'), ajouter un thunk async qui envoie les données du formulaire vers la route ('POST /api/rentals') via Axios, et gérer la mise à jour du state après création réussie.",
+        "Développer le composant fonctionnel 'RentalForm' en utilisant MUI Dialog, TextField, DatePicker (MUI Lab) et Select pour choisir le véhicule (populé depuis le slice 'carsSlice'), les dates de début et fin, et calculer le prix total en temps réel en multipliant ('daily_rate') par le nombre de jours sélectionnés.",
+        "Intégrer la validation du formulaire avec Yup, afficher les messages d’erreur sous chaque champ, désactiver le bouton de soumission tant que le formulaire n’est pas valide, et déclencher le dispatch de l’action Redux pour créer la location lorsqu’on clique sur le bouton 'Confirmer'.",
+        "Ajouter des tests end‑to‑end (Jest + React Testing Library) qui simulent la saisie d’un utilisateur, la sélection d’une voiture, la soumission du formulaire, et vérifient que la requête POST est bien appelée, que le state Redux est mis à jour et que la navigation vers la page 'Dashboard' s’effectue."
+      ]
+    }
+  ]
+}

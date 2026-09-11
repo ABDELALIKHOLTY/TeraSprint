@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Développement API REST (NestJS) – Catalog (Products, Categories, Variants, Tags, Images, 3D Models)",
+      "description": "Cette tâche consiste à concevoir et implémenter les contrôleurs NestJS qui exposent les endpoints REST nécessaires à la gestion complète du catalogue de produits. Elle inclut la création de routes pour les entités principales (products, categories, product_variants, product_tags, product_images, product_3d_models) ainsi que la mise en place de la logique de validation, de pagination, de filtrage et de gestion des erreurs. L’objectif est de fournir une API robuste, sécurisée et conforme aux normes REST, tout en intégrant Prisma ORM pour les opérations de base de données sur les tables (products), (categories), (product_variants), (product_tags), (product_images), (product_3d_models).",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le contrôleur 'ProductController' avec les routes REST (GET /api/products, POST /api/products, GET /api/products/:id, PATCH /api/products/:id, DELETE /api/products/:id) en utilisant les DTOs de création et de mise à jour, en appliquant les pipes de validation et en injectant le 'ProductService' qui interagit avec la table ('products') via Prisma.",
+        "Développer le contrôleur 'CategoryController' pour gérer les catégories, en exposant les routes (GET /api/categories, POST /api/categories, GET /api/categories/:id, PATCH /api/categories/:id, DELETE /api/categories/:id) et en assurant la liaison N‑N avec la table ('product_categories') pour l’affectation des produits aux catégories.",
+        "Implémenter le contrôleur 'VariantController' afin de gérer les variantes de produit, en créant les endpoints (GET /api/products/:productId/variants, POST /api/products/:productId/variants, PATCH /api/products/:productId/variants/:id, DELETE /api/products/:productId/variants/:id) et en manipulant la table ('product_variants') avec les champs ('id'), ('product_id'), ('sku'), ('price'), ('stock_quantity').",
+        "Ajouter le contrôleur 'AssetController' pour les images et modèles 3D, en exposant les routes (GET /api/products/:productId/images, POST /api/products/:productId/images, DELETE /api/products/:productId/images/:id, GET /api/products/:productId/models, POST /api/products/:productId/models, DELETE /api/products/:productId/models/:id) et en intégrant le stockage S3 ou un service de fichiers, tout en mettant à jour les tables ('product_images') et ('product_3d_models') avec les champs ('id'), ('product_id'), ('url'), ('type')."
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Développement API REST (NestJS) – Cart (Add/Remove items, checkout)",
+      "description": "Cette tâche vise à créer les endpoints REST qui permettent aux utilisateurs d’interagir avec leur panier en temps réel. Elle comprend la gestion de la table ('carts') liée à la table ('users'), la table ('cart_items') associée aux variantes de produit, ainsi que la logique de validation des quantités et de mise à jour du stock. Les routes exposées permettront d’ajouter, modifier, supprimer des éléments et de lancer le processus de checkout, tout en garantissant la sécurité via des guards JWT et la cohérence des données.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le contrôleur 'CartController' avec la route (GET /api/carts/:userId) qui récupère le panier actif en jointure avec la table ('cart_items') et les champs ('product_variant_id'), ('quantity') pour afficher le contenu du panier à l’utilisateur.",
+        "Développer la route (POST /api/carts/:userId/items) qui accepte un payload contenant ('product_variant_id') et ('quantity'), vérifie la disponibilité via la table ('product_variants') et ajoute ou incrémente l’entrée dans la table ('cart_items') tout en appliquant les DTOs de validation et en renvoyant le panier mis à jour.",
+        "Implémenter la route (PATCH /api/carts/:userId/items/:itemId) pour modifier la quantité d’un article dans le panier, en vérifiant la disponibilité, en mettant à jour le champ ('quantity') dans la table ('cart_items') et en retournant le panier recalculé.",
+        "Ajouter la route (POST /api/carts/:userId/checkout) qui déclenche la création d’une commande, génère un enregistrement dans la table ('orders') et les lignes correspondantes dans la table ('order_items'), puis vide le panier en supprimant les entrées de la table ('cart_items') tout en appliquant une transaction Prisma pour garantir l’intégrité des données."
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Développement API REST (NestJS) – Order (Create, status, history)",
+      "description": "Cette tâche consiste à concevoir les endpoints REST qui permettent aux utilisateurs de créer des commandes, de suivre leur statut et d’accéder à l’historique des commandes. Elle inclut la gestion des tables ('orders'), ('order_items'), ('payments'), ('shipping_addresses') et la mise en place de la logique de mise à jour du statut via des enums. Les routes exposées doivent être sécurisées, documentées et compatibles avec le service de paiement Stripe/PayPal.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le contrôleur 'OrderController' avec la route (POST /api/orders) qui accepte un payload contenant ('user_id'), ('shipping_address_id'), ('payment_method'), ('items') et qui crée une entrée dans la table ('orders') avec le champ ('status') initialisé à 'PENDING', puis insère les lignes correspondantes dans la table ('order_items') en utilisant Prisma.",
+        "Développer la route (GET /api/orders/:id) qui récupère une commande détaillée en jointure avec les tables ('order_items'), ('product_variants'), ('shipping_addresses') et renvoie le statut actuel, les informations de paiement et le contenu complet de la commande.",
+        "Implémenter la route (GET /api/users/:userId/orders) qui retourne la liste paginée des commandes d’un utilisateur, en filtrant par statut et en incluant les champs ('id'), ('created_at'), ('status'), ('total_amount') de la table ('orders').",
+        "Ajouter la route (PATCH /api/orders/:id/status) qui permet aux administrateurs de mettre à jour le champ ('status') d’une commande (ex: 'SHIPPED', 'DELIVERED', 'CANCELLED') en vérifiant les permissions via un guard RBAC et en déclenchant un événement WebSocket via le 'NotificationService' pour informer l’utilisateur."
+      ]
+    }
+  ]
+}

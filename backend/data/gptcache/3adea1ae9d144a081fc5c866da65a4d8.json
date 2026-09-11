@@ -1,0 +1,48 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Configuration du projet Angular, services core et sécurité (Auth, Task, Interceptor, Guard)",
+      "description": "Cette tâche pose les bases techniques de l'application Angular en installant Bootstrap pour le design responsive, en configurant l'environnement de communication avec l'API backend sur le port 8080, et en implémentant les services fondamentaux. Nous allons créer le service `AuthService` pour gérer les endpoints d'authentification ('POST /api/auth/register' et 'POST /api/auth/login') tout en stockant le token JWT dans le 'localStorage' sous la clé ('auth_token'), et le service `TaskService` pour les opérations CRUD sur les attributs de la table ('task') comme ('title', 'description', 'status'). Nous finaliserons avec l'intercepteur HTTP et le garde de route `AuthGuard` pour protéger l'accès.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Initialiser le projet Angular avec la CLI version 16 ou 17, installer Bootstrap pour la mise en page responsive, et configurer le fichier `environment.ts` avec l'URL de base du backend sur le port 8080 ('http://localhost:4000' ou 'http://localhost:8080').",
+        "Créer le service `AuthService` pour gérer les appels HTTP vers les routes d'authentification ('POST /api/auth/register' et 'POST /api/auth/login') et stocker le token JWT dans le clé de stockage local ('auth_token').",
+        "Développer le service `TaskService` pour exécuter les opérations CRUD sur l'endpoint ('/api/tasks') en gérant les attributs de l'entité ('title', 'description', 'status').",
+        "Implémenter l'intercepteur HTTP `AuthInterceptor` pour injecter l'en-tête d'autorisation ('Authorization: Bearer <token>') et le garde de route `AuthGuard` pour protéger l'accès à la route ('/tasks')."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Développement des composants de compte 'LoginComponent' et 'RegisterComponent' avec formulaires Bootstrap",
+      "description": "Cette tâche consiste à concevoir les interfaces utilisateur de gestion des identités de l'utilisateur, à savoir les pages de connexion ('LoginComponent') et d'inscription ('RegisterComponent'). En utilisant les classes CSS de Bootstrap comme ('form-control') et ('card'), nous allons créer des formulaires esthétiques et entièrement responsive pour gérer les attributs de l'entité ('User') tels que ('username', 'email', 'password'). Nous mettrons en place la validation côté client pour garantir la qualité des saisies avant l'envoi des données vers le backend.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 3,
+      "subtasks": [
+        "Créer le template du composant ('LoginComponent') sous forme de carte Bootstrap centrée contenant les champs de saisie ('username') et ('password') avec les classes CSS ('form-control').",
+        "Implémenter la méthode de soumission `onSubmit` dans le composant ('LoginComponent') pour appeler le service d'authentification, stocker le token dans le stockage local ('auth_token'), et rediriger vers la route ('/tasks').",
+        "Développer le composant ('RegisterComponent') avec un formulaire de validation contenant les champs de l'utilisateur ('username', 'email', 'password') et leur confirmation.",
+        "Gérer les erreurs d'inscription (comme l'unicité de l'attribut ('email') de la table ('user')) en affichant un message d'alerte Bootstrap de type ('alert-danger')."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Création des composants 'TaskFormComponent', 'TaskListComponent' et 'NavbarComponent' pour le CRUD visuel",
+      "description": "Cette tâche finalise l'interface utilisateur de gestion des tâches en se concentrant sur l'affichage, la création et la modification des attributs de la tâche ('title', 'description', 'status'). Nous allons concevoir un tableau Bootstrap dynamique de type ('table table-striped') pour lister les tâches de l'utilisateur connecté, un formulaire réutilisable ('TaskFormComponent') avec un select pour le statut ('status') avec les options ('TODO', 'IN_PROGRESS', 'DONE'), et une barre de navigation ('NavbarComponent') pour structurer l'application et gérer la déconnexion sur le port 4200.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Développer le composant réutilisable ('TaskFormComponent') avec des champs de texte pour les attributs ('title') et ('description'), et un menu déroulant pour le statut ('status') avec les options ('TODO', 'IN_PROGRESS', 'DONE').",
+        "Implémenter le composant ('TaskListComponent') pour afficher les tâches de l'utilisateur dans un tableau structuré Bootstrap avec des colonnes pour l'ID, le titre, le statut, et des actions.",
+        "Créer la barre de navigation ('NavbarComponent') avec le titre de l'application, un lien vers la route ('/tasks'), et un bouton de déconnexion qui efface la clé ('auth_token') et redirige vers ('/login').",
+        "Configurer le routage principal dans le module ('AppRoutingModule') pour gérer les chemins ('/tasks', '/tasks/new', '/tasks/edit/:id') avec une redirection par défaut vers ('/tasks') si l'utilisateur est authentifié."
+      ]
+    }
+  ]
+}

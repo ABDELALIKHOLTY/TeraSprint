@@ -1,0 +1,71 @@
+{
+  "tasks": [
+    {
+      "id": "DB-101",
+      "title": "Initialisation PostgreSQL 16 + Extension PostGIS et configuration du schéma de base",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche constitue le socle fondamental de l'US : elle vise à provisionner une instance PostgreSQL 16 robuste avec l'extension PostGIS activée, indispensable pour supporter les colonnes géospatiales (GEOGRAPHY(POINT) et GEOGRAPHY(POLYGON)) du système ERP logistique. Elle inclut la création des rôles SQL, la configuration du schéma dédié (`logistics`), la mise en place des paramètres de performance (work_mem, shared_buffers, connection pooling via PgBouncer) et la création des extensions complémentaires (uuid-ossp, pgcrypto, pg_stat_statements). L'objectif est de garantir une base saine, sécurisée et optimisée avant toute création de tables métier, tout en respectant les bonnes pratiques DevOps (Docker Compose dev / Kubernetes prod).",
+      "subtasks": [
+        "Créer un Dockerfile dédié à PostgreSQL 16 avec installation préalable de l'extension PostGIS (postgresql-16-postgis-3) et configurer le `docker-compose.yml` pour exposer le port 5432 avec un volume persistant nommé `pgdata_logistics`",
+        "Écrire un script SQL d'initialisation (`00-init.sql`) qui crée la base de données `erp_logistics`, active les extensions `postgis`, `uuid-ossp`, `pgcrypto` et `pg_stat_statements`, puis crée le schéma dédié `logistics` avec les droits appropriés pour le rôle applicatif `app_logistics`",
+        "Configurer les rôles SQL (`app_logistics` en lecture/écriture sur le schéma, `readonly_logistics` pour les dashboards BI) avec mots de passe stockés dans les variables d'environnement `.env` chiffrées via SOPS ou Vault",
+        "Définir un fichier `postgresql.conf` custom incluant l'extension `pg_stat_statements` pour le monitoring des requêtes lentes, ainsi qu'un tuning mémoire adapté (shared_buffers = 25% RAM, work_mem = 16MB, effective_cache_size = 70% RAM)",
+        "Mettre en place l'outil de migrations versionnées (Prisma Migrate ou node-pg-migrate selon l'ORM retenu) avec un dossier `prisma/migrations/` ou `db/migrations/` horodaté pour tracer chaque évolution de schéma",
+        "Rédiger un script de seed initial (`prisma/seed.ts` ou `db/seed.sql`) injectant un super-admin, le rôle `SUPER_ADMIN`, ainsi que les catégories racines et un entrepôt par défaut pour valider le bon fonctionnement du pipeline de migration"
+      ]
+    },
+    {
+      "id": "DB-102",
+      "title": "Modélisation et création des tables de référence (Users, Roles, Addresses, Warehouses, Zones)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche couvre la création du cœur du référentiel métier : utilisateurs, rôles (RBAC), adresses polymorphiques, entrepôts et zones de stockage délimitées géographiquement. Elle intègre les colonnes PostGIS (GEOGRAPHY(POINT) pour les coordonnées entrepôts et GEOGRAPHY(POLYGON) pour le périmètre des zones), les contraintes CHECK de validation, les index GIST indispensables aux requêtes spatiales, ainsi que la table de jonction `users_warehouses` pour la gestion des droits multi-sites. C'est le squelette sur lequel viendront s'attacher les modules Inventory, Orders et Shipments.",
+      "subtasks": [
+        "Créer la table `roles` (id UUID PK, name VARCHAR(50) UNIQUE NOT NULL, permissions JSONB, created_at TIMESTAMPTZ DEFAULT NOW()) avec un CHECK constraint limitant les noms aux valeurs `SUPER_ADMIN`, `WAREHOUSE_MANAGER`, `DRIVER`, `OPERATOR`, `AUDITOR`",
+        "Créer la table `users` (id UUID PK DEFAULT gen_random_uuid(), email CITEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, first_name VARCHAR(100), last_name VARCHAR(100), role_id UUID FK → roles.id, phone VARCHAR(20), is_active BOOLEAN DEFAULT true, last_login_at TIMESTAMPTZ, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) avec index BTREE sur `email` et `role_id`",
+        "Créer la table `addresses` (id UUID PK, street TEXT, city VARCHAR(100), postal_code VARCHAR(20), country VARCHAR(2) ISO 3166-1, coords GEOGRAPHY(POINT, 4326), addressable_type VARCHAR(50), addressable_id UUID, is_primary BOOLEAN DEFAULT false) avec index GIST sur `coords` pour permettre les recherches par proximité via `ST_DWithin`",
+        "Créer la table `warehouses` (id UUID PK, code VARCHAR(20) UNIQUE NOT NULL, name VARCHAR(150) NOT NULL, address_id UUID FK → addresses.id ON DELETE RESTRICT, manager_id UUID FK → users.id ON DELETE SET NULL, location GEOGRAPHY(POINT, 4326) NOT NULL, capacity_m3 NUMERIC(10,2), is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) avec index GIST sur `location` et index BTREE sur `code`",
+        "Créer la table `zones` (id UUID PK, warehouse_id UUID FK → warehouses.id ON DELETE CASCADE, name VARCHAR(100) NOT NULL, zone_type VARCHAR(30) CHECK IN ('RECEPTION','STORAGE','PICKING','PACKING','SHIPPING','COLD','HAZARD'), boundary GEOGRAPHY(POLYGON, 4326), area_m2 NUMERIC(12,2) GENERATED ALWAYS AS (ST_Area(boundary)) STORED, created_at TIMESTAMPTZ) avec index GIST sur `boundary` pour requêtes `ST_Contains`",
+        "Créer la table de jonction `users_warehouses` (user_id UUID FK → users.id ON DELETE CASCADE, warehouse_id UUID FK → warehouses.id ON DELETE CASCADE, PRIMARY KEY (user_id, warehouse_id), granted_at TIMESTAMPTZ DEFAULT NOW(), granted_by UUID FK → users.id) pour gérer l'accès multi-sites via une contrainte PRIMARY KEY composite"
+      ]
+    },
+    {
+      "id": "DB-103",
+      "title": "Modélisation et création du module catalogue, stock et traçabilité (Products, Categories, Suppliers, Inventory, StockMovements)",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "description": "Cette tâche implémente le catalogue produits avec hiérarchie de catégories auto-référentielle, la gestion des fournisseurs, l'état du stock par entrepôt/zone, et la table append-only `stock_movements` qui sert de journal d'audit pour la traçabilité logistique (imposée par la US). Elle intègre les contraintes d'unicité (SKU), les CHECK constraints sur les quantités (>= 0), les index partiels pour optimiser les requêtes de stock bas, et déclenche un trigger de mise à jour automatique du `updated_at`. La modélisation garantit l'intégrité référentielle et permet des requêtes analytiques performantes (stock par produit, valorisation, alertes de rupture).",
+      "subtasks": [
+        "Créer la table `categories` (id UUID PK, parent_id UUID FK → categories.id ON DELETE SET NULL pour auto-référence, name VARCHAR(100) NOT NULL, slug VARCHAR(120) UNIQUE, ltree_path LTREE pour hiérarchie rapide, created_at TIMESTAMPTZ) avec index BTREE sur `parent_id` et index GIST sur `ltree_path` pour requêtes de sous-arbre via `ltree`",
+        "Créer la table `suppliers` (id UUID PK, code VARCHAR(30) UNIQUE NOT NULL, name VARCHAR(150) NOT NULL, contact_email VARCHAR(150), phone VARCHAR(20), address_id UUID FK → addresses.id, tax_id VARCHAR(50), payment_terms_days INT DEFAULT 30, is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ)",
+        "Créer la table `products` (id UUID PK, sku VARCHAR(50) UNIQUE NOT NULL, name VARCHAR(200) NOT NULL, description TEXT, category_id UUID FK → categories.id, supplier_id UUID FK → suppliers.id, unit VARCHAR(20) DEFAULT 'PCS', weight_kg NUMERIC(10,3), volume_m3 NUMERIC(10,4), barcode VARCHAR(50) UNIQUE, min_stock_threshold INT DEFAULT 0, max_stock_threshold INT, is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) avec index BTREE composites sur `(category_id, is_active)` et `(supplier_id, is_active)`",
+        "Créer la table `inventory_items` (id UUID PK, product_id UUID FK → products.id ON DELETE RESTRICT, warehouse_id UUID FK → warehouses.id ON DELETE RESTRICT, zone_id UUID FK → zones.id, quantity INT NOT NULL CHECK (quantity >= 0), reserved_quantity INT NOT NULL DEFAULT 0 CHECK (reserved_quantity >= 0), lot_number VARCHAR(50), expiry_date DATE, last_counted_at TIMESTAMPTZ, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ, UNIQUE (product_id, warehouse_id, zone_id, lot_number)) avec index partiel WHERE `quantity > 0` pour optimiser les alertes stock bas",
+        "Créer la table `stock_movements` (id UUID PK, product_id UUID FK → products.id, from_warehouse_id UUID FK → warehouses.id, to_warehouse_id UUID FK → warehouses.id, quantity INT NOT NULL CHECK (quantity <> 0), movement_type VARCHAR(20) CHECK IN ('IN','OUT','TRANSFER','ADJUSTMENT','RESERVATION','RELEASE'), reason TEXT, reference_doc VARCHAR(100), user_id UUID FK → users.id, created_at TIMESTAMPTZ DEFAULT NOW()) en mode append-only via REVOKE UPDATE, DELETE pour garantir l'immuabilité du journal d'audit logistique",
+        "Créer la fonction trigger `set_updated_at()` et le trigger associé `trg_products_updated_at` (BEFORE UPDATE) sur les tables `products` et `inventory_items` pour maintenir automatiquement le champ `updated_at` lors de toute modification"
+      ]
+    },
+    {
+      "id": "DB-104",
+      "title": "Modélisation et création du module commandes, expéditions, flotte et tracking GPS (Orders, Shipments, Vehicles, Drivers, GpsPositions, DeliveryRoutes)",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "description": "Cette tâche finalise le schéma en implémentant le workflow complet des commandes (`orders`/`order_items`), la planification des expéditions (`shipments`/`shipment_items`), la flotte (`vehicles`/`drivers`), les positions GPS temps réel (`gps_positions` avec partitionnement mensuel), ainsi que les tournées optimisées (`delivery_routes`). C'est la couche la plus stratégique pour la US car elle couvre la traçabilité GPS via PostGIS (index GIST sur `coords`) et le partitionnement déclaratif de la table `gps_positions` pour gérer des millions d'enregistrements (high-frequency ingestion). Elle inclut aussi la table `audit_logs` pour la conformité sécurité.",
+      "subtasks": [
+        "Créer la table `customers` (id UUID PK, code VARCHAR(30) UNIQUE, company_name VARCHAR(200), contact_name VARCHAR(150), email CITEXT, phone VARCHAR(20), address_id UUID FK → addresses.id, tax_id VARCHAR(50), credit_limit NUMERIC(12,2) DEFAULT 0, is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ)",
+        "Créer les tables `orders` (id UUID PK, reference VARCHAR(30) UNIQUE NOT NULL, customer_id UUID FK → customers.id, warehouse_id UUID FK → warehouses.id, created_by UUID FK → users.id, status VARCHAR(20) CHECK IN ('DRAFT','CONFIRMED','PICKING','SHIPPED','DELIVERED','CANCELLED'), total_amount NUMERIC(14,2), currency CHAR(3) DEFAULT 'EUR', expected_delivery_date DATE, notes TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ) et `order_items` (id UUID PK, order_id UUID FK → orders.id ON DELETE CASCADE, product_id UUID FK → products.id, quantity INT NOT NULL CHECK (quantity > 0), unit_price NUMERIC(12,2) NOT NULL CHECK (unit_price >= 0), discount_pct NUMERIC(5,2) DEFAULT 0) avec index BTREE sur `(order_id)` et `(customer_id, status)`",
+        "Créer la table `vehicles` (id UUID PK, plate VARCHAR(20) UNIQUE NOT NULL, type VARCHAR(30) CHECK IN ('TRUCK','VAN','BIKE','FORKLIFT'), max_weight_kg NUMERIC(10,2), max_volume_m3 NUMERIC(10,2), gps_device_id VARCHAR(100) UNIQUE, current_mileage_km INT DEFAULT 0, last_maintenance_at DATE, next_maintenance_at DATE, is_active BOOLEAN DEFAULT true, created_at TIMESTAMPTZ) avec index BTREE sur `gps_device_id`",
+        "Créer la table `drivers` (id UUID PK, user_id UUID FK → users.id UNIQUE NOT NULL, license_number VARCHAR(50) UNIQUE, license_type VARCHAR(20), license_expiry DATE, current_vehicle_id UUID FK → vehicles.id ON DELETE SET NULL, is_available BOOLEAN DEFAULT true, created_at TIMESTAMPTZ) avec index BTREE sur `user_id` et `(is_available, license_expiry)`",
+        "Créer la table `shipments` (id UUID PK, reference VARCHAR(30) UNIQUE NOT NULL, order_id UUID FK → orders.id, vehicle_id UUID FK → vehicles.id, driver_id UUID FK → drivers.id, from_warehouse_id UUID FK → warehouses.id, status VARCHAR(20) CHECK IN ('PLANNED','IN_TRANSIT','DELIVERED','FAILED','RETURNED'), planned_departure_at TIMESTAMPTZ, actual_departure_at TIMESTAMPTZ, planned_arrival_at TIMESTAMPTZ, actual_arrival_at TIMESTAMPTZ, distance_km NUMERIC(10,2), created_at TIMESTAMPTZ) avec index BTREE composites sur `(driver_id, status)` et `(vehicle_id, planned_departure_at)`",
+        "Créer la table `shipment_items` (id UUID PK, shipment_id UUID FK → shipments.id ON DELETE CASCADE, order_item_id UUID FK → order_items.id, quantity_picked INT DEFAULT 0, quantity_delivered INT DEFAULT 0, UNIQUE (shipment_id, order_item_id)) avec index BTREE sur `shipment_id`",
+        "Créer la table partitionnée `gps_positions` (id BIGSERIAL, shipment_id UUID FK → shipments.id ON DELETE CASCADE, coords GEOGRAPHY(POINT, 4326) NOT NULL, altitude_m NUMERIC(8,2), speed_kmh NUMERIC(6,2), heading_deg NUMERIC(5,2), accuracy_m NUMERIC(6,2), battery_pct INT, recorded_at TIMESTAMPTZ NOT NULL, received_at TIMESTAMPTZ DEFAULT NOW()) PARTITION BY RANGE (recorded_at) avec partitions mensuelles (`gps_positions_2026_01`, etc.) créées automatiquement via une procédure stockée `create_monthly_partitions()` et index GIST local sur `coords` + index BTREE local sur `(shipment_id, recorded_at DESC)`",
+        "Créer la table `delivery_routes` (id UUID PK, shipment_id UUID FK → shipments.id UNIQUE NOT NULL, planned_polyline GEOGRAPHY(LINESTRING, 4326), actual_polyline GEOGRAPHY(LINESTRING, 4326), waypoints JSONB, optimized_distance_km NUMERIC(10,2), optimization_algorithm VARCHAR(30), created_at TIMESTAMPTZ) avec index GIST sur les deux colonnes LINESTRING pour analyse de déviation de trajectoire",
+        "Créer la table `audit_logs` (id BIGSERIAL, user_id UUID FK → users.id ON DELETE SET NULL, action VARCHAR(50) NOT NULL, entity_type VARCHAR(50), entity_id UUID, old_values JSONB, new_values JSONB, ip_address INET, user_agent TEXT, created_at TIMESTAMPTZ DEFAULT NOW()) avec index BTREE sur `(entity_type, entity_id)` et `(user_id, created_at DESC)` pour audit de conformité RGPD/sécurité"
+      ]
+    }
+  ]
+}

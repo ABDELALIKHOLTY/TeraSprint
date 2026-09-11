@@ -1,0 +1,54 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "SMINT-401",
+      "title": "Configuration des intercepteurs HTTP Angular et Authentification JWT",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche consiste à mettre en place l'infrastructure d'authentification côté client Angular en s'appuyant sur le microservice 'auth-service' (Java Spring Boot). L'objectif est de sécuriser l'ensemble des appels REST sortants en injectant automatiquement le JWT (JSON Web Token) dans l'en-tête 'Authorization: Bearer <token>' via des intercepteurs HTTP Angular ('HttpInterceptor'). Il est crucial d'implémenter également la gestion transparente du 'refresh token' pour offrir une expérience utilisateur fluide sans déconnecter l'utilisateur prématurément. Le 'refresh token' sera stocké de manière sécurisée (cookie httpOnly recommandé selon le rapport d'architecture, avec fallback localStorage chiffré si nécessaire) et renvoyé au endpoint ('POST /api/auth/refresh') lorsque le access token expire. Cela garantit que la communication Front/Back reste stateless, sécurisée et conforme aux standards OAuth2/OpenID Connect utilisés par 'auth-service' pour authentifier les utilisateurs des tables ('users') avec les rôles ('CANDIDATE' / 'RECRUITER').",
+      "subtasks": [
+        "Créer un service Angular 'AuthService' qui expose des méthodes 'login(credentials)', 'logout()', 'getAccessToken()' et 'getRefreshToken()', et qui persiste les tokens de manière sécurisée dans le navigateur en utilisant idéalement un cookie httpOnly injecté par le backend ou un stockage chiffré côté client.",
+        "Développer un intercepteur fonctionnel 'AuthInterceptor' implémentant 'HttpInterceptor' qui intercepte chaque requête sortante pour ajouter automatiquement l'en-tête 'Authorization: Bearer <accessToken>' en récupérant le token via 'AuthService'.",
+        "Développer un intercepteur d'erreur global 'ErrorInterceptor' qui écoute les réponses HTTP 401 (Unauthorized) du backend, déclenche automatiquement l'appel au endpoint ('POST /api/auth/refresh') pour obtenir un nouveau access token, met à jour le stockage local, et rejoue la requête initiale en cas de succès.",
+        "Implémenter une logique de file d'attente (queue) dans 'ErrorInterceptor' pour éviter que plusieurs requêtes 401 ne déclenchent simultanément plusieurs appels au endpoint de refresh, et mettre en place un mécanisme de 'logout forcé' si le endpoint ('POST /api/auth/refresh') renvoie lui-même une erreur 401 ou 403.",
+        "Ajouter une garde de route Angular 'AuthGuard' qui protège les routes privées du frontend en vérifiant la présence et la validité du JWT avant d'autoriser la navigation vers les espaces 'CANDIDATE' ou 'RECRUITER', en redirigeant vers la page de login si nécessaire.",
+        "Configurer un 'HTTP_INTERCEPTORS' provider dans le module racine ('AppModule') avec les intercepteurs dans l'ordre strict suivant : 'AuthInterceptor' puis 'ErrorInterceptor' pour assurer le bon fonctionnement du chaînage des requêtes et de la récupération d'erreurs."
+      ]
+    },
+    {
+      "id": "SMINT-402",
+      "title": "Implémentation du flux OAuth2 LinkedIn et intégration des API REST",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche couvre l'intégration complète du flux OAuth2 pour l'import des profils LinkedIn ainsi que la configuration centralisée de tous les appels HTTP/REST vers les microservices backend ('auth-service', 'candidate-service', 'recruiter-service', 'matching-service'). Côté Frontend Angular, nous devons mettre en place le bouton 'Import from LinkedIn' qui redirige l'utilisateur vers l'URL d'autorisation LinkedIn via le endpoint ('GET /api/auth/oauth/linkedin'). Le backend Spring Boot se chargera de l'échange du 'authorization_code' contre un 'access_token' LinkedIn, puis appellera l'API LinkedIn pour récupérer le profil utilisateur et l'injecter dans le pipeline NLP ('NlpExtractionService'). Côté Front, il faudra également créer un module 'ApiClient' qui encapsule tous les appels REST typés (TypeScript) vers les contrôleurs définis dans le rapport d'architecture comme ('CandidateController') avec ('POST /api/candidates/{id}/import-cv') ou ('MatchingController') avec ('GET /api/matching/score'). Cette centralisation permet de découpler la logique métier Angular du transport HTTP bas niveau et facilite la maintenance.",
+      "subtasks": [
+        "Créer un 'LinkedinAuthService' Angular qui expose une méthode 'initiateLinkedInImport()' ouvrant une nouvelle fenêtre ou redirigeant vers le endpoint backend ('GET /api/auth/oauth/linkedin') avec les scopes 'r_liteprofile' et 'r_emailaddress' requis par l'API LinkedIn pour récupérer les informations du candidat.",
+        "Mettre en place un mécanisme de 'callback handler' (route Angular '/auth/linkedin/callback') qui intercepte la redirection de retour du backend contenant le 'authorization_code' ou directement les données du profil extrait, puis communique avec le 'CandidateService' pour mettre à jour le profil local.",
+        "Développer un service 'CandidateService' Angular avec des méthodes fortement typées : 'importCv(file: File, candidateId: string)', 'getSkillsGraph(candidateId: string)' retournant la liste des entités ('skills') et ('skill_evolution') depuis ('GET /api/candidates/{id}/skills'), et 'getCandidateProfile(candidateId: string)'.",
+        "Développer un service 'JobOfferService' Angular qui consomme le ('JobOfferController') avec les méthodes 'listOffers(filters)', 'getOfferDetails(offerId)' et 'applyToOffer(offerId)', en utilisant les DTOs TypeScript générés ou définis manuellement selon le contrat d'interface.",
+        "Développer un service 'MatchingService' Angular qui appelle le ('MatchingController') sur ('GET /api/matching/score') pour récupérer le score de compatibilité et ('POST /api/matching/reverse-search') pour permettre aux recruteurs de trouver des candidats correspondants à une offre donnée.",
+        "Créer un fichier centralisé 'environment.ts' et 'environment.prod.ts' pour stocker les 'baseUrl' de chaque microservice (ex: 'AUTH_API_URL', 'CANDIDATE_API_URL', 'MATCHING_API_URL') afin de faciliter le déploiement sur Kubernetes et AWS sans hardcoder les URLs dans le code applicatif."
+      ]
+    },
+    {
+      "id": "SMINT-403",
+      "title": "Connexion WebSocket (STOMP) pour Chat temps réel et Notifications live",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche est au cœur de l'expérience temps réel de SkillMatch AI. Nous devons connecter le frontend Angular au serveur WebSocket Spring (avec support STOMP) exposé par le 'chat-service' et le 'notification-service'. Le endpoint principal sera ('/ws/chat') selon le rapport d'architecture, avec des sous-topics STOMP comme ('/topic/messages/{conversationId}') pour le chat bidirectionnel candidat-recruteur et ('/topic/notifications/{userId}') pour la diffusion en direct des alertes intelligentes (notamment lorsque le score de matching dépasse le seuil critique de 80% déclenché par 'AlertingService'). L'implémentation utilisera les librairies standard Angular 'sockjs-client' et 'stompjs' pour gérer la connexion, la souscription aux topics, et l'envoi de messages. Le JWT devra également être passé lors du handshake WebSocket pour authentifier l'utilisateur, soit via un header STOMP 'Authorization', soit via un token en query parameter (à sécuriser via configuration backend Spring Security).",
+      "subtasks": [
+        "Installer et configurer les dépendances 'sockjs-client' et '@stomp/stompjs' dans le projet Angular, puis créer un service 'WebSocketService' qui encapsule la logique de connexion au endpoint ('/ws/chat') en passant le JWT dans les headers STOMP 'CONNECT' pour authentifier l'utilisateur lors du handshake WebSocket.",
+        "Implémenter la gestion automatique de la reconnexion WebSocket avec backoff exponentiel dans 'WebSocketService' afin de rendre la connexion résiliente face aux coupures réseau, et exposer un 'BehaviorSubject<boolean> connectionStatus$' pour que les composants UI puissent afficher un indicateur de connexion.",
+        "Créer un service 'ChatService' Angular qui souscrit aux topics STOMP de type ('/topic/messages/{conversationId}') pour recevoir en temps réel les messages du 'chat-service', persiste les messages dans le store NgRx pour l'historique, et expose une méthode 'sendMessage(conversationId, message)' publiant sur ('/app/chat/{conversationId}').",
+        "Créer un service 'NotificationService' Angular qui souscrit au topic ('/topic/notifications/{userId}') pour recevoir les événements de mise à jour des scores de matching émis par le 'notification-service' lorsque 'AlertingService' détecte un score > 80% dans la table ('applications.match_score').",
+        "Connecter le 'NotificationService' au store NgRx pour déclencher des actions comme 'addLiveMatchUpdate' qui mettra à jour en temps réel le dashboard recruteur avec les nouveaux scores de compatibilité sans nécessiter de rechargement de la page (compatible avec le graphe dynamique de compétences de ('skill_evolution')).",
+        "Gérer proprement la désinscription des topics STOMP ('unsubscribe') et la fermeture de la connexion WebSocket dans le hook Angular 'ngOnDestroy' de chaque composant consommateur, et centraliser la logique dans le 'WebSocketService' pour éviter les fuites mémoire lors de la navigation entre les routes Angular."
+      ]
+    }
+  ]
+}
+```

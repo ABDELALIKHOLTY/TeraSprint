@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Génération de la documentation OpenAPI (NestJS) pour toutes les API REST",
+      "description": "Cette tâche consiste à créer une spécification OpenAPI complète qui décrit chaque point d'entrée de l'API REST du système ERP, afin de garantir une intégration fiable avec les partenaires e‑commerce et les équipes internes. Le but est d'automatiser la génération du fichier swagger.json à partir des décorateurs NestJS, d'inclure les schémas de requêtes et réponses détaillés, ainsi que les informations de sécurité OIDC via Keycloak. La documentation sera versionnée, publiée dans le repository et servie via le endpoint ('GET /api/docs') pour consultation interactive. Cette étape facilite la validation contractuelle, les tests automatisés et la génération de SDK client.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Analyser chaque contrôleur NestJS existant (ex. 'AuthController', 'StockItemController', 'TruckController') et annoter les méthodes avec les décorateurs '@ApiOperation', '@ApiResponse' et '@ApiTags' afin de refléter précisément les routes comme ('POST /api/auth/login'), ('GET /api/stock/items'), ('PUT /api/trucks/{id}') dans la spécification OpenAPI.",
+        "Configurer le module '@nestjs/swagger' dans le fichier de démarrage ('main.ts') pour activer la génération du document Swagger, définir le serveur ('https://api.example.com'), le format de version ('v1'), et appliquer le filtre global de sécurité JWT en indiquant le schéma d'authentification ('bearerAuth') utilisé par Keycloak.",
+        "Créer un script npm ('npm run generate:openapi') qui exécute la compilation TypeScript, démarre l'application en mode 'documentation' et exporte le fichier JSON complet ('openapi.json') dans le répertoire 'docs/', en incluant les modèles de données provenant des entités TypeORM comme la table ('stock_items') avec les champs ('id'), ('sku'), ('quantity').",
+        "Intégrer la génération du fichier OpenAPI dans le pipeline CI/CD (GitLab CI) en ajoutant une étape 'generate-docs' qui publie l'artifact 'openapi.json' vers le registre d'artefacts, et mettre à jour le README du repository avec un lien vers la documentation interactive hébergée sur le serveur ('/api/docs')."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Rédaction des guides d'installation et de configuration (Docker, Kubernetes, Terraform)",
+      "description": "Cette tâche vise à produire une documentation technique exhaustive qui décrit comment provisionner l'infrastructure complète du système ERP, depuis le déploiement des conteneurs Docker jusqu'à la configuration du cluster Kubernetes et des ressources Terraform. Le guide doit couvrir les prérequis, les variables d'environnement, les secrets (ex. connexion à la base de données PostgreSQL, token Keycloak), ainsi que les procédures de mise à jour et de rollback. Il sera stocké dans le répertoire 'docs/' du repository et formaté en Markdown pour être affiché sur le wiki interne. Cette documentation assure la reproductibilité des environnements de développement, de test et de production.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Élaborer un chapitre \"Pré-requis\" détaillant les versions requises de Docker (24.x), Kubernetes (1.28), Terraform (1.8) et les outils CLI, ainsi que les configurations réseau nécessaires pour le module PostGIS et le service RabbitMQ.",
+        "Décrire pas à pas la construction des images Docker pour le backend NestJS en incluant le Dockerfile multi‑stage, les variables d'environnement ('DB_HOST', 'REDIS_URL', 'KEYCLOAK_REALM'), et la procédure de scan de vulnérabilités avec Trivy, puis fournir les commandes exactes pour pousser les images vers le registre privé ('docker push registry.example.com/erp-backend:{{CI_COMMIT_SHA}}').",
+        "Rédiger la section \"Déploiement Kubernetes\" qui explique la création des manifests Helm (Chart 'erp-backend') contenant les Deployments, Services, ConfigMaps, Secrets (ex. secret contenant ('POSTGRES_PASSWORD')), ainsi que les probes de liveness/readiness, et détailler le processus d'installation via la commande ('helm upgrade --install erp-backend ./helm/erp-backend --namespace production').",
+        "Composer le guide \"Infrastructure as Code\" en listant les modules Terraform pour le provisionnement du cluster (EKS ou GKE), des bases de données PostgreSQL avec l'extension PostGIS, du cache Redis, et du service RabbitMQ, en incluant les blocs de code Terraform avec les ressources ('aws_rds_cluster', 'kubernetes_secret') et les variables d'entrée ('var.db_username', 'var.redis_password')."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Mise en place du pipeline CI/CD (GitLab CI) pour build, test et déploiement Kubernetes",
+      "description": "Cette tâche consiste à implémenter un pipeline complet dans GitLab CI qui automatise la compilation du code TypeScript, l'exécution des tests unitaires Jest, la construction des images Docker, leur publication dans le registre, puis le déploiement continu sur le cluster Kubernetes via Helm, tout en intégrant les étapes de validation de la documentation OpenAPI et de mise à jour du monitoring Prometheus. Le pipeline doit être résilient, supporter les environnements de staging et production, et inclure des contrôles de sécurité comme le scan des secrets et le linting des manifests.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le fichier '.gitlab-ci.yml' avec les stages 'install', 'lint', 'test', 'build', 'scan', 'deploy', en définissant les variables CI/CD sécurisées ('DOCKER_REGISTRY', 'KUBE_CONFIG'), et ajouter les jobs pour installer les dépendances Node.js (npm ci), exécuter le linter ESLint, et lancer les tests unitaires Jest avec la commande ('npm run test:ci').",
+        "Ajouter une étape 'build-image' qui utilise l'image Docker officielle 'docker:24' pour construire l'image du backend NestJS via le Dockerfile multi‑stage, taguer l'image avec le SHA du commit, puis pousser l'image vers le registre privé en utilisant les variables d'authentification CI/CD ('CI_REGISTRY_USER', 'CI_REGISTRY_PASSWORD').",
+        "Intégrer un job 'security-scan' qui exécute Trivy sur l'image construite, génère un rapport de vulnérabilités et fait échouer le pipeline si des CVE critiques sont détectées, afin de garantir la conformité aux exigences de sécurité de l'entreprise.",
+        "Définir le job 'deploy' qui déploie l'application sur le cluster Kubernetes en appelant Helm avec les valeurs spécifiques à l'environnement (ex. '--set image.tag=$CI_COMMIT_SHA'), en appliquant les manifests de monitoring (Prometheus ServiceMonitor) et de logging (ELK DaemonSet), puis vérifier le succès du déploiement via une requête HTTP sur le endpoint ('GET /healthz') et enregistrer le résultat dans les artefacts du pipeline."
+      ]
+    }
+  ]
+}

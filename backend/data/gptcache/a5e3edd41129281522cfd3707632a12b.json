@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Initialisation du projet Prisma et configuration du schéma de base de données",
+      "description": "Cette tâche consiste à initialiser le client Prisma dans le backend Node.js/TypeScript et à définir le fichier 'schema.prisma' qui servira de source de vérité pour la structure de la base de données PostgreSQL. Il est crucial de configurer correctement le provider 'postgresql' et le datasource pour s'assurer que les migrations futures soient générées correctement. Le schéma doit inclure les trois entités principales ('User', 'Category', 'Task') avec leurs relations respectives, en utilisant des UUID pour les clés primaires afin de garantir la sécurité et la distribution des identifiants. Cette étape pose les fondations de toute la persistance des données et doit être validée par la génération réussie du client Prisma.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Installer les dépendances 'prisma' et '@prisma/client' via npm et initialiser le projet avec la commande 'npx prisma init' pour créer le dossier 'prisma' et le fichier de configuration initial.",
+        "Définir le bloc 'datasource db' dans le fichier 'schema.prisma' en spécifiant le provider 'postgresql' et en liant l'URL de connexion via la variable d'environnement 'DATABASE_URL' pour éviter les fuites de secrets.",
+        "Modéliser le modèle 'User' avec les champs ('id' de type String @id @default(uuid()), 'email' de type String @unique, 'password_hash' de type String, et 'created_at' de type DateTime @default(now())).",
+        "Modéliser le modèle 'Category' avec les champs ('id' de type String @id @default(uuid()), 'user_id' de type String, 'name' de type String, 'color_code' de type String) et établir la relation 'user' de type 'User' @relation(fields: ['user_id'], references: ['id'])."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Définition des relations et de l'entité 'Task' dans le schéma Prisma",
+      "description": "L'objectif de cette tâche est de compléter la modélisation en ajoutant l'entité 'Task' et en finalisant les relations entre les utilisateurs, les catégories et les tâches. Il est essentiel de définir l'enum 'TaskStatus' avec les valeurs ('PENDING', 'IN_PROGRESS', 'COMPLETED') pour standardiser l'état des tâches. La relation entre 'User' et 'Task' doit être une relation un-à-plusieurs, tout comme celle entre 'Category' et 'Task', ce qui implique d'ajouter les clés étrangères ('user_id' et 'category_id') dans la table 'tasks'. Cette modélisation précise garantit l'intégrité référentielle et permet des requêtes jointes efficaces via Prisma.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Créer l'enum 'TaskStatus' dans le fichier 'schema.prisma' avec les valeurs exactes 'PENDING', 'IN_PROGRESS' et 'COMPLETED' pour refléter le cycle de vie d'une tâche.",
+        "Définir le modèle 'Task' avec les champs ('id' de type String @id @default(uuid()), 'user_id' de type String, 'category_id' de type String, 'title' de type String, 'description' de type String @db.Text @default(null), 'status' de type TaskStatus @default(PENDING), 'due_date' de type DateTime @default(null), 'created_at' de type DateTime @default(now()), 'updated_at' de type DateTime @updatedAt).",
+        "Ajouter les relations inverses dans le modèle 'User' pour inclure les listes 'categories' et 'tasks' de type 'Category[]' et 'Task[]' respectivement, permettant ainsi la navigation depuis l'utilisateur vers ses données.",
+        "Ajouter la relation inverse dans le modèle 'Category' pour inclure la liste 'tasks' de type 'Task[]', et définir les relations dans le modèle 'Task' pour 'user' et 'category' avec les champs de référence appropriés."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Génération des migrations SQL et validation de la structure PostgreSQL",
+      "description": "Cette tâche technique vise à traduire le schéma Prisma en instructions SQL concrètes pour la base de données PostgreSQL. Il est impératif de générer la migration initiale qui créera les tables ('users', 'categories', 'tasks'), les index sur les clés étrangères et uniques, ainsi que l'enum pour le statut des tâches. L'application de cette migration sur la base de données de développement permettra de vérifier la cohérence du schéma et de détecter d'éventuelles erreurs de syntaxe ou de configuration. Cette étape est critique car elle matérialise la base de données et permet de tester la connexion et les opérations de base via le client Prisma.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 2,
+      "subtasks": [
+        "Exécuter la commande 'npx prisma migrate dev --name init' pour générer le fichier de migration SQL dans le dossier 'prisma/migrations' et appliquer les changements à la base de données PostgreSQL de développement.",
+        "Vérifier manuellement le contenu du fichier de migration SQL généré pour s'assurer que les tables ('users', 'categories', 'tasks') sont créées avec les types de données corrects (UUID, VARCHAR, TEXT, TIMESTAMP) et les contraintes (NOT NULL, UNIQUE).",
+        "Confirmer la création de l'enum 'TaskStatus' dans la base de données et la présence des index automatiques sur les colonnes de clés étrangères ('user_id', 'category_id') pour optimiser les performances des requêtes jointes.",
+        "Tester la connexion à la base de données en exécutant une requête simple via le client Prisma (par exemple, 'prisma.user.findMany()') pour valider que le schéma est fonctionnel et que les UUID sont générés correctement."
+      ]
+    }
+  ]
+}

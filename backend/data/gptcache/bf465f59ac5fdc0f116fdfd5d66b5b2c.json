@@ -1,0 +1,51 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Création des Dockerfiles multi-stage (Backend NestJS & Frontend React/Vite)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche consiste à créer des Dockerfiles optimisés et multi-stage pour les deux services applicatifs principaux du projet ERP logistique : le backend NestJS (Node.js 20 LTS) et le frontend React 18 + Vite + TypeScript. L'approche multi-stage est indispensable pour produire des images finales légères (distroless ou Alpine), réduire la surface d'attaque et accélérer les builds CI grâce au cache des layers. L'image backend utilisera une étape 'builder' pour installer les dépendances via pnpm/npm et compiler le TypeScript, puis une étape finale 'runner' ne contenant que le code compilé et les dépendances de production. L'image frontend effectuera un `pnpm build` (Vite) puis servira les assets statiques via NGINX Alpine. Cette standardisation est le socle sur lequel reposera le docker-compose local et les déploiements Kubernetes en production (pods des microservices `auth`, `inventory`, `shipments`, `tracking`).",
+      "subtasks": [
+        "Créer le fichier ('docker/backend/Dockerfile') utilisant une image de base ('node:20-alpine') en multi-stage avec une étape nommée 'deps' pour installer uniquement les dépendances de production via ('pnpm install --frozen-lockfile --prod') et une étape 'builder' pour transpiler le code TypeScript NestJS avec ('pnpm build') avant de copier le dossier ('dist/') dans l'image finale.",
+        "Configurer le ('.dockerignore') à la racine du dossier ('docker/backend/') pour exclure explicitement les dossiers ('node_modules'), ('dist'), ('.git'), ('coverage'), ('.env') et les fichiers de tests ('*.spec.ts') afin d'optimiser le contexte de build et de ne pas inclure de secrets dans l'image.",
+        "Créer le fichier ('docker/frontend/Dockerfile') basé sur une première étape ('node:20-alpine AS builder') qui installe les dépendances puis exécute ('pnpm build') pour générer le bundle Vite statique dans le dossier ('dist/'), puis utilise une seconde étape finale basée sur ('nginx:1.27-alpine') pour copier uniquement le contenu de ('dist/') dans ('/usr/share/nginx/html').",
+        "Définir un utilisateur non-root ('USER node') dans les Dockerfiles applicatifs (NestJS) pour respecter le principe de moindre privilège et éviter d'exécuter les conteneurs en tant que root, tout en configurant le ('HEALTHCHECK') via ('curl --fail http://localhost:3000/health') ou ('wget') selon l'image de base utilisée.",
+        "Pinner précisément les versions des images de base (ex: ('node:20.11.1-alpine3.19'), ('nginx:1.27.2-alpine')) via des digests SHA256 pour garantir la reproductibilité des builds et empêcher les attaques de type supply-chain sur les registries publics Docker Hub."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Mise en place du docker-compose pour l'environnement de développement local",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche vise à orchestrer l'ensemble de la stack technique du projet via un fichier ('docker-compose.yml') (et un override ('docker-compose.override.yml') pour le dev) afin que chaque développeur puisse démarrer l'intégralité de l'écosystème (PostgreSQL+PostGIS, Redis, MinIO, pgAdmin, backend, frontend) en une seule commande. Cette stack locale doit refléter fidèlement les contraintes de la production, notamment l'activation de l'extension PostGIS (cruciale pour les colonnes géospatiales ('warehouses.location'), ('zones.boundary'), ('gps_positions.coords')) et la persistance des données via des volumes nommés. Le fichier inclura également la configuration des réseaux (bridge network dédié), des variables d'environnement (chargeur via ('.env')), des healthchecks, des policies de restart et des dépendances conditionnelles (depends_on avec condition service_healthy) pour garantir l'ordre de démarrage des services. L'objectif est d'atteindre un 'one-command onboarding' pour les nouveaux arrivants sur le projet ERP logistique.",
+      "subtasks": [
+        "Définir le service ('postgres') utilisant l'image officielle ('postgis/postgis:16-3.4-alpine') avec exposition du port ('5432'), variables d'environnement ('POSTGRES_DB=erp_logistics'), ('POSTGRES_USER=erp_user'), ('POSTGRES_PASSWORD=erp_pass') et montage d'un volume nommé ('postgres_data:/var/lib/postgresql/data') pour la persistance des données entre les redémarrages des conteneurs.",
+        "Créer un script d'initialisation SQL dans ('docker/postgres/init/01-extensions.sql') qui exécute activement les commandes ('CREATE EXTENSION IF NOT EXISTS postgis;'), ('CREATE EXTENSION IF NOT EXISTS postgis_topology;') et ('CREATE EXTENSION IF NOT EXISTS pg_trgm;') pour préparer la base aux requêtes géospatiales dès le premier démarrage du conteneur.",
+        "Configurer le service ('redis') avec l'image ('redis:7.2-alpine') utilisant le port ('6379'), un volume nommé ('redis_data:/data') et un healthcheck basé sur la commande ('redis-cli ping') pour s'assurer que le service de cache est opérationnel avant que le backend NestJS ne tente de s'y connecter via le module CacheModule.",
+        "Mettre en place le service ('minio') (stockage objet S3-compatible pour les bons de livraison et photos) avec l'image ('minio/minio:RELEASE.2024-08-17T01-24-54Z'), exposition des ports ('9000') pour l'API et ('9001') pour la console web, variables d'environnement ('MINIO_ROOT_USER') et ('MINIO_ROOT_PASSWORD'), et exécution de la commande ('server /data --console-address \":9001\"').",
+        "Ajouter le service ('pgadmin') pour l'administration graphique de PostgreSQL via l'image ('dpage/pgadmin4:8'), configuré avec un volume nommé pour sauvegarder les préférences utilisateurs et un healthcheck vérifiant la disponibilité de l'interface web sur le port ('80') interne du conteneur.",
+        "Inclure un service optionnel ('mailhog') avec l'image ('mailhog/mailhog:v1.0.1') pour intercepter et visualiser les emails transactionnels (alertes stock bas, notifications de livraison) envoyés depuis le backend NestJS pendant le développement, exposant le SMTP sur ('1025') et l'UI web sur ('8025').",
+        "Définir le service ('backend') (NestJS) en mode build local avec ('build: ./docker/backend'), injection des variables d'environnement depuis un fichier ('.env') dédié, exposition du port ('3000') et configuration de la directive ('depends_on') avec ('condition: service_healthy') pour ('postgres'), ('redis') et ('minio') afin de garantir le bon ordre de démarrage."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Configuration des pipelines CI/CD (GitHub Actions / GitLab CI)",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "description": "Cette tâche a pour objectif de mettre en place des pipelines d'Intégration Continue et de Déploiement Continu robustes, reproductibles et sécurisés pour l'ERP logistique. Les pipelines doivent implémenter les bonnes pratiques de l'industrie : exécution en environnement éphémère, cache des dépendances pnpm et des layers Docker, analyse statique de code, tests unitaires et d'intégration avec rapport de couverture, scan de vulnérabilités des images Docker (Trivy), et déploiement progressif (staging puis production) avec stratégie blue-green ou canary. Le but est de garantir que chaque merge sur la branche principale ('main') produit un artefact Docker versionné, signé et déployable de manière déterministe sur l'infrastructure cible (Kubernetes), tout en bloquant toute régression ou fuite de secrets détectée par les outils automatisés.",
+      "subtasks": [
+        "Créer le fichier ('.github/workflows/ci-backend.yml') qui se déclenche à chaque push ou pull request sur la branche ('main'), installe Node.js 20 via ('actions/setup-node@v4') avec mise en cache de pnpm, exécute séquentiellement les commandes ('pnpm install --frozen-lockfile'), ('pnpm lint'), ('pnpm test --coverage') et ('pnpm build') pour valider la qualité du code backend NestJS.",
+        "Implémenter le job de build et push des images Docker dans le pipeline via ('docker/build-push-action@v5') en utilisant la fonctionnalité de cache ('type=gha') pour réutiliser les layers entre les exécutions, puis publier les images taguées avec le SHA du commit (ex: ('ghcr.io/erp-org/backend:sha-abc123')) sur le GitHub Container Registry authentifié via ('ACTIONS_RUNTIME_TOKEN').",
+        "Ajouter une étape de scan de sécurité des images Docker produites avec ('aquasecurity/trivy-action@master') configuré en mode ('severity: CRITICAL,HIGH') et ('exit-code: '1'') afin de faire échouer le pipeline si des vulnérabilités critiques sont détectées dans les dépendances système de l'image finale.",
+        "Configurer le scan de secrets via ('gitleaks/gitleaks-action@v2') exécuté en pré-build sur l'ensemble du repository pour bloquer tout commit contenant des clés API, mots de passe de base de données ou tokens JWT ('JWT_SECRET') qui auraient été accidentellement poussés sur le dépôt distant.",
+        "Créer le fichier ('.github/workflows/deploy-production.yml') qui se déclenche uniquement sur les tags ('v*.*.*') et exécute un déploiement vers le cluster Kubernetes via ('azure/k8s-set-context@v4') puis ('azure/k8s-deploy@v4') en appliquant les manifests Helm avec les valeurs spécifiques à l'environnement de production chargé depuis GitHub Environments secrets."
+      ]
+    }
+  ]
+}

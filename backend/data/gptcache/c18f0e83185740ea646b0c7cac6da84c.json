@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Documentation API (NestJS + GraphQL)",
+      "description": "Cette tâche consiste à produire une documentation exhaustive pour toutes les API REST et GraphQL du projet, en incluant les schémas de données, les routes, les paramètres, les réponses, les codes d'erreur, ainsi que les événements WebSocket. L’objectif est de fournir aux développeurs et aux intégrateurs une référence claire et complète, tout en garantissant la conformité avec les spécifications techniques et les bonnes pratiques de sécurité.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer un fichier OpenAPI 3.0 YAML détaillant chaque route REST du backend, incluant paramètres, réponses, codes d'erreur, et schémas de données pour les tables ('users', 'products', 'orders', etc.) afin de fournir une référence complète aux développeurs.",
+        "Générer un schéma GraphQL introspection en format .graphqls, décrivant les types, queries, mutations, subscriptions, et résolutions pour chaque entité (ex: 'Product', 'Category', 'Order'), avec des descriptions claires pour chaque champ.",
+        "Documenter les événements WebSocket (Socket.io) pour les notifications en temps réel, en précisant les namespaces, noms d'événements, structures de payload (ex: 'order.status.update' avec 'order_id', 'status'), et les mécanismes d'authentification.",
+        "Intégrer la documentation dans un portail Swagger UI et GraphQL Playground, configurer l'authentification JWT via cookie, et fournir un README détaillé expliquant l'accès aux docs, l'utilisation des tokens, et la procédure de test."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Guide d'installation et de configuration multi-environnement",
+      "description": "Cette tâche vise à créer un guide complet d'installation et de configuration couvrant le développement local, le déploiement en Docker Compose, ainsi que le déploiement sur Kubernetes via Helm et Terraform. Le guide doit être clair, détaillé et inclure toutes les dépendances, variables d'environnement, et étapes de provisioning pour garantir une mise en place cohérente dans tous les environnements.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Rédiger un README.md complet décrivant les prérequis (Node 20, Docker 24, Kubernetes 1.30, Helm 3, Terraform 1.x), les variables d'environnement, et les étapes de clonage, build, et déploiement local via Docker Compose, en incluant les commandes exactes et les explications.",
+        "Créer un Dockerfile multi-stage pour le backend (NestJS) et le frontend (React Vite), optimisant la taille des images, exposant les ports 3000 et 5173, et configurant les variables d'environnement via .env files, tout en sécurisant les secrets.",
+        "Écrire les manifests Kubernetes (Deployment, Service, Ingress, ConfigMap, Secret) pour chaque microservice, incluant annotations Prometheus, probes liveness/readiness, ressources CPU/memory, ConfigMaps pour variables, et Secrets pour TLS, afin d'assurer un déploiement fiable.",
+        "Développer un script Terraform (modules) pour provisionner un cluster EKS/GKE, un bucket S3/Cloud Storage pour les assets 3D, et un cluster RDS PostgreSQL 15, en configurant IAM, VPC, et paramètres de sécurité, avec un plan d'architecture détaillé."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Pipeline CI/CD GitHub Actions pour Docker/Kubernetes",
+      "description": "Cette tâche consiste à mettre en place un pipeline CI/CD complet avec GitHub Actions, couvrant les tests, la construction d'images Docker, le push vers un registre sécurisé, et le déploiement sur un cluster Kubernetes. Le pipeline doit inclure des validations post-déploiement et des notifications pour garantir la qualité et la traçabilité des releases.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "subtasks": [
+        "Configurer un workflow GitHub Actions 'ci.yml' déclenché sur push/PR, exécutant les tests unitaires (Jest, NestJS), tests d’intégration, et générant un rapport de couverture, afin d’assurer la qualité du code avant chaque merge.",
+        "Ajouter un job 'build' qui construit les images Docker pour le backend et le frontend, les tague avec la version Git et le SHA, et les pousse vers un registre Docker (ECR/GCR) sécurisé, en utilisant des secrets GitHub.",
+        "Implémenter un job 'deploy' qui applique les manifests Helm via 'helm upgrade --install', en utilisant des valeurs dynamiques provenant d’un fichier 'values.yaml' et en déployant sur le cluster Kubernetes ciblé (dev/stage/production) avec des stratégies de rollout.",
+        "Intégrer des étapes de validation post-deploiement : exécuter des tests end-to-end Cypress dans un pod, vérifier les endpoints via HTTP checks, et notifier l’équipe via Slack webhook si le déploiement échoue ou réussit, garantissant la fiabilité."
+      ]
+    }
+  ]
+}

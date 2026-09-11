@@ -1,0 +1,48 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Modélisation des Entités JPA et Configuration des Repositories (Spring Data JPA)",
+      "description": "Cette tâche consiste à concevoir la couche de persistance de l'application LivePoll en utilisant Spring Data JPA pour normaliser et structurer les relations entre les tables de la base de données relationnelle. Le modèle de données définit strictement les interactions entre les sessions, les polls, les questions, les options et les votes, en appliquant des contraintes d'intégrité referenceles et d'unicité pour garantir l'intégrité des votes (empêchement des votes multiples). Cette modélisation robuste permet aux contrôleurs REST d'interagir avec un modèle de domaine Java bien structuré, facilitant l'hydratation des données et l'exécution de requêtes complexes sur les votes agrégés.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer les classes d'entités JPA pour la table `'sessions'` avec les attributs `'id'` en tant que clé primaire UUID, `'pin_code'` unique, `'status'` énuméré, et `'created_at'` pour tracer la date de création, en définissant la relation un-vers-plusieurs avec la table `'polls'`. ",
+        "Implémenter les entités JPA pour les tables `'polls'` (avec `'id'` UUID, `'session_id'` clé étrangère, `'title'`, et le booléen `'is_active'`) et `'questions'` (avec `'id'` UUID, `'poll_id'` FK, `'text'`, `'order_index'`) pour gérer la structure hiérarchique des questions par sonde.",
+        "Développer l'entité JPA `'options'` (avec `'id'` UUID, `'question_id'` FK, `'text'`) et l'entité `'votes'` (avec `'id'` UUID, `'option_id'` FK, `'voter_id'`, `'submitted_at'`) tout en appliquant une contrainte d'unicité composite sur le vote pour empêcher un même voter de voter plusieurs fois sur une question.",
+        "Générer les interfaces de repositories Spring Data JPA pour les entités créées, héritant de `JpaSpecificationExecutor` pour permettre les requêtes complexes, les sauvegardes massives et l'interrogation des statistiques de vote."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Développement des Contrôleurs REST et DTOs pour la Gestion des Ressources (Spring Web)",
+      "description": "Cette tâche porte sur la conception et l'exposition des endpoints RESTful en JSON pour la gestion des métadonnées de l'application, en utilisant le framework Spring Web. Nous allons créer des contrôleurs dédiés pour chaque ressource (`SessionController`, `PollController`, `QuestionController`, `VoteController`) en utilisant des DTOs (Data Transfer Objects) pour isoler la structure interne des entités JPA des contraintes de transport HTTP. Cette couche d'API expose les routes nécessaires à la création de sessions, de polls, à la récupération des questions et à la soumission synchrone des votes, tout en appliquant des politiques de sécurité via Spring Security et les tokens JWT pour l'accès des présentateurs.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Concevoir la classe `'SessionController'` exposant le endpoint REST `'POST /api/sessions'` pour la création d'un salon de vote, et le endpoint `'GET /api/sessions/{pin}'` pour récupérer les détails d'une session à partir de son code PIN unique.",
+        "Développer le contrôleur `'PollController'` avec la route `'POST /api/polls'` pour créer un nouveau sonde dans une session existante, et la route `'GET /api/polls/session/{sessionId}'` pour lister les polls, sécurisée par un token JWT.",
+        "Implémenter le `'QuestionController'` définissant les endpoints REST `'GET /api/questions/{id}'` pour les détails d'une question spécifique et `'GET /api/polls/{pollId}/questions/active'` pour obtenir la question actuellement ouverte pour les votants.",
+        "Créer le `'VoteController'` gérant le endpoint de soumission synchrone `'POST /api/votes'` pour enregistrer le choix d'un votant, validant les DTOs contenant `'voterId'` et `'optionId'` avant de déclencher le traitement métier dans le `VoteService`."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Configuration du Broker WebSocket (STOMP) et Diffusion Temps Réel des Scores (Spring WebSocket)",
+      "description": "Cette tâche technique se concentre sur la configuration de l'infrastructure de communication en temps réel en utilisant Spring WebSocket avec le protocole STOMP. L'objectif est de permettre une diffusion instantanée des scores et des pourcentages de vote à tous les clients connectés via un topic dédié, éliminant ainsi la nécessité de rafraîchir la page. Nous configurerons le broker STOMP, les destinations de topics dynamiques basés sur l'ID du poll, et l'utilisation du `SimpMessagingTemplate` pour publier les mises à jour de manière atomique après chaque vote enregistré de façon asynchrone ou transctionnelle.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Créer une classe de configuration Spring WebSocket pour activer le support STOMP, enregistrant le broker de messages avec les destinations prefixées par `'/topic'` et les destinations applicatives par `'/app'` pour aiguiller les messages entrants.",
+        "Exposer l'endpoint de WebSocket STOMP sur l'URL `'ws://localhost:8080/ws'` dans la configuration du `WebSocketBroker`, activant le fallback SockJS pour garantir la compatibilité avec les navigateurs ne supportant pas le protocole natif WebSocket.",
+        "Modifier le `VoteService` pour qu'après la persistance d'un vote dans la base de données via le repository, il utilise le `SimpMessagingTemplate` pour convertir et envoyer un message JSON vers le topic `'/topic/polls/{pollId}/results'` contenant les scores mis à jour.",
+        "Concevoir un objet de données JSON standardisé pour les résultats en temps réel, incluant les identifiants d'options, leur texte, le nombre de votes reçus (`'voteCount'`) et le pourcentage calculé (`'percentage'`) afin d'alimenter dynamiquement les graphiques du frontend."
+      ]
+    }
+  ]
+}

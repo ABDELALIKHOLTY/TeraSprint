@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Définition des Spécifications Techniques et Architecture (NestJS, PostgreSQL)",
+      "description": "Cette tâche vise à analyser les besoins fonctionnels et techniques du système ERP, à structurer l'architecture backend avec NestJS, et à modéliser la base de données relationnelle PostgreSQL selon les entités définies dans le rapport d'architecture. Elle inclut la définition des routes API REST, la spécification des modèles de données, et la documentation des choix technologiques pour garantir une cohérence entre les exigences métier et l'implémentation technique. Les décisions prises ici serviront de fondation pour les développements ultérieurs.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Analyser les besoins fonctionnels pour identifier les modules critiques (gestion des entrepôts, suivi GPS, gestion des stocks) et les aligner avec les capacités de NestJS (v18) et PostgreSQL (v15) en définissant les contraintes de performance et d'évolutivité.",
+        "Modéliser la table ('users') avec les champs ('id' UUID PK, 'email' UNIQUE, 'password_hash', 'role' ENUM, 'created_at') et établir les relations avec les autres tables via des clés étrangères (ex: 'products.warehouse_id' → 'warehouses.id').",
+        "Spécifier les routes API REST pour ('/api/v1/auth') avec les endpoints ('POST /login', 'POST /register') et ('/api/v1/warehouses') avec ('GET /', 'POST /', 'GET /:id') en respectant la versionnage ('/api/v1/') et les conventions REST.",
+        "Documenter l'architecture technique dans un fichier Markdown ('ARCHITECTURE.md') en détaillant les choix de stack (NestJS, PostgreSQL, Redis), les flux de données, et les protocoles de sécurité (JWT, HTTPS)."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Initialisation du Projet Backend (NestJS, Docker)",
+      "description": "Cette tâche consiste à créer la structure de base du projet backend en utilisant NestJS (v18) et à configurer Docker pour la conteneurisation des services (PostgreSQL, Redis, MongoDB pour les logs GPS). Elle inclut l'initialisation du dépôt Git avec les outils de versionnement, la mise en place des environnements de développement et production, et la création des fichiers de configuration initiaux (Dockerfile, docker-compose.yml). L'objectif est de garantir une infrastructure reproductible et un déploiement simplifié dès les premières étapes du projet.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Générer le projet NestJS avec ('nest new erp-warehouse') en activant TypeScript strict mode, en installant les dépendances critiques ( '@nestjs/jwt', '@nestjs/passport', 'passport-jwt', 'class-validator', 'class-transformer') et en configurant le module ('app.module.ts') avec les imports de base (TypeORM, ConfigModule, JWTModule).",
+        "Créer le fichier ('docker-compose.yml') avec les services ('postgres', 'redis', 'mongo') en définissant les volumes persistants, les réseaux ('erp_network'), et les variables d'environnement (ex: 'POSTGRES_USER=erp_user', 'POSTGRES_DB=erp_db') pour assurer l'isolation des environnements.",
+        "Initialiser le dépôt Git avec ('git init') et configurer les fichiers ('.gitignore' pour exclure 'node_modules', '.env', 'dist/') et les hooks de pré-commit (husky) pour exécuter les linters (ESLint, Prettier) avant chaque commit.",
+        "Créer les répertoires de base ('src/modules/auth', 'src/modules/warehouses', 'src/modules/products') et les fichiers de configuration ('src/config/database.config.ts', 'src/config/jwt.config.ts') pour centraliser les paramètres d'environnement via le module ConfigService."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Configuration de la Base de Données et Sécurité (PostgreSQL, JWT)",
+      "description": "Cette tâche vise à créer les schémas de base de données PostgreSQL avec les tables critiques ('users', 'warehouses', 'products', 'orders', 'shipments', 'gps_logs', 'suppliers', 'customers') et à implémenter les mécanismes de sécurité (JWT, chiffrement des mots de passe). Elle inclut la génération des migrations TypeORM, la configuration des relations entre tables, et l'intégration de Redis pour le cache et la gestion des sessions. Les choix de sécurité (bcrypt pour les mots de passe, HTTPS, CORS) seront documentés pour respecter les bonnes pratiques OWASP.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Créer la table ('gps_logs') avec les champs ('id' UUID PK, 'shipment_id' FK vers 'shipments.id', 'latitude', 'longitude', 'timestamp') et configurer un index GIST sur ('latitude', 'longitude') pour optimiser les requêtes géospatiales via PostGIS.",
+        "Implémenter l'authentification JWT dans ('auth.module.ts') en utilisant '@nestjs/jwt' avec un secret ('JWT_SECRET') stocké dans les variables d'environnement, et configurer le stratégie ('jwt.strategy.ts') pour valider les tokens HttpOnly dans les cookies.",
+        "Générer les migrations TypeORM pour les tables ('orders', 'shipments') en définissant les relations ('orders.customer_id' → 'customers.id', 'shipments.order_id' → 'orders.id') et les contraintes d'intégrité (ex: 'ON DELETE CASCADE' pour les FK).",
+        "Configurer Redis (v7) dans ('redis.module.ts') pour le cache des sessions utilisateur et les files d'attente (ex: 'gps_updates_queue') en utilisant '@nestjs/redis' et en sécurisant l'accès via un mot de passe ('REDIS_PASSWORD') dans le fichier '.env'."
+      ]
+    }
+  ]
+}

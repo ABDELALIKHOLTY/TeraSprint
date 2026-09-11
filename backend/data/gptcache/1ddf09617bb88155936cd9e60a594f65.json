@@ -1,0 +1,160 @@
+
+
+{
+  "$defs": {
+    "Task": {
+      "properties": {
+        "id": {
+          "description": "ID façon Jira (ex: TERA-23)",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "description": "Titre de la tâche technique",
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description détaillée. Expliquer l'architecture, les technos, le but exact et le detail des sous-tâches.",
+          "title": "Description",
+          "type": "string"
+        },
+        "status": {
+          "description": "Statut : DOIT TOUJOURS être 'TO DO'",
+          "title": "Status",
+          "type": "string"
+        },
+        "priority": {
+          "description": "Priorité : 'Highest', 'High', 'Medium', 'Low'",
+          "title": "Priority",
+          "type": "string"
+        },
+        "story_points": {
+          "description": "Estimation (Fibonacci: 1, 2, 3, 5, 8...)",
+          "title": "Story Points",
+          "type": "integer"
+        },
+        "subtasks": {
+          "default": [],
+          "description": "Liste de sous-tâches LONGUES (minimum 15-20 mots par sous-tâche) détaillant l'implémentation technique.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Subtasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "status",
+        "priority",
+        "story_points"
+      ],
+      "title": "Task",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "tasks": {
+      "description": "Liste des Tâches techniques pour une User Story",
+      "items": {
+        "$ref": "#/$defs/Task"
+      },
+      "title": "Tasks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "tasks"
+  ],
+  "title": "TasksList",
+  "type": "object",
+  "tasks": [
+    {
+      "id": "TEST-101",
+      "title": "Tests Unitaires pour les Services Spring Boot (TaskService & UserService)",
+      "description": "La rédaction de tests unitaires pour les services Spring Boot, en particulier pour les classes ('TaskService') et ('UserService'), constitue une étape cruciale pour valider la logique métiers indépendamment de toute dépendance externe ou base de données. L'objectif est d'utiliser des mocks pour les repositories JPA ('TaskRepository' et 'UserRepository') afin de tester de manière isolée les opérations de création, de mise à jour, de lecture et de suppression des tâches, tout en s'assurant que le filtrage automatique par l'identifiant de l'utilisateur ('userId') extrait du token JWT fonctionne correctement. De plus, il est vital de valider les règles de sécurité et de validation des données, telles que la longueur minimale du champ ('password') ou l'unicité du champ ('email') dans la table ('user'), ainsi que la génération et la validation du token JWT sur 24 heures à l'aide de la bibliothèque ('JJWT').",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Implémenter les tests unitaires pour la classe ('TaskService') en mockant l'interface ('TaskRepository') et le générateur de token JWT pour valider les méthodes de CRUD des tâches associées à l'ID de l'utilisateur connecté dans la table ('task').",
+        "Écrire les tests de validation pour la méthode ('registerUser') dans la classe ('UserService') afin de vérifier la contrainte de longueur minimale de 6 caractères pour le champ ('password') et l'unicité de l'adresse ('email') dans la table ('user').",
+        "Tester la méthode ('authenticateUser') et la génération du token JWT avec une durée de validité de 24 heures en utilisant la bibliothèque ('JJWT') pour s'assurer de la signature et de l'extraction des réclamations de sécurité.",
+        "Valider la logique de filtrage des tâches par l'identifiant de l'utilisateur ('userId') extrait du token JWT lors de l'appel de la méthode ('getAllTasks') dans la classe ('TaskService') pour ne renvoyer que les enregistrements de la table ('task') correspondants."
+      ]
+    },
+    {
+      "id": "TEST-102",
+      "title": "Tests d'Intégration des API REST Spring Boot (Contrôleurs & Sécurité)",
+      "description": "La mise en place de tests d'intégration pour les contrôleurs REST ('TaskController' et 'AuthController') et la configuration de sécurité Spring Security permet de valider l'exposition des endpoints API et le respect des règles d'autorisation. L'objectif principal est d'utiliser ('MockMvc') pour simuler des requêtes HTTP vers les routes de l'API et de vérifier les réponses JSON, les statuts HTTP, et la gestion des erreurs. Il s'agit également de s'assurer que la configuration de sécurité applique correctement les politiques de CORS, désactive la protection CSRF pour l'API stateless, et impose une authentification JWT pour les routes protégées tout en laissant les routes d'authentification ('POST /api/auth/register' et 'POST /api/auth/login') accessibles sans token.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Écrire des tests d'intégration pour le contrôleur ('TaskController') en utilisant ('MockMvc') pour valider les réponses JSON des requêtes sur la route ('GET /api/tasks') avec un en-tête d'autorisation valide contenant un token JWT.",
+        "Tester les endpoints de modification et de suppression sur les routes ('PUT /api/tasks/{id}') et ('DELETE /api/tasks/{id}') en vérifiant l'accès, la modification effective en base de données et la gestion des erreurs si la tâche dans la table ('task') n'existe pas.",
+        "Valider la configuration de sécurité dans la classe ('SecurityConfig') en s'assurant que les routes du groupe d'API ('POST /api/auth/register') et ('POST /api/auth/login') restent publiques sans nécessiter de token d'authentification.",
+        "Vérifier le comportement du filtre JWT personnalisé pour les requêtes non autorisées vers des routes protégées, en s'attendant à un statut HTTP 401 si aucun token n'est fourni dans l'en-tête ('Authorization') lors de l'appel de la route ('POST /api/tasks')."
+      ]
+    },
+    {
+      "id": "TEST-103",
+      "title": "Tests de Repository JPA pour les entités Task et User",
+      "description": "Les tests de la couche repository JPA sont essentiels pour garantir l'intégrité des données, le bon fonctionnement des relations de base de données et l'efficacité des requêtes personnalisées. L'objectif est de valider le mapping relationnel de l'entité ('Task') vers la table ('task') et de l'entité ('User') vers la table ('user'), en portant une attention particulière sur la clé étrangère ('userId') qui établit la relation Many-To-One. Les tests doivent vérifier la persistance des attributs simples comme le champ ('status') avec ses valeurs enumerées ('TODO', 'IN_PROGRESS', 'DONE'), ainsi que les contraintes d'unicité sur les champs ('username') et ('email') dans la table ('user'), en utilisant une base de données de test en mémoire comme ('H2').",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 3,
+      "subtasks": [
+        "Configurer un environnement de test avec une base de données en mémoire pour exécuter les opérations CRUD sur l'entité ('Task') et vérifier le bon mapping des attributs comme le champ ('status') avec les valeurs autorisées ('TODO'), ('IN_PROGRESS'), et ('DONE') dans la table ('task').",
+        "Tester la création et la lecture d'un enregistrement dans la table ('user') via l'interface ('UserRepository') en validant le stockage des rôles dans le champ ('roles') et la persistance du mot de passe dans le champ ('password').",
+        "Vérifier la relation de dépendance et le comportement de cascade lors de la sauvegarde d'une nouvelle tâche associée à un utilisateur existant via le champ de clé étrangère ('userId') dans la table ('task') pointant vers la table ('user').",
+        "Exécuter des tests de requêtes pour valider les méthodes de recherche par ('email') ou ('username') dans la table ('user') et s'assurer de la gestion correcte des contraintes d'unicité sur ces champs."
+      ]
+    },
+    {
+      "id": "TEST-104",
+      "title": "Tests Unitaires des Composants Angular (UI & Forms)",
+      "description": "La rédaction de tests unitaires pour les composants Angular de l'interface utilisateur vise à valider la logique de présentation, la réactivité des formulaires et la correction des interactions utilisateurs. L'objectif est de tester les composants ('LoginComponent'), ('RegisterComponent'), ('TaskFormComponent') et ('TaskListComponent') en isolant leur logique métiers et en simulant les dépendances comme les services Angular. Il faut particulièrement valider les validations de formulaires côté client, telles que la correspondance des mots de passe dans le champ ('password') ou la sélection du statut de tâche parmi les valeurs ('TODO', 'IN_PROGRESS', 'DONE'), ainsi que l'appel des méthodes de soumission et la mise à jour de l'affichage des tâches dans le tableau Bootstrap.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Implémenter des tests pour le composant ('TaskFormComponent') afin de valider la structure du formulaire avec les champs ('title'), ('description'), et le menu déroulant de sélection du ('status') contenant les options ('TODO'), ('IN_PROGRESS'), et ('DONE').",
+        "Écrire des tests unitaires pour le composant ('RegisterComponent') afin de vérifier la validation côté client de la correspondance des mots de passe dans le champ ('password') et sa confirmation, ainsi que la vérification de la longueur minimale de 6 caractères.",
+        "Tester la méthode de soumission ('onSubmit') du composant ('LoginComponent') en mockant le service d'authentification ('AuthService') pour vérifier que la soumission déclenche l'appel de la méthode de connexion et le stockage du token dans le ('localStorage').",
+        "Valider l'affichage et la mise à jour de la liste des tâches dans le composant ('TaskListComponent') en vérifiant le rendu des colonnes du tableau Bootstrap avec les champs ('id'), ('title'), ('status') et l'émission des événements de modification ou de suppression."
+      ]
+    },
+    {
+      "id": "TEST-105",
+      "title": "Tests des Services Angular et de l'Interceptor HTTP JWT",
+      "description": "Le test des services Angular ('AuthService' et 'TaskService') ainsi que de l'intercepteur HTTP JWT est fondamental pour valider la communication client-serveur et la gestion sécurisée des sessions. L'objectif est de s'assurer que les requêtes HTTP sortantes sont correctement formatées, que les données sont envoyées dans le bon format JSON, et que l'en-tête d'autorisation ('Authorization') contenant le jeton Bearer est automatiquement injecté par l'intercepteur ('JWTInterceptor'). De plus, il convient de vérifier la persistance du token dans le ('localStorage'), les méthodes de détection de l'état de connexion ('isLoggedIn()'), et le bon comportement de la méthode de déconnexion ('logout()') qui purge les données de l'utilisateur.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 3,
+      "subtasks": [
+        "Configurer un environnement de test avec un mock de ('HttpClient') pour simuler les requêtes HTTP et vérifier les appels aux endpoints REST du backend, tels que la route ('POST /api/auth/login') et la route ('POST /api/auth/register').",
+        "Tester la méthode ('createTask') dans le service Angular ('TaskService') en envoyant une requête POST simulée vers la route ('POST /api/tasks') et valider le corps de la requête contenant les données de la tâche comme le champ ('title') et ('description').",
+        "Écrire des tests pour l'intercepteur HTTP personnalisé ('JWTInterceptor') afin de vérifier l'ajout automatique de l'en-tête ('Authorization') contenant le jeton JWT extrait du ('localStorage') pour toutes les requêtes sortantes vers le port ('8080').",
+        "Valider les méthodes de gestion locale du token dans le service ('AuthService') comme ('getToken()'), ('isLoggedIn()') et la méthode ('logout()') qui efface le token et déconnecte l'utilisateur de l'application."
+      ]
+    },
+    {
+      "id": "TEST-106",
+      "title": "Tests du Guard de Authentification (AuthGuard) et Routage Angular",
+      "description": "Les tests du guard d'authentification ('AuthGuard') et de la configuration de routage Angular sont indispensables pour garantir la sécurité de l'application côté client et le bon déroulement des redirections. L'objectif est de valider la logique de protection des routes, s'assurant que l'accès aux pages de gestion des tâches (telles que la route ('/tasks'), la route ('/tasks/new') ou la route ('/tasks/edit/:id')) est strictement refusé aux utilisateurs non authentifiés, qui sont alors redirigés vers la page de connexion ('/login'). Il faut également vérifier la logique de redirection par défaut de l'application et la cohérence de la navigation après une déconnexion depuis la barre de navigation ('NavbarComponent').",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 2,
+      "subtasks": [
+        "Implémenter des tests pour le guard ('AuthGuard') en simulant un état d'authentification vrai pour autoriser l'accès à la route ('/tasks') et vérifier que la navigation est permise vers la liste des tâches de l'utilisateur.",
+        "Tester le comportement du guard en cas d'absence de token valide dans le ('localStorage') pour s'assurer que la redirection vers la route ('/login') est déclenchée correctement pour les routes protégées comme ('/tasks/new').",
+        "Valider la logique de redirection par défaut du routeur Angular qui redirige vers ('/tasks') si l'utilisateur est authentifié, ou vers ('/login') dans le cas contraire lors de l'accès à l'URL racine.",
+        "Vérifier la cohérence de la navigation après une déconnexion depuis le composant ('NavbarComponent') en s'assurant que le token est effacé du ('localStorage') et que l'utilisateur est redirigé vers la page de connexion ('/login')."
+      ]
+    }
+  ]
+}

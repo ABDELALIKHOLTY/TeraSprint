@@ -1,0 +1,206 @@
+# Rapport d'Architecture – ERP Gestion d'Entrepôt & Logistique  
+
+---  
+
+## 1. Setup & Stack Technique  
+
+| Couche | Technologie | Version | Commentaire |
+|--------|--------------|---------|-------------|
+| Frontend | **React** | 18.x | SPA |
+| Frontend | **TypeScript** | 5.x | Typage strict |
+| Frontend | **Redux Toolkit** | 1.x | Store global |
+| Frontend | **React‑Router** | 6.x | Routage |
+| Frontend | **Material‑UI (MUI)** | 5.x | Composants UI |
+| Frontend | **Webpack** | 5.x | Bundling |
+| Backend | **Node.js** | 20.x | Runtime |
+| Backend | **NestJS** | 10.x | Framework MVC/DI |
+| Backend | **TypeScript** | 5.x | Typage |
+| Backend | **GraphQL** (Apollo Server) | 4.x | Optionnel, complément REST |
+| Backend | **REST** (Express) | 4.x (via Nest) | API principale |
+| BDD | **PostgreSQL** | 15.x | RDBMS |
+| BDD | **PostGIS** | 3.x | Géolocalisation |
+| Cache | **Redis** | 7.x | Sessions, queues |
+| Message Queue | **RabbitMQ** | 3.12 | Événements asynchrones |
+| Auth | **Keycloak** | 22.x | OIDC, JWT |
+| CI/CD | **GitLab CI** | 16.x | Pipelines |
+| Conteneurisation | **Docker** | 24.x | Images |
+| Orchestration | **Kubernetes** (k8s) | 1.28 | Cluster |
+| Infra as Code | **Terraform** | 1.8 | Provisionning |
+| Monitoring | **Prometheus** + **Grafana** | 2.50 / 10.x | Métriques |
+| Logging | **ELK Stack** (Elasticsearch, Logstash, Kibana) | 8.x | Centralisation |
+| Tests | **Jest** (unit) | 29.x | Backend |
+| Tests | **Cypress** (e2e) | 13.x | Frontend |
+| Sécurité | **Helmet** | 7.x | Headers HTTP |
+| Sécurité | **Rate‑limit** (express-rate-limit) | 7.x | Protection DDoS |
+
+---  
+
+## 2. Schéma Relationnel de la Base de Données  
+
+### Entités principales  
+
+| Table | PK | FK | Colonnes majeures | Relations |
+|-------|----|----|-------------------|-----------|
+| `companies` | `id` (UUID) | – | `name`, `address`, `created_at` | 1‑N → `warehouses` |
+| `warehouses` | `id` (UUID) | `company_id` (FK) | `name`, `location (geography)`, `capacity` | 1‑N → `stock_items` ; 1‑N → `zones` |
+| `zones` | `id` (UUID) | `warehouse_id` (FK) | `code`, `description` | 1‑N → `stock_items` |
+| `stock_items` | `id` (UUID) | `warehouse_id` (FK), `zone_id` (FK) | `sku`, `product_name`, `quantity`, `reorder_point` | N‑N via `stock_item_batches` |
+| `stock_item_batches` | `id` (UUID) | `stock_item_id` (FK) | `batch_number`, `expiry_date`, `quantity` | – |
+| `suppliers` | `id` (UUID) | – | `name`, `contact_info` | 1‑N → `purchase_orders` |
+| `purchase_orders` | `id` (UUID) | `supplier_id` (FK), `warehouse_id` (FK) | `order_number`, `status`, `created_at` | 1‑N → `purchase_order_lines` |
+| `purchase_order_lines` | `id` (UUID) | `purchase_order_id` (FK), `stock_item_id` (FK) | `quantity`, `unit_price` | – |
+| `customers` | `id` (UUID) | – | `name`, `email`, `address` | 1‑N → `sales_orders` |
+| `sales_orders` | `id` (UUID) | `customer_id` (FK), `warehouse_id` (FK) | `order_number`, `status`, `created_at` | 1‑N → `sales_order_lines` |
+| `sales_order_lines` | `id` (UUID) | `sales_order_id` (FK), `stock_item_id` (FK) | `quantity`, `unit_price` | – |
+| `shipments` | `id` (UUID) | `sales_order_id` (FK) | `tracking_number`, `status`, `departure_at`, `arrival_estimated` | 1‑N → `shipment_items` |
+| `shipment_items` | `id` (UUID) | `shipment_id` (FK), `stock_item_id` (FK) | `quantity` | – |
+| `trucks` | `id` (UUID) | – | `license_plate`, `model`, `capacity` | 1‑N → `truck_locations` |
+| `truck_locations` | `id` (UUID) | `truck_id` (FK) | `timestamp`, `position (geography)` | – |
+| `users` | `id` (UUID) | `company_id` (FK) | `username`, `email`, `hashed_password`, `role` | – |
+| `roles` | `id` (UUID) | – | `name`, `permissions (jsonb)` | – |
+| `audit_logs` | `id` (UUID) | `user_id` (FK) | `action`, `entity`, `entity_id`, `timestamp`, `details (jsonb)` | – |
+| `integration_tokens` | `id` (UUID) | `company_id` (FK) | `token`, `expires_at`, `scopes (jsonb)` | – |
+
+### Relations clés  
+
+- `companies.id` 1‑N `warehouses.company_id`  
+- `warehouses.id` 1‑N `zones.warehouse_id`  
+- `warehouses.id` 1‑N `stock_items.warehouse_id`  
+- `zones.id` 1‑N `stock_items.zone_id`  
+- `stock_items.id` 1‑N `stock_item_batches.stock_item_id`  
+- `suppliers.id` 1‑N `purchase_orders.supplier_id`  
+- `purchase_orders.id` 1‑N `purchase_order_lines.purchase_order_id`  
+- `purchase_order_lines.stock_item_id` N‑1 `stock_items.id`  
+- `customers.id` 1‑N `sales_orders.customer_id`  
+- `sales_orders.id` 1‑N `sales_order_lines.sales_order_id`  
+- `sales_order_lines.stock_item_id` N‑1 `stock_items.id`  
+- `sales_orders.id` 1‑N `shipments.sales_order_id`  
+- `shipments.id` 1‑N `shipment_items.shipment_id`  
+- `shipment_items.stock_item_id` N‑1 `stock_items.id`  
+- `trucks.id` 1‑N `truck_locations.truck_id`  
+
+---  
+
+## 3. Architecture Backend & APIs  
+
+### Familles d’API  
+
+| Famille | Type | Base Path | Description (nom) |
+|---------|------|-----------|-------------------|
+| Auth | REST | `/api/auth` | login, logout, refresh |
+| Users | REST | `/api/users` | CRUD utilisateurs |
+| Companies | REST | `/api/companies` | CRUD sociétés |
+| Warehouses | REST | `/api/warehouses` | CRUD entrepôts |
+| Stock | REST | `/api/stock` | CRUD articles, lots, alertes |
+| Purchases | REST | `/api/purchases` | PO, lignes PO |
+| Sales | REST | `/api/sales` | SO, lignes SO |
+| Shipments | REST | `/api/shipments` | création, suivi |
+| Trucks | REST | `/api/trucks` | CRUD camions |
+| GPS | WebSocket | `/ws/truck-location` | flux positions en temps réel |
+| Integration | REST | `/api/integration` | tokens, endpoints e‑commerce |
+| Reports | GraphQL | `/graphql/reports` | requêtes analytiques (optionnel) |
+
+### Contrôleurs (NestJS) – Niveau 1  
+
+- `AuthController`  
+- `UserController`  
+- `CompanyController`  
+- `WarehouseController`  
+- `ZoneController`  
+- `StockItemController`  
+- `BatchController`  
+- `SupplierController`  
+- `PurchaseOrderController`  
+- `PurchaseOrderLineController`  
+- `CustomerController`  
+- `SalesOrderController`  
+- `SalesOrderLineController`  
+- `ShipmentController`  
+- `ShipmentItemController`  
+- `TruckController`  
+- `TruckLocationGateway` (WebSocket)  
+- `IntegrationController`  
+- `ReportResolver` (GraphQL)  
+
+### Services (NestJS) – Niveau 2  
+
+- `AuthService` (JWT, OIDC)  
+- `UserService`  
+- `CompanyService`  
+- `WarehouseService`  
+- `ZoneService`  
+- `StockService` (stock, réapprovisionnement)  
+- `BatchService`  
+- `SupplierService`  
+- `PurchaseService` (PO, validation)  
+- `SalesService` (SO, facturation)  
+- `ShipmentService` (bordereaux, suivi)  
+- `TruckService` (gestion flotte)  
+- `LocationService` (calcul distance, géofencing)  
+- `IntegrationService` (API keys, rate‑limit)  
+- `ReportService` (agrégation, KPI)  
+- `NotificationService` (email, webhook)  
+- `AuditService` (log persistance)  
+
+### Middleware / Guard  
+
+- `JwtAuthGuard` (Nest Guard)  
+- `RolesGuard` (RBAC)  
+- `RateLimitMiddleware`  
+- `LoggingInterceptor`  
+
+---  
+
+## 4. Architecture Frontend et Intégration  
+
+### Outils UI  
+
+- **React** + **TypeScript**  
+- **Material‑UI (MUI)** – composants, thème sombre/clair  
+- **React‑Query** – cache des requêtes REST/GraphQL  
+- **Redux Toolkit** – état global (auth, user, permissions)  
+- **React‑Hook‑Form** – formulaires, validation Yup  
+- **i18next** – localisation (FR/EN)  
+
+### Sécurité  
+
+- **JWT** (access + refresh) stocké en **httpOnly cookie**  
+- **Keycloak** OIDC – SSO, gestion des rôles  
+- **Helmet** – en-têtes HTTP sécurisés (CSP, HSTS)  
+- **CSRF** token via double‑submit cookie  
+- **Content Security Policy** stricte via Helmet  
+
+### Mécanismes de Communication  
+
+| Canal | Bibliothèque | Protocole | Usage |
+|-------|--------------|-----------|-------|
+| REST | `axios` (interceptor) | HTTPS | CRUD principal |
+| GraphQL | `@apollo/client` | HTTPS | Rapports, agrégations |
+| WebSocket | `socket.io-client` | WS/WSS | Flux GPS camions |
+| SSE (optionnel) | `eventsource` | HTTP/2 | Notifications push interne |
+| Service Worker | `Workbox` | – | Cache offline, PWA |  
+
+### Structure de Projet Frontend  
+
+```
+src/
+ ├─ app/                // Provider, routes
+ ├─ features/
+ │   ├─ auth/
+ │   ├─ dashboard/
+ │   ├─ stock/
+ │   ├─ purchases/
+ │   ├─ sales/
+ │   ├─ shipments/
+ │   ├─ trucks/
+ │   └─ integration/
+ ├─ components/         // UI atoms, molecules
+ ├─ hooks/              // custom hooks (useAuth, useQuery)
+ ├─ services/           // API wrappers (rest, graphql, ws)
+ ├─ store/              // Redux slices
+ └─ utils/              // helpers, validators
+```
+
+---  
+
+**Fin du rapport**.  

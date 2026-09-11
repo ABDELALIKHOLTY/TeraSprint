@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Écriture de tests unitaires Jest pour les services backend (Auth, Product, Cart)",
+      "description": "Cette tâche consiste à implémenter des tests unitaires avec Jest pour les services clés du backend, en se concentrant sur la logique métier sans dépendances externes. Les tests couvriront les scénarios d’authentification, la gestion des produits et les opérations du panier, en utilisant des mocks Prisma et des stubs de JWT afin de garantir la fiabilité et la maintenabilité du code. L’objectif est d’assurer que chaque méthode du service se comporte comme attendu dans des conditions contrôlées, tout en respectant les conventions de nommage et les bonnes pratiques de test.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer un dossier de tests dédié à chaque service (auth.service.spec.ts, product.service.spec.ts, cart.service.spec.ts) et configurer Jest avec ts-jest pour la compilation TypeScript.",
+        "Mocker le client Prisma (prisma.service.ts) afin de simuler les opérations CRUD sur les tables ('users'), ('product_variants'), ('carts') et ('cart_items') sans toucher la base de données réelle, en utilisant des objets JavaScript représentant les enregistrements.",
+        "Écrire des tests unitaires pour AuthService : vérifier que la méthode 'login' génère un JWT valide, que 'refreshToken' renvoie un nouveau token et que 'resetPassword' déclenche l’envoi d’un e‑mail de réinitialisation en simulant le service d’email.",
+        "Écrire des tests unitaires pour ProductService : valider la création, la mise à jour et la suppression d’un produit en s’assurant que les relations N‑N avec ('product_categories') et ('product_tags') sont correctement gérées, et que les erreurs 404 sont levées lorsqu’un produit n’existe pas."
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Tests d’intégration Jest pour les contrôleurs NestJS et GraphQL",
+      "description": "Cette tâche vise à mettre en place des tests d’intégration qui vérifient le bon fonctionnement des contrôleurs REST et des résolveurs GraphQL en interaction avec la couche de persistance. En utilisant le module testing de NestJS et supertest, les tests simuleront des requêtes HTTP réelles vers les routes ('POST /api/products'), ('GET /api/orders/:id') et les mutations GraphQL telles que 'createOrder'. Les scénarios couvriront les flux complets d’achat, la recherche de produits et la réception de notifications via WebSocket, garantissant ainsi la cohérence entre les différentes couches de l’application.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "subtasks": [
+        "Initialiser un environnement de test NestJS avec un module partagé contenant les services et les contrôleurs, et configurer une base de données PostgreSQL en mémoire ou un pool de test pour les opérations réelles.",
+        "Écrire un test d’intégration pour ProductController : envoyer une requête 'POST /api/products' avec un payload JSON, vérifier que la réponse contient un ID généré, et interroger la base pour confirmer l’insertion dans la table ('products') et les tables liées ('product_images', 'product_3d_models').",
+        "Écrire un test d’intégration pour OrderController : simuler un flux de checkout en créant un panier, ajoutant des items, puis appelant 'POST /api/orders/checkout', et vérifier que les tables ('orders'), ('order_items') et ('payments') sont correctement peuplées.",
+        "Écrire un test d’intégration GraphQL : exécuter une requête 'searchProducts' avec des filtres de catégorie et de tag, et valider que la réponse renvoie les produits attendus en vérifiant les champs ('id'), ('name'), ('price') et la présence d’une URL de modèle 3D dans ('product_3d_models')."
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Tests Cypress end‑to‑end pour la prévisualisation 3D et le flux d’achat",
+      "description": "Cette tâche consiste à concevoir et implémenter des tests Cypress qui couvrent l’expérience utilisateur complète, depuis la navigation sur la page produit jusqu’à la finalisation d’une commande. Les tests simuleront l’interaction avec le composant React Three Fiber pour charger un modèle GLTF, vérifieront le rendu du canvas, et testeront les actions de zoom et de rotation. De plus, ils couvriront le processus d’ajout au panier, la mise à jour du nombre d’articles, et la validation du paiement en mode sandbox, tout en s’assurant que les notifications WebSocket sont affichées en temps réel.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 8,
+      "subtasks": [
+        "Configurer Cypress avec TypeScript et créer un fichier de fixtures contenant des données de produit fictives, y compris un lien vers un fichier GLTF hébergé localement pour le test de prévisualisation 3D.",
+        "Écrire un scénario Cypress qui visite la page produit ('/products/:slug'), attend le chargement du canvas Three.js, interagit avec le contrôleur de caméra pour effectuer une rotation, et vérifie que le modèle 3D est rendu sans erreurs dans le DOM.",
+        "Écrire un scénario Cypress qui ajoute un produit à la liste de souhaits, vérifie que le compteur du panier dans l’en-tête se met à jour, puis navigue vers le panier pour modifier la quantité et supprimer un item, en s’assurant que les appels API REST ('PUT /api/cart/items/:id') renvoient les bons statuts.",
+        "Écrire un scénario Cypress qui exécute le flux de paiement en mode sandbox, en remplissant les champs de carte bancaire simulée, en vérifiant que la requête 'POST /api/payments' renvoie un statut 200, et que l’utilisateur est redirigé vers la page de confirmation d’ordre, tout en capturant les notifications WebSocket ('orderStatus') affichées en temps réel."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,739 @@
+{
+  "expert_examples": [
+    {
+      "project_title": "SaaS B2B Ultimate : ERP & Réservation Premium",
+      "epics": [
+        {
+          "id": "EPIC-1",
+          "title": "Architecture Sécurisée & Authentification Avancée",
+          "user_stories": [
+            {
+              "id": "US-101",
+              "title": "Mise en place de l'authentification JWT asymétrique (RSA256) et MFA",
+              "description": "En tant qu'architecte système, je veux une authentification ultra-sécurisée. Les tokens JWT doivent être signés avec RSA256. Les mots de passe seront hachés via Argon2id. Le MFA (2FA) via TOTP doit être intégré.",
+              "status": "TO DO",
+              "priority": "Highest",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Endpoint POST /auth/login retourne un Access Token (RSA256)",
+                "Mot de passe haché en BDD avec Argon2id",
+                "Middleware FastAPI valide la clé publique RSA"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-1011",
+                  "title": "Modélisation de la table 'Users' et 'MFA_Secrets'",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Créer le modèle SQLAlchemy 'User' avec UUID as Primary Key",
+                    "Générer la migration Alembic pour créer la table",
+                    "Créer une table chiffrée (AES-256) pour stocker les secrets TOTP (PyOTP)"
+                  ]
+                },
+                {
+                  "id": "TASK-1012",
+                  "title": "Implémentation du middleware de validation JWT RSA256",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Générer la paire de clés RSA via OpenSSL",
+                    "Créer une dépendance FastAPI qui décode le token via la clé publique",
+                    "Mettre en cache la clé publique dans Redis"
+                  ]
+                },
+                {
+                  "id": "TASK-1013",
+                  "title": "Endpoints d'enrôlement et de validation TOTP",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Créer le routeur POST /auth/mfa/setup (PyOTP)",
+                    "Créer le routeur POST /auth/mfa/verify",
+                    "Mettre à jour la colonne 'mfa_enabled' à TRUE en BDD"
+                  ]
+                },
+                {
+                  "id": "TASK-1014",
+                  "title": "Intégration Frontend React Context",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Créer un 'AuthContext' React pour stocker le token en mémoire",
+                    "Créer un intercepteur Axios pour l'Authorization Bearer",
+                    "Gérer le refresh token HttpOnly silencieusement"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-102",
+              "title": "Mise en place du Contrôle d'Accès basé sur les Rôles (RBAC)",
+              "description": "En tant qu'administrateur, je veux que la plateforme restreigne l'accès aux endpoints en fonction du rôle (SuperAdmin, Manager, User) et des permissions granulaires via injection de dépendances FastAPI.",
+              "status": "TO DO",
+              "priority": "High",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Tables Roles et Permissions créées",
+                "Scopes JWT vérifiés par FastAPI Security",
+                "Frontend React masque les boutons si permission manquante"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-1021",
+                  "title": "Modélisation SQL et migrations Alembic",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Créer les tables 'roles', 'permissions', et jointures",
+                    "Rédiger la migration Alembic pour le Seed Data"
+                  ]
+                },
+                {
+                  "id": "TASK-1022",
+                  "title": "FastAPI Security Scopes Injection",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Utiliser `Security(get_current_user, scopes=['write:users'])`",
+                    "Retourner une erreur 403 si token_scopes invalide"
+                  ]
+                },
+                {
+                  "id": "TASK-1023",
+                  "title": "Composant HOC React (Higher Order Component)",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Créer un composant `<RequirePermission>`",
+                    "Décoder le JWT côté front pour extraire les permissions"
+                  ]
+                },
+                {
+                  "id": "TASK-1024",
+                  "title": "Audit Trail et Logging des actions",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Créer un décorateur `@audit_log` en Python",
+                    "Stocker l'ID utilisateur, IP et payload masqué dans 'audit_logs'"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-103",
+              "title": "Single Sign-On (SSO) OAuth2 avec Google & Microsoft",
+              "description": "En tant qu'utilisateur Corporate, je veux pouvoir me connecter via le compte de mon entreprise (Google Workspace ou Azure AD) avec auto-provisioning des comptes.",
+              "status": "TO DO",
+              "priority": "Medium",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Boutons Login Google et Microsoft fonctionnels",
+                "Création du compte à la volée s'il n'existe pas en BDD",
+                "Récupération de la photo de profil"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-1031",
+                  "title": "Configuration OAuth2 dans GCP et Azure",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Créer les Consent Screens et récupérer les Client IDs et Secrets",
+                    "Configurer les redirect URIs (ex: /auth/callback/google)"
+                  ]
+                },
+                {
+                  "id": "TASK-1032",
+                  "title": "Backend Flow OAuth2 FastAPI",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Utiliser Authlib pour implémenter le PKCE flow sécurisé",
+                    "Endpoint GET /auth/login/{provider} qui redirige vers Google/MS",
+                    "Endpoint GET /auth/callback/{provider} pour récupérer le code d'accès"
+                  ]
+                },
+                {
+                  "id": "TASK-1033",
+                  "title": "Logique d'Auto-Provisioning BDD",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Faire un UPSERT dans SQLAlchemy basé sur l'email retourné par l'IdP",
+                    "Associer le compte à un rôle 'User' par défaut",
+                    "Générer notre propre JWT RSA256 et le retourner au client"
+                  ]
+                },
+                {
+                  "id": "TASK-1034",
+                  "title": "UI React pour les connexions sociales",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Ajouter les SVG officiels et les boutons de connexion",
+                    "Gérer les états de chargement (loaders) pendant la redirection"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-104",
+              "title": "Rate Limiting & Protection Anti-DDoS et Brute Force",
+              "description": "En tant qu'ingénieur DevOps, je veux empêcher le spam et le brute force sur les endpoints sensibles via un Rate Limiting distribué sur Redis.",
+              "status": "TO DO",
+              "priority": "High",
+              "story_points": 5,
+              "acceptance_criteria": [
+                "Max 5 tentatives de login par minute par IP",
+                "Les dépassements déclenchent une erreur HTTP 429 Too Many Requests",
+                "En-têtes standards 'X-RateLimit' retournés au client"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-1041",
+                  "title": "Intégration de SlowAPI dans FastAPI",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Installer `slowapi` et configurer le `Limiter` basé sur l'adresse IP du client",
+                    "Attacher le Limiter à l'application FastAPI globale"
+                  ]
+                },
+                {
+                  "id": "TASK-1042",
+                  "title": "Configuration du stockage Redis pour SlowAPI",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Configurer le `RedisStorage` pour rendre le Rate Limiting distribué",
+                    "S'assurer que la vraie IP est récupérée derrière les Load Balancers"
+                  ]
+                },
+                {
+                  "id": "TASK-1043",
+                  "title": "Décorateurs de limites sur les routes critiques",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 1,
+                  "subtasks": [
+                    "Ajouter `@limiter.limit('5/minute')` sur POST /auth/login",
+                    "Ajouter `@limiter.limit('3/minute')` sur POST /auth/mfa/verify"
+                  ]
+                },
+                {
+                  "id": "TASK-1044",
+                  "title": "Gestion du ban temporaire Frontend (UI Lockout)",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Capter l'erreur 429 côté React via Axios Interceptor",
+                    "Afficher un compte à rebours bloquant le bouton 'Se connecter'"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "EPIC-2",
+          "title": "Moteur de Réservation & Concurrence Transactionnelle",
+          "user_stories": [
+            {
+              "id": "US-201",
+              "title": "Gestion du Surbooking via Pessimistic Locking SQL",
+              "description": "Le moteur de base de données doit verrouiller la ligne de la table le temps de vérifier la disponibilité pour éviter les Race Conditions.",
+              "status": "TO DO",
+              "priority": "Highest",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Requête encadrée avec `session.query().with_for_update()`",
+                "HTTP 409 Conflict si la ressource est verrouillée",
+                "Contrainte d'exclusion TSRANGE sur PostgreSQL"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-2011",
+                  "title": "Modélisation des plages horaires avec TSRANGE",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Ajouter l'extension 'btree_gist' dans PostgreSQL via Alembic",
+                    "Ajouter une contrainte EXCLUDE USING gist"
+                  ]
+                },
+                {
+                  "id": "TASK-2012",
+                  "title": "Implémentation du verrouillage pessimiste dans FastAPI",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Requête `SELECT FOR UPDATE NOWAIT`",
+                    "Attraper l'exception SQLAlchemy `OperationalError`"
+                  ]
+                },
+                {
+                  "id": "TASK-2013",
+                  "title": "Test de charge anti-surbooking avec Locust",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Écrire un script `locustfile.py` simulant 100 requêtes parallèles",
+                    "Valider qu'une seule réservation est acceptée (HTTP 201)"
+                  ]
+                },
+                {
+                  "id": "TASK-2014",
+                  "title": "Mise en file d'attente (Redis Pub/Sub)",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Publier un événement sur Redis lors d'une réservation",
+                    "Pousser une notification WebSockets au Dashboard Admin"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-202",
+              "title": "Cache Distribué Redis pour les disponibilités",
+              "description": "Les requêtes de disponibilité lourdes seront mises en cache dans Redis avec une politique d'invalidation stricte (Cache Aside Pattern).",
+              "status": "TO DO",
+              "priority": "Medium",
+              "story_points": 5,
+              "acceptance_criteria": [
+                "Endpoint GET /availabilities répond en moins de 20ms",
+                "Le cache Redis est invalidé à chaque réservation réussie"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-2021",
+                  "title": "Connexion du pool asynchrone Redis",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Instancier `aioredis` dans le lifespan FastAPI",
+                    "Définir un préfixe de clé clair `cache:availabilities:...`"
+                  ]
+                },
+                {
+                  "id": "TASK-2022",
+                  "title": "Logique de Cache Aside sur l'endpoint",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Vérifier `redis.get(key)`. Si Cache Miss, exécuter la requête SQL complexe",
+                    "Stocker le résultat en JSON via `redis.setex(key, 600, data)`"
+                  ]
+                },
+                {
+                  "id": "TASK-2023",
+                  "title": "Mécanisme d'invalidation (Cache Busting)",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Dans les endpoints POST/DELETE, appeler `redis.delete(key)`",
+                    "Utiliser SCAN pour purger des patterns complets si besoin"
+                  ]
+                },
+                {
+                  "id": "TASK-2024",
+                  "title": "Optimisation Frontend avec React Query",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Implémenter `useQuery` avec un staleTime de 30 secondes",
+                    "Invalidation via `queryClient.invalidateQueries` au onSuccess"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-203",
+              "title": "Algorithme de Yield Management & Dynamic Pricing",
+              "description": "Le prix des réservations s'ajuste dynamiquement en fonction du taux de remplissage en temps réel (Yield Management) pour maximiser le chiffre d'affaires.",
+              "status": "TO DO",
+              "priority": "High",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Les prix augmentent automatiquement de 20% si l'occupation dépasse 80%",
+                "Les prix baissent de 15% pour les heures creuses",
+                "Calcul exécuté au niveau de l'API avec isolation métier complète"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-2031",
+                  "title": "Modélisation des règles de pricing dynamique en BDD",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Créer une table 'pricing_rules'",
+                    "Mettre en place un CRUD administrateur pour modifier les règles"
+                  ]
+                },
+                {
+                  "id": "TASK-2032",
+                  "title": "Moteur de calcul asynchrone (FastAPI Services)",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Créer un module 'YieldEngine'",
+                    "Évaluer les règles SQL en temps réel et retourner un objet 'PriceQuote'"
+                  ]
+                },
+                {
+                  "id": "TASK-2033",
+                  "title": "Mise en cache du Pricing",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Mettre en cache le taux d'occupation Redis",
+                    "Le moteur lit le cache Redis plutôt que faire un COUNT(*)"
+                  ]
+                },
+                {
+                  "id": "TASK-2034",
+                  "title": "Intégration Frontend : Affichage Temps Réel",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Afficher un tag visuel 'Forte demande'",
+                    "Mettre à jour le prix total dans le panier avant validation"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-204",
+              "title": "Architecture Serverless & File d'attente (Virtual Waiting Room)",
+              "description": "Garantir la stabilité de l'API lors d'événements de pic extrême en implémentant une salle d'attente virtuelle.",
+              "status": "TO DO",
+              "priority": "High",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Si la charge dépasse 100 req/sec, les requêtes suivantes sont mises en attente (FIFO)",
+                "Le client reçoit un ticket et poll l'API"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-2041",
+                  "title": "Implémentation du middleware Token Bucket (Redis)",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Créer un algorithme Token Bucket via LUA Script Redis",
+                    "Limiter les entrées concourantes"
+                  ]
+                },
+                {
+                  "id": "TASK-2042",
+                  "title": "File d'attente FIFO distribuée (RabbitMQ / Redis Lists)",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Si le Token Bucket est vide, ajouter dans une List Redis",
+                    "Retourner HTTP 202 Accepted avec un 'Ticket-Id'"
+                  ]
+                },
+                {
+                  "id": "TASK-2043",
+                  "title": "Endpoint de polling de statut / Long Polling",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 3,
+                  "subtasks": [
+                    "GET /queue/status?ticket=XYZ retourne la position exacte",
+                    "Générer un Token d'accès temporaire quand c'est le tour"
+                  ]
+                },
+                {
+                  "id": "TASK-2044",
+                  "title": "UI React: Écran de Salle d'Attente",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Composant React qui effectue du Short Polling (5s)",
+                    "Afficher une barre de progression fluide"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "EPIC-3",
+          "title": "Intégration Paiements Stripe & Robustesse Webhooks",
+          "user_stories": [
+            {
+              "id": "US-301",
+              "title": "Intégration de Stripe Checkout Server-Side",
+              "description": "L'API Stripe Checkout Server-Side sera utilisée. La réservation sera créée en base avec le statut 'PENDING'.",
+              "status": "TO DO",
+              "priority": "High",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "L'API FastAPI génère un `stripe.checkout.Session.create`",
+                "Le montant est calculé dynamiquement côté backend",
+                "Redirection de React vers Stripe"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-3011",
+                  "title": "Modélisation de la table 'Payments'",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Créer le modèle SQLAlchemy 'Payment'",
+                    "Les statuts: PENDING, SUCCEEDED, FAILED, REFUNDED"
+                  ]
+                },
+                {
+                  "id": "TASK-3012",
+                  "title": "Génération de la Checkout Session (FastAPI)",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Créer l'endpoint POST /payments/create-session",
+                    "Calculer le montant au backend et insérer PENDING en BDD"
+                  ]
+                },
+                {
+                  "id": "TASK-3013",
+                  "title": "Gestion côté Frontend (React Stripe.js)",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Créer les pages de callback success/cancel en React Router",
+                    "Afficher un squelette de chargement (Skeleton)"
+                  ]
+                },
+                {
+                  "id": "TASK-3014",
+                  "title": "Tests unitaires avec `stripe-mock`",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Installer le container Docker `stripe/stripe-mock`",
+                    "Écrire des tests pytest asynchrones"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-302",
+              "title": "Sécurisation Asynchrone du Listener de Webhook Stripe",
+              "description": "L'endpoint de Webhook vérifiera la signature cryptographique. Le traitement sera déporté dans une file d'attente Celery.",
+              "status": "TO DO",
+              "priority": "Highest",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Vérification de signature avec `webhook_secret`",
+                "Tâche asynchrone Celery met à jour le statut BDD"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-3021",
+                  "title": "Endpoint de vérification cryptographique",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Extraire le 'raw_body' de la requête",
+                    "Lever HTTP 400 si `SignatureVerificationError`"
+                  ]
+                },
+                {
+                  "id": "TASK-3022",
+                  "title": "Délégation à un Worker Asynchrone Celery",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Exécuter `process_payment_webhook.delay()`",
+                    "Répondre HTTP 200 immédiat à Stripe"
+                  ]
+                },
+                {
+                  "id": "TASK-3023",
+                  "title": "Logique Métier du Worker Celery",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Si 'checkout.session.completed', passer en SUCCEEDED",
+                    "Si 'payment_failed', annuler la réservation"
+                  ]
+                },
+                {
+                  "id": "TASK-3024",
+                  "title": "Test de résilience (Idempotence) du Webhook",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Stocker l'`event_id` Stripe pour unicité",
+                    "Prévenir le double traitement via Idempotency Key Pattern"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-303",
+              "title": "Système de Facturation Automatisée (Génération PDF & S3)",
+              "description": "Générer automatiquement une facture au format PDF dès que le paiement Stripe est validé et l'uploader sur AWS S3.",
+              "status": "TO DO",
+              "priority": "Medium",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Génération asynchrone d'un PDF via WeasyPrint",
+                "Upload automatique et privé sur AWS S3",
+                "Email envoyé avec un lien signé valable 24h"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-3031",
+                  "title": "Création du Worker Celery de Facturation",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Créer la tâche `generate_invoice_pdf`",
+                    "Insérer un enregistrement dans la table 'Invoices'"
+                  ]
+                },
+                {
+                  "id": "TASK-3032",
+                  "title": "Génération PDF depuis HTML Jinja2",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Créer un template Jinja2 propre avec calcul dynamique de la TVA",
+                    "Intégrer WeasyPrint pour convertir le HTML en PDF"
+                  ]
+                },
+                {
+                  "id": "TASK-3033",
+                  "title": "Upload AWS S3 et Signed URLs",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Configurer le SDK Boto3 asynchrone (aioboto3)",
+                    "Uploader le PDF dans un Bucket S3 privé",
+                    "Générer une Signed URL de 24 heures"
+                  ]
+                },
+                {
+                  "id": "TASK-3034",
+                  "title": "Frontend : Historique de facturation",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Créer la page React '/account/invoices'",
+                    "Bouton 'Télécharger' qui appelle l'API pour récupérer une S3 Signed URL"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-304",
+              "title": "Mécanisme de Remboursement et Litiges (Chargebacks)",
+              "description": "Permettre des remboursements (Refunds) depuis le back-office, et réagir automatiquement aux litiges signalés par Stripe.",
+              "status": "TO DO",
+              "priority": "High",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Endpoint API sécurisé pour lancer un `stripe.Refund.create`",
+                "Les Webhooks de litiges gèlent le compte",
+                "Audit trail strict"
+              ],
+              "tasks": [
+                {
+                  "id": "TASK-3041",
+                  "title": "Endpoint API de Remboursement Back-Office",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "POST /admin/payments/{id}/refund",
+                    "Appel de l'API Stripe avec la Clé Secrète"
+                  ]
+                },
+                {
+                  "id": "TASK-3042",
+                  "title": "Listeners Webhook additionnels (Disputes)",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Ajouter le support de 'charge.dispute.created'",
+                    "Mettre à jour la table 'Payments' avec un flag `disputed`"
+                  ]
+                },
+                {
+                  "id": "TASK-3043",
+                  "title": "Logique Métier de gel des comptes",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 2,
+                  "subtasks": [
+                    "Désactiver le compte instantanément en cas de Chargeback",
+                    "Envoyer une alerte automatisée à l'équipe Fraude"
+                  ]
+                },
+                {
+                  "id": "TASK-3044",
+                  "title": "Dashboard Admin React : Panneau de Fraude",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Créer une vue dans l'espace Admin listant tous les paiements avec badges colorés",
+                    "Ajouter un modal sécurisé pour valider un remboursement"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

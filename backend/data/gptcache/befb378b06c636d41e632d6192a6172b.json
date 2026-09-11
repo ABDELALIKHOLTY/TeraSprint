@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Tests unitaires des services backend (Jest)",
+      "description": "Cette tâche consiste à implémenter une suite exhaustive de tests unitaires pour chaque service métier du backend, afin de garantir la fiabilité de la logique métier et de prévenir les régressions. Les services ciblés incluent authService, userService, carService, rentalService et paymentService. Chaque test devra couvrir les cas positifs, les scénarios d’erreur et les validations de données, en utilisant des mocks pour les dépendances externes comme Prisma ou les appels HTTP. L’objectif est d’obtenir une couverture de code supérieure à 80 % pour les fonctions critiques.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Écrire des tests Jest pour la fonction 'hashPassword' du service ('authService') en vérifiant que le mot de passe est correctement salé et que la longueur du hash correspond aux exigences de sécurité.",
+        "Créer des tests unitaires pour la méthode 'checkDriverLicense' du service ('userService') en simulant des entrées valides et invalides et en s’assurant que les erreurs appropriées sont levées.",
+        "Développer des tests pour la fonction 'calculateTotalPrice' du service ('rentalService') en utilisant différents intervalles de dates, tarifs journaliers et en validant le calcul du prix total incluant les éventuels frais supplémentaires.",
+        "Implémenter des tests pour la méthode 'processPayment' du service ('paymentService') en mockant l'API Stripe, en vérifiant la gestion des réponses réussies et des erreurs de paiement."
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Tests d'intégration des API backend (Jest + Supertest)",
+      "description": "Cette tâche vise à mettre en place des tests d'intégration qui valident le comportement complet des routes REST exposées par l'application. En utilisant Supertest, chaque endpoint sera invoqué avec des requêtes HTTP réelles, les réponses seront comparées aux attentes, et la base de données PostgreSQL sera réinitialisée entre les scénarios grâce à des transactions. Les routes testées incluent l'authentification, la gestion des véhicules et la création de locations, afin de garantir la conformité du contrat API et la persistance correcte des données.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Écrire un test d'intégration pour la route ('POST /api/auth/login') qui envoie des identifiants valides, vérifie le code 200, la présence du cookie HttpOnly JWT et la structure du corps de réponse.",
+        "Implémenter un test d'intégration pour la route ('GET /api/cars') avec des filtres de disponibilité, en s'assurant que seuls les enregistrements de la table ('cars') avec le champ ('status') égal à 'available' sont retournés.",
+        "Créer un test d'intégration pour la route ('POST /api/rentals') qui crée une location en vérifiant que la table ('rentals') reçoit un enregistrement avec les champs ('user_id'), ('car_id'), ('start_date'), ('end_date') correctement renseignés.",
+        "Développer un test d'intégration pour la route ('POST /api/payments') qui simule un paiement réussi, vérifie que la table ('payments') contient un enregistrement avec ('rental_id'), ('amount'), ('status') = 'completed' et que le webhook Stripe est correctement mocké."
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Tests unitaires et d'intégration du frontend (React Testing Library)",
+      "description": "Cette tâche porte sur la création de tests automatisés pour les composants critiques de l'interface Electron/React, en utilisant Jest et React Testing Library. Les tests couvriront le rendu, les interactions utilisateur, la gestion du state Redux et les appels API via Axios, en mockant les réponses serveur. L’objectif est d’assurer que les pages Login, CarCatalog et RentalForm fonctionnent correctement dans l’environnement desktop, tout en respectant les exigences d’accessibilité et de performance.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Écrire un test de rendu pour le composant 'LoginForm' qui vérifie la présence des champs ('email') et ('password'), le bouton de soumission et que le texte d’erreur apparaît après une soumission avec des credentials invalides.",
+        "Créer un test d'interaction pour le composant 'CarCatalog' qui simule le clic sur le filtre 'Disponible', attend que la liste se mette à jour et confirme que chaque carte affiche les propriétés ('make'), ('model') et le tarif journalier ('daily_rate') provenant du mock d'API.",
+        "Développer un test d'intégration pour le composant 'RentalForm' qui remplit les champs de dates, sélectionne un véhicule, soumet le formulaire et vérifie que l'action Redux 'createRental' est dispatchée avec les paramètres corrects et que la navigation vers la page de confirmation s'effectue.",
+        "Implémenter un test de couverture pour le hook personnalisé 'useAuth' qui lit le cookie JWT, déclenche la récupération du profil utilisateur via la route ('GET /api/users/me') et assure que le state Redux ('auth') contient les informations ('id'), ('email') du user connecté."
+      ]
+    }
+  ]
+}

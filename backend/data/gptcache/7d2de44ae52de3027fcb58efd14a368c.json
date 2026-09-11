@@ -1,0 +1,48 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Configuration de l'environnement Java, Spring Boot et base de données PostgreSQL",
+      "description": "Cette tâche technique majeure consiste à préparer et standardiser l'environnement de développement local pour l'ensemble des développeurs backend. Elle couvre l'installation du JDK et de l'outil de build Maven pour gérer les dépendances du projet Spring Boot, la configuration du fichier de propriétés de l'application pour cibler la base de données PostgreSQL locale, et l'initialisation du schéma relationnel contenant les tables essentielles ('users', 'rooms', 'messages', 'room_members') avec leurs clés primaires et étrangères respectives. L'objectif est d'assurer une initialisation rapide et sans erreur du contexte de développement Java pour l'application LiveText.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Installation du JDK en version minimale requise (Java 17 ou supérieure) et configuration des variables d'environnement système `JAVA_HOME` et la variable de chemin d'accès `PATH` pour garantir la compilation des fichiers `.java` depuis n'importe quel répertoire de développement.",
+        "Configuration de l'outil de gestion de dépendances Maven en créant le fichier `pom.xml` de projet racine, en y déclarant les starters Spring officielles pour `spring-boot-starter-web`, `spring-boot-starter-security`, `spring-boot-starter-data-jpa`, et `spring-boot-starter-messaging` pour activer les fonctionnalités REST et WebSocket.",
+        "Création et configuration du fichier de configuration de l'application `application.yml` (ou `application.properties`) pour pointer sur une instance PostgreSQL locale, en spécifiant l'URL de connexion JDBC locale (ex: `jdbc:postgresql://localhost:5432/livetextdb`), le nom d'utilisateur, le mot de passe, et le pilote JDBC approprié `org.postgresql.Driver`.",
+        "Initialisation du schéma de la base de données relationnelle locale par l'exécution de scripts SQL d'initialisation créant la table ('users') avec ses colonnes ('id', 'username', 'email', 'password_hash', 'status'), la table ('rooms') avec ('id', 'name', 'creator_id'), la table ('messages') avec ('id', 'content', 'sent_at', 'sender_id', 'room_id'), et la table d'association ('room_members') avec la clé primaire composite ('user_id', 'room_id')."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Configuration de l'environnement de développement Frontend (Node.js, Vite, React)",
+      "description": "Cette tâche technique est dédiée à la mise en place de l'environnement de développement pour la partie client de l'application LiveText. Elle implique l'installation de Node.js, la initialisation du projet basé sur Vite avec React, la configuration du framework CSS TailwindCSS pour un design systemique, et l'installation des bibliothèques clés comme `react-router-dom` pour la navigation, `axios` pour les requêtes HTTP protégées par JWT, et `@stomp/stompjs` pour la communication en temps réel via l'endpoint WebSocket '/ws'.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 3,
+      "subtasks": [
+        "Installation du runtime Node.js (version LTS recommandée) et gestion des paquets via npm ou yarn, en vérifiant la cohérence des versions de l'environnement de développement pour éviter tout conflit de dépendances avec les outils de build comme Vite.",
+        "Initialisation d'un nouveau projet Single Page Application (SPA) à l'aide de l'outil de génération de template Vite avec React, configurant le dossier de sources `src/` et le dossier public pour héberger les assets statiques de l'application de chat.",
+        "Installation et configuration du framework de styles CSS utility-first TailwindCSS en créant le fichier de configuration `tailwind.config.js` et en important le plugin de base dans `index.css` pour activer les classes utilitaires de conception de l'interface utilisateur de l'application LiveText.",
+        "Installation des dépendances critiques du client : le package `react-router-dom` pour la configuration du routage interne des pages (comme la page de login et la liste des salons), la bibliothèque `axios` pour configurer l'instance HTTP avec un intercepteur injectant le token JWT dans l'en-tête `Authorization: Bearer {token}`, et la bibliothèque `@stomp/stompjs` pour gérer la connexion WebSocket vers le broker STOMP."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Configuration de la conteneurisation Docker et orchestration Docker Compose",
+      "description": "Cette tâche technique permet de conteneuriser l'ensemble de la stack technique (Backend Spring Boot, Frontend React/Vite, et base de données PostgreSQL) afin de garantir une cohérence absolue entre les environnements de développement, de test et de pré-production. L'utilisation de Docker et Docker Compose permet de définir des dépendances claires, d'isoler les services et de simplifier le lancement de l'application de messagerie en temps réel via des fichiers de configuration déclaratifs.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Rédaction d'un `Dockerfile` dédié au backend Java en utilisant une image de base officielle Eclipse Temurin (comme `eclipse-temurin:17-jre`) pour copier le JAR compilé de l'application Spring Boot et exposer le port `8080` destiné aux appels REST (comme le endpoint 'POST /api/v1/auth/login') et WebSocket (le endpoint '/ws' avec fallback SockJS).",
+        "Création d'un `Dockerfile` pour le frontend React/Vite en utilisant une image Node pour construire les assets de production ou lancer le serveur de développement en mode hot-reloading, en exposant le port `5173` par défaut de Vite pour le développement local.",
+        "Rédaction d'un fichier `docker-compose.yml` centralisé définissant trois services principaux : un service `db` basé sur l'image officielle PostgreSQL (pour stocker les enregistrements des tables 'users', 'rooms', 'messages' et 'room_members'), un service `backend` pour l'application Spring Boot, et un service `frontend` pour l'application React, en configurant les volumes de données pour la persistance des tables de la base de données.",
+        "Configuration des dépendances de lancement entre les conteneurs en utilisant la clause `depends_on` avec des conditions de santé (`healthcheck`) pour le service PostgreSQL, s'assurant que le conteneur du backend Spring Boot ne démarre que lorsque la base de données est pleinement initialisée et prête à recevoir les connexions JDBC."
+      ]
+    }
+  ]
+}

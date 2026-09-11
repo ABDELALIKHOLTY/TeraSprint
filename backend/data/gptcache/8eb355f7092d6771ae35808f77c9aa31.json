@@ -1,0 +1,53 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "SMAI-101",
+      "title": "Implémentation du Microservice 'auth-service' (Spring Security JWT/OAuth2)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche couvre l'implémentation complète du microservice 'auth-service' en Spring Boot, qui constitue le point d'entrée sécurisé de toute la plateforme SkillMatch AI. Le service doit gérer l'authentification via JWT (stateless) et le flux OAuth2 (notamment pour l'import LinkedIn). Il est responsable de la création et gestion des comptes (table 'users' avec 'id', 'email', 'password_hash', 'role') et de la génération des tokens d'accès et de rafraîchissement. Il devra s'intégrer avec Redis pour le blacklisting des tokens et le stockage des sessions actives, garantissant la sécurité et la performance dans un environnement microservices orchestré sur Kubernetes.",
+      "subtasks": [
+        "Configurer Spring Security avec un Resource Server JWT (issuer-uri), définir les filtres d'authentification et la classe SecurityConfig pour autoriser les routes publiques (ex: 'POST /api/auth/register') et sécuriser toutes les autres.",
+        "Implémenter l'entité JPA 'User' mappée sur la table 'users' avec les colonnes ('id' BIGSERIAL PK, 'email' UNIQUE VARCHAR, 'password_hash' VARCHAR, 'role' ENUM[CANDIDATE,RECRUITER], 'created_at' TIMESTAMP) et le repository Spring Data correspondant.",
+        "Développer les endpoints REST du 'AuthController' : 'POST /api/auth/register' (hashage BCrypt du mot de passe), 'POST /api/auth/login' (retour Access Token + Refresh Token) et 'POST /api/auth/refresh-token' (rotation des tokens avec validation signature).",
+        "Mettre en place le client OAuth2 pour le provider LinkedIn via 'GET /api/auth/oauth/{provider}' (authorization_code grant) en utilisant Spring Security OAuth2 Client, permettant de récupérer le profil LinkedIn sans gestion locale du mot de passe.",
+        "Implémenter un 'JwtService' pour la génération (claims: sub=user_id, role, exp) et la validation des JWT en utilisant une clé RSA 2048 bits stockée dans AWS Secrets Manager et chargée au démarrage.",
+        "Configurer l'intégration Redis pour le blacklisting des tokens révoqués (clé Redis 'jwt:blacklist:{jti}') avec une expiration Time-To-Live correspondant à la durée de validité restante du token."
+      ]
+    },
+    {
+      "id": "SMAI-102",
+      "title": "Développement du Microservice 'candidate-service' (Profils, CV et Graphe de Compétences)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 13,
+      "description": "Cette tâche implémente le 'candidate-service', pilier central de la valeur ajoutée de SkillMatch AI. Il gère les profils candidats (table 'candidates'), l'importation des CV (PDF/DOCX) et des profils LinkedIn, puis déclenche l'extraction NLP des compétences. Le défi majeur est la construction du graphe dynamique des compétences (table 'skill_evolution' avec 'acquired_at' et 'source') qui permet de modéliser la trajectoire d'apprentissage d'un candidat. Ce service communiquera de manière asynchrone avec le 'matching-service' pour mettre à jour les scores en temps réel dès qu'une nouvelle compétence est détectée.",
+      "subtasks": [
+        "Modéliser les entités JPA 'Candidate' (table 'candidates' avec FK 'user_id' vers 'users.id', champs 'first_name', 'last_name', 'linkedin_url', 'cv_url', 'current_title') et 'Skill' (table 'skills' avec 'id', 'name', 'category') avec leurs relations Many-to-Many via 'candidate_skills'.",
+        "Implémenter la table 'skill_evolution' (FK 'candidate_id', 'skill_id', 'acquired_at' TIMESTAMP, 'source' ENUM[CV,LINKEDIN,MANUAL]) qui sert de graphe temporel, avec des requêtes JPQL permettant de récupérer l'historique chronologique pour la visualisation D3/Cytoscape côté frontend.",
+        "Développer le 'CandidateController' avec les routes 'GET /api/candidates/{id}', 'PUT /api/candidates/{id}', 'POST /api/candidates/{id}/import-cv' (upload multipart) et 'POST /api/candidates/{id}/import-linkedin' (déclenchement après OAuth).",
+        "Créer le 'NlpExtractionService' qui parse le PDF/DOCX (Apache Tika), envoie le texte brut à un modèle NLP (ou utilise une librairie comme Stanford CoreNLP/OpenNLP) pour extraire les entités 'SKILL' et les persiste en base en lien avec la table 'skills'.",
+        "Implémenter le 'SkillGraphService' qui, à chaque extraction réussie, calcule la nouvelle compétence acquise, insère une entrée dans 'skill_evolution', et publie un événement 'CandidateSkillUpdated' sur un topic Kafka/RabbitMQ pour notifier le 'matching-service'.",
+        "Logger systématiquement chaque extraction NLP et chaque modification de profil dans MongoDB (collection 'nlp_extraction_logs' et 'audit_logs') pour audit, conformité RGPD et amélioration continue des modèles d'extraction."
+      ]
+    },
+    {
+      "id": "SMAI-103",
+      "title": "Implémentation du Microservice 'matching-service' (Algorithme de Scoring et Recherche Inversée)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 13,
+      "description": "Le 'matching-service' est le cœur algorithmique de SkillMatch AI. Il est responsable du calcul du score de compatibilité entre un candidat et une offre d'emploi, en pondérant non seulement la présence de compétences mais aussi la 'trajectoire d'apprentissage' issue du graphe de compétences (table 'skill_evolution'). Il doit également permettre la 'reverse search' (recherche inversée) où un recruteur décrit un profil idéal et le système trouve les meilleurs candidats correspondants. Les scores calculés doivent être persistés (table 'applications') et mis en cache dans Redis pour des consultations ultérieures ultra-rapides.",
+      "subtasks": [
+        "Définir le contrat d'écoute des événements depuis Kafka/RabbitMQ (topic 'candidate.skill.updated' et 'job.offer.published') afin de recalculer les scores de manière asynchrone et réactive sans bloquer les API Gateway.",
+        "Implémenter le 'MatchingEngineService' avec une fonction de scoring hybride : 60% basé sur la correspondance de pondération des compétences ('job_offer_skills' avec 'weight') et 40% basé sur un score de 'prédictivité d'évolution' calculé à partir de la pente d'acquisition des nouvelles technologies dans 'skill_evolution'.",
+        "Créer l'endpoint 'POST /api/matching/score' qui prend un 'candidate_id' et un 'job_offer_id', déclenche ou récupère le score, stocke le résultat dans la table 'applications' (champs 'match_score', 'status', 'applied_at') et le met en cache sous la clé Redis 'match_score:{candidate_id}:{offer_id}' avec TTL de 24h.",
+        "Développer l'algorithme de 'reverse search' sur la route 'POST /api/matching/reverse-search' : il prend une liste de skills cibles avec niveaux requis et effectue une recherche Elasticsearch/PostgreSQL Full-Text sur les candidats en triant par score de matching descendant.",
+        "Implémenter la logique de notification : si un nouveau score calculé dépasse le seuil de 80%, le service publie un événement vers le 'notification-service' pour déclencher une alerte intelligente aux deux parties (candidat et recruteur)."
+      ]
+    }
+  ]
+}
+```

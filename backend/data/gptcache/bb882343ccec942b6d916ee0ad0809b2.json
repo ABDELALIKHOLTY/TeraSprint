@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Rédaction de la Documentation Technique (Swagger/OpenAPI)",
+      "description": "Cette tâche vise à créer une documentation technique complète et structurée pour l'API REST et GraphQL du système ERP, en utilisant les spécifications OpenAPI 3.0. Elle permettra aux développeurs et aux équipes techniques de comprendre les endpoints disponibles, les paramètres d'entrée/sortie, les schémas de données et les flux d'authentification. La documentation sera générée automatiquement via Swagger UI intégré au backend NestJS, et mise à jour en continu avec les évolutions du code. Les spécifications OpenAPI seront également utilisées pour valider les requêtes via des middlewares de validation côté serveur.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Définir les spécifications OpenAPI 3.0 pour tous les endpoints REST du backend (NestJS) en décrivant les routes ('GET /api/v1/auth/login', 'POST /api/v1/users', 'GET /api/v1/warehouses', 'POST /api/v1/products', 'GET /api/v1/orders/{id}', 'GET /api/v1/shipments/tracking/{tracking_number}', 'GET /api/v1/gps-logs/{shipment_id}') avec leurs méthodes HTTP, paramètres de requête, corps de requête et réponses attendues, en incluant les schémas de validation des données (ex: 'email' dans 'users', 'sku' dans 'products', 'latitude' et 'longitude' dans 'gps_logs').",
+        "Configurer le décorateur '@ApiTags()' et '@ApiOperation()' dans les contrôleurs NestJS ('AuthController', 'UserController', 'WarehouseController', 'ProductController', 'OrderController', 'ShipmentController', 'GPSLogController') pour générer automatiquement la documentation Swagger UI accessible via l'URL ('/api/v1/docs') une fois le serveur backend démarré.",
+        "Rédiger les guides d'installation détaillés pour le backend (NestJS) et le frontend (React.js) en documentant les prérequis (Node.js v18, PostgreSQL v15, MongoDB v6, Redis v7), les variables d'environnement nécessaires ('DATABASE_URL', 'MONGODB_URI', 'JWT_SECRET', 'OAUTH2_CLIENT_ID'), les commandes de build ('npm run build:backend', 'npm run build:frontend') et les étapes de déploiement locaux via Docker Compose.",
+        "Intégrer la documentation OpenAPI dans le dépôt GitHub en créant un fichier ('openapi.yaml') versionné, ajouter des scripts npm ('npm run generate-docs', 'npm run validate-api') pour automatiser la génération et la validation des spécifications, et configurer un lien vers la documentation dans le README.md du projet."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Configuration du Déploiement AWS (Terraform pour EC2, RDS, S3)",
+      "description": "Cette tâche consiste à créer les modules Terraform nécessaires pour provisionner l'infrastructure AWS (EC2, RDS, S3) de manière automatisée et reproductible. Elle inclut la définition des ressources réseau (VPC, sous-réseaux, groupes de sécurité), la configuration des bases de données PostgreSQL (RDS) et MongoDB (via EC2), ainsi que le stockage d'objets S3 pour les fichiers de logs et les backups. L'objectif est de garantir une infrastructure sécurisée, évolutive et conforme aux bonnes pratiques AWS, avec des outputs pour faciliter l'intégration avec les pipelines CI/CD.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer un module Terraform principal ('main.tf') pour déployer une instance EC2 (t3.medium) avec un groupe de sécurité permettant l'accès SSH (port 22) et HTTP (port 3000), en utilisant une clé SSH ('~/.ssh/aws_key.pem') pour la connexion et en installant Docker et Kubernetes via un script d'initialisation ('user_data.sh').",
+        "Configurer un cluster RDS PostgreSQL (db.t4g.micro) avec une base de données ('erp_db'), un utilisateur ('admin'), et des paramètres de sauvegarde automatique (7 jours), en liant l'instance EC2 au cluster via les groupes de sécurité et les règles réseau (accès depuis les IPs du VPC).",
+        "Déployer un bucket S3 ('erp-logs-bucket') pour stocker les logs GPS (MongoDB) et les backups de la base de données, avec une politique de lifecycle (suppression après 30 jours) et des permissions IAM restrictives ('s3:GetObject', 's3:PutObject') pour les rôles applicatifs.",
+        "Générer des outputs Terraform ('vpc_id', 'rds_endpoint', 's3_bucket_name', 'ec2_public_ip') dans un fichier ('outputs.tf') pour exposer les informations critiques aux workflows GitHub Actions et aux services backend/frontend."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Automatisation du Déploiement avec GitHub Actions",
+      "description": "Cette tâche vise à automatiser le processus de build, de test et de déploiement de l'application ERP via GitHub Actions. Elle inclut la création de workflows pour construire les images Docker du backend (NestJS) et du frontend (React.js), exécuter les tests unitaires et d'intégration, puis déployer l'infrastructure AWS via Terraform. L'objectif est de garantir un déploiement continu fiable, avec des étapes de validation (linting, tests) et des notifications en cas d'échec, tout en séparant les environnements de développement et de production.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer un workflow GitHub Actions ('.github/workflows/ci-cd.yml') avec une job 'Build' exécutant 'npm run build:backend' et 'npm run build:frontend', puis construisant les images Docker ('backend:latest', 'frontend:latest') avec des étiquettes de version ('${{ github.sha }}') et les poussant vers un registre Docker privé (ex: AWS ECR).",
+        "Configurer une job 'Test' dans le workflow pour exécuter les tests unitaires ('npm run test:backend', 'npm run test:frontend') et les tests d'intégration (via Postman/Newman pour valider les endpoints REST), en utilisant des secrets GitHub ('DATABASE_URL', 'JWT_SECRET') pour les environnements de test.",
+        "Déployer l'infrastructure AWS via Terraform dans une job 'Deploy' en exécutant 'terraform init', 'terraform plan', puis 'terraform apply -auto-approve' avec les variables d'environnement ('AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'TF_VAR_env=production'), en s'assurant que les ressources RDS, EC2 et S3 sont créées selon les modules définis.",
+        "Ajouter des étapes de notification dans le workflow pour envoyer des alertes Slack ('${{ secrets.SLACK_WEBHOOK }}') en cas d'échec de build ou de déploiement, et configurer un job 'Cleanup' pour supprimer les ressources temporaires (ex: instances EC2 de test) après chaque exécution."
+      ]
+    }
+  ]
+}

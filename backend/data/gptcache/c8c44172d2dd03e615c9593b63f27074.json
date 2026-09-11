@@ -1,0 +1,49 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Configuration du projet Frontend React 18 et système d'authentification JWT",
+      "description": "Cette tâche consiste à initialiser le projet Frontend avec React 18.x et TypeScript 5.x, configurer l'architecture de state management avec Redux Toolkit et React Query, mettre en place les interceptors Axios pour la gestion automatique des tokens JWT (access et refresh), implémenter le système d'authentification complet incluant les pages de login (Route 'GET /auth/login'), register (Route 'POST /auth/register'), forgot password, et la gestion de session avec stockage sécurisé des tokens dans des httpOnly cookies. L'objectif est de créer une foundation solide et sécurisée pour toute l'application ERP, en respectant les bonnes pratiques de sécurité frontend incluant la protection XSS via sanitization, le RBAC (role-based access control) basé sur les rôles utilisateur (admin, manager, operator, driver) définis dans la table ('users') avec le champ ('role'), et le rate limiting côté client.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Initialiser le projet React 18.x avec TypeScript 5.x en configurant Vite comme bundler, ESLint pour le linting, Prettier pour le formatting du code, et TypeScript strict mode pour garantir la qualité du code et éviter les erreurs de typage",
+        "Configurer Redux Toolkit avec createSlice et createAsyncThunk pour gérer l'état global de l'application, créer les slices pour auth (authSlice), user (userSlice), et ui (uiSlice), configurer le store avec redux-persist pour la persistance de l'état, et implémenter les middlewares pour la gestion des erreurs",
+        "Mettre en place React Query (TanStack Query) avec Axios comme client HTTP, créer des hooks personnalisés (useAuth, useWarehouses, useInventory, useOrders) pour chaque domaine fonctionnel, configurer les queryClientOptions avec staleTime, cacheTime et retry策略, et implémenter les mutations pour les opérations CRUD sur les endpoints REST",
+        "Implémenter le système d'authentification JWT complet incluant le LoginForm avec validation Yup schemas, l'authentification via Route 'POST /auth/login', la gestion du refresh token via Route 'POST /auth/refresh', le stockage sécurisé des tokens, l'interceptor Axios pour injecter automatiquement le Authorization header, et le guard de路由 pour protéger les routes selon les rôles utilisateur",
+        "Configurer les Socket.io-client connections pour les updates temps réel, implémenter la reconnexion automatique avec exponential backoff, créer le WebSocketService pour gérer les events (notification, alert, gps_update, inventory_change), et intégrer les notifications in-app via le service NotificationService avec stockage dans la table ('notifications')"
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Développement du Dashboard et des composants UI réutilisables avec Ant Design et Tailwind CSS",
+      "description": "Cette tâche vise à créer le Dashboard principal de l'application ERP avec des widgets KPI interactifs, des statistiques en temps réel et des alertes actives. Il faut implémenter des composants UI réutilisables basés sur Ant Design et stylés avec Tailwind CSS, créer des graphiques avec Recharts pour visualiser les données (inventaire, ventes, performance), intégrer un système de notifications temps réel via Socket.io, et implémenter le layout principal avec sidebar navigation, header avec profil utilisateur et menu de notifications. Le Dashboard doit afficher les statistiques de l'entrepôt depuis la table ('warehouses'), les alertes actives depuis la table ('alerts'), le statut des véhicules depuis la table ('vehicles'), et les mouvements d'inventaire depuis la table ('inventory_movements').",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le layout principal de l'application avec AppLayout component incluant sidebar collapsible avec menu de navigation (Dashboard, Warehouses, Inventory, Orders, Fleet, Reports, Settings), header avec user dropdown menu, notifications bell icon avec badge count, et search bar globale, utiliser Ant Design Layout, Menu, Avatar, Badge, Dropdown components stylés avec Tailwind CSS",
+        "Développer le Dashboard avec KPI widgets interactifs affichant le total des produits en stock (somme de quantity dans 'inventory'), le nombre de commandes en attente (status='pending' dans 'sales_orders'), le statut de la flotte (compteur par status dans 'vehicles'), et les alertes actives (acknowledged=false dans 'alerts'), implémenter des cards animées avec Skeleton loaders et refresh buttons pour chaque widget",
+        "Intégrer Recharts pour créer des graphiques interactifs incluant un line chart pour l'historique des ventes sur 30 jours (Route 'GET /reports/sales'), un bar chart pour la répartition de l'inventaire par catégorie (produits.grouped par 'category' dans 'products'), un pie chart pour le statut des commandes (groupement par 'status' dans 'sales_orders'), et un area chart pour les mouvements de stock, avec tooltips personnalisés et export en PNG",
+        "Implémenter le système de notifications temps réel avec NotificationPanel component, afficher les notifications depuis la table ('notifications') via Route 'GET /notifications' filtré par user_id et read=false, créer des notifications push pour les événements importants (low_stock alert, vehicle_issue, delivery_delay), et implémenter le mark as read via Route 'PATCH /notifications/:id' avec mise à jour du champ ('read')"
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Développement des modules Inventory, Orders et Fleet Management avec GPS tracking map",
+      "description": "Cette tâche englobe le développement des trois modules fonctionnels principaux de l'application ERP : le module Inventory pour la gestion complète des stocks (produits, transferts, ajustements), le module Orders pour la gestion des Purchase Orders et Sales Orders (création, suivi, réception, picking), et le module Fleet Management avec carte GPS temps réel pour le suivi des véhicules et des livraisons. Chaque module doit être entièrement fonctionnel avec des formulaires de création/édition, des tableaux de données avec pagination et filtrage (Ant Design Table), des modals de confirmation, et une intégration complète avec les APIs REST backend.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 13,
+      "subtasks": [
+        "Développer le module Inventory complet avec InventoryList page (Route 'GET /inventory') affichant les items avec jointures sur ('products'), ('warehouses'), ('zones'), implémenter ProductSearch avec autocomplete via Route 'GET /products', créer les formulaires de transfert de stock (Route 'POST /inventory/transfer') avec validation de la disponibilité, les ajustements d'inventaire (Route 'POST /inventory/adjustment') avec historique des modifications, l'alerte seuil bas (Route 'GET /inventory/low-stock') basée sur quantity < min_quantity, et la carte d'occupation de l'entrepôt avec heatmap via Route 'GET /warehouses/:id/stats'",
+        "Implémenter le module Orders avec PurchaseOrdersList (Route 'GET /purchase-orders') et SalesOrdersList (Route 'GET /sales-orders'), créer OrderForm pour la création avec sélection de supplier/customer, ajout dynamique de line items, calcul automatique du total_amount, implémenter le workflow de statut (pending → approved → received pour PO, pending → picking → packed → shipped → delivered pour SO) avec mise à jour via Routes 'PATCH /purchase-orders/:id/status' et 'PATCH /sales-orders/:id/status', et afficher les picking lists pour les operators via Route 'GET /sales-orders/:id/pick'",
+        "Construire le module Fleet Management avec VehiclesList (Route 'GET /vehicles') affichant le statut actuel de chaque véhicule depuis ('vehicles'), implémenter la carte GPS interactive avec Leaflet ou Mapbox GL JS montrant la position temps réel via Route 'GET /gps/realtime/:vehicleId', afficher les markers de véhicules avec popup contenant plate_number, type, status, driver_name, tracer les itinéraires avec polyline, implémenter le geofencing avec alertes quand un véhicule sort de sa zone assignée, et afficher l'historique des parcours via Route 'GET /gps/history/:vehicleId'",
+        "Développer le module Shipments et GPS Tracking avec ShipmentsList (Route 'GET /shipments') affichant les expéditions liées aux sales_orders via ('shipments') table, implémenter la vue de suivi détaillé (Route 'GET /shipments/:id/tracking') avec timeline des statuts (prepared → dispatched → in_transit → arrived → delivered), afficher la carte temps réel du véhicule assigné avec estimated_arrival basé sur le speed et heading actuels, et intégrer les alertes de retard automatique quand actual_arrival dépasse estimated_arrival sans statut delivered"
+      ]
+    }
+  ]
+}
+```

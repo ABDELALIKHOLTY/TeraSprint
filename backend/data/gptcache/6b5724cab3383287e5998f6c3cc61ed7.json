@@ -1,0 +1,58 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Configuration du client API REST RTK Query et intercepteurs Axios avec JWT",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Mise en place du socle de communication REST entre le frontend React (RTK Query) et le backend NestJS. Cette tâche est critique car elle définit la stratégie d'authentification (JWT Access + Refresh), la gestion automatique du refresh sur 401, et l'injection des tokens dans les headers. L'objectif est de disposer d'un store Redux Toolkit unique avec un slice `api` typé, des tags d'invalidation cohérents (Products, Orders, Shipments, Inventory, Users), et une couche Axios sous-jacente capable de gérer le cookie HttpOnly Secure SameSite pour le refresh token. Cette intégration garantit que toutes les futures features (inventaire, commandes, expéditions) pourront consommer l'API backend versionnée `/api/v1` sans dupliquer la logique d'auth.",
+      "subtasks": [
+        "Configurer le store Redux Toolkit dans (`src/app/store.ts`) en combinant le reducer `authSlice` (token en mémoire) avec `setupListeners(store.dispatch)` pour activer le refetchOnFocus et refetchOnReconnect de RTK Query.",
+        "Créer le client API Axios dans (`src/services/apiClient.ts`) avec `baseURL` pointant sur `import.meta.env.VITE_API_URL` et configuration `withCredentials: true` afin que le cookie HttpOnly du refresh token transite correctement vers le backend NestJS.",
+        "Implémenter un intercepteur de réponse Axios dans (`src/services/apiClient.ts`) qui détecte les erreurs 401, appelle la route (`POST /api/v1/auth/refresh`) en `POST` avec `credentials: 'include'`, met à jour l'access token en mémoire via `authSlice`, et rejoue la requête initiale avec le nouveau token.",
+        "Définir le `createApi` RTK Query dans (`src/services/api/apiSlice.ts`) avec `fetchBaseQuery` utilisant `baseUrl: '/api/v1'` et un `prepareHeaders` injectant `Authorization: Bearer ${accessToken}` depuis `getState().auth.token` pour chaque requête sortante.",
+        "Déclarer les `tagTypes` globaux dans l'API slice : ('User'), ('Role'), ('Warehouse'), ('Product'), ('Order'), ('Shipment'), ('Inventory'), ('GpsPosition'), ('Vehicle'), ('Driver') afin de permettre les invalidations granulaires de cache après mutations.",
+        "Exposer des endpoints injectés par feature dans (src/features/auth/authApi.ts) avec (`POST /auth/login`), (`POST /auth/refresh`), (`POST /auth/logout`) et (`POST /auth/register`) et invalider le tag ('User') sur logout.",
+        "Gérer le refresh proactif en planifiant un timer 60 secondes avant expiration de l'access token (15 min) dans le hook (`useTokenRefresh`) pour éviter les race conditions 401 lors d'appels API concurrents.",
+        "Configurer les types TypeScript stricts dans (`src/services/api/types.ts`) avec des interfaces `LoginRequest`, `LoginResponse`, `RefreshResponse`, `UserDto` partagées entre frontend et backend via génération OpenAPI client (openapi-typescript)."
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Intégration WebSocket Socket.IO pour le tracking GPS temps réel et événements métier",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Mise en place du canal temps réel Socket.IO entre le backend NestJS (`TrackingGateway`) et le frontend React. Cette tâche couvre l'authentification du socket via JWT, l'abonnement aux rooms (`shipment:{id}`, `fleet:live`, `warehouse:{id}`), la réception des événements `positionUpdate`, `shipmentStatusChanged`, `stockAlert`, `geofenceEnter`, `geofenceExit`. L'objectif est de permettre aux dispatchers et aux managers de visualiser les positions GPS des véhicules en direct sur la carte Leaflet/Mapbox, et aux chauffeurs d'être notifiés instantanément des changements de statut. Cette intégration est asynchrone et complémentaire au REST : le REST alimente les données initiales, le WS pousse les diffs temps réel.",
+      "subtasks": [
+        "Créer le service (`src/services/websocket/socketClient.ts`) qui initialise une connexion Socket.IO avec `io(import.meta.env.VITE_WS_URL, { transports: ['websocket'], autoConnect: false })` et un namespace `/tracking` correspondant au gateway backend.",
+        "Implémenter l'authentification du handshake WebSocket dans (`socketClient.ts`) via `auth: { token: accessToken }` pour que le (`WsJwtGuard`) côté NestJS puisse valider le JWT avant d'autoriser la connexion au (`TrackingGateway`).",
+        "Gérer la reconnexion automatique avec backoff exponentiel via les options `reconnection: true`, `reconnectionAttempts: Infinity`, `reconnectionDelay: 1000`, `reconnectionDelayMax: 10000` et exposer un middleware Redux `socketMiddleware` qui reconnecte sur token refresh.",
+        "Créer le hook (`src/hooks/useShipmentTracking.ts`) qui s'abonne à un shipment spécifique en émettant (`socket.emit('joinShipment', { shipmentId })`) puis écoute (`socket.on('positionUpdate', callback)`) pour mettre à jour le state local et invalider le tag RTK Query ('GpsPosition').",
+        "Implémenter le hook (`src/hooks/useFleetLive.ts`) pour dispatcher/logisticien qui joint la room (`fleet:live`) au montage du composant, écoute (`fleetPositionUpdate`) avec throttling Redux Toolkit et affiche tous les véhicules actifs sur la carte.",
+        "Configurer l'émission côté driver mobile/web dans (`src/features/tracking/driverPositionEmitter.ts`) qui envoie toutes les 5 secondes via (`socket.emit('driverPosition', { lat, lng, speed, heading, shipmentId })`) en utilisant `navigator.geolocation.watchPosition` avec `enableHighAccuracy: true`.",
+        "Gérer les événements métier critiques dans (`src/services/websocket/eventHandlers.ts`) : (`shipmentStatusChanged`) → toast + invalidation cache 'Shipment', (`stockAlert`) → notification push + ouverture modal inventaire, (`geofenceEnter`/`geofenceExit`) → mise à jour UI tournée.",
+        "Persister les positions reçues en mémoire via un `Map<shipmentId, GpsPosition[]>` dans (`src/store/trackingSlice.ts`) avec un cap de 500 positions par trajet pour éviter la saturation mémoire lors des longs parcours et historiser via REST à la fin du trajet."
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Sécurisation de bout en bout, gestion d'erreurs globale et tests d'intégration E2E",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 3,
+      "description": "Cette tâche finalise l'intégration Front/Back en garantissant la sécurité (RBAC synchronisé entre guards NestJS et guards React), une gestion d'erreurs cohérente (intercepteurs, ErrorBoundary, toasts), et une couverture de tests E2E Playwright validant les flux critiques : login → refresh → consultation stock → création commande → suivi GPS live. L'objectif est de livrer une intégration prête pour la production, conforme aux exigences de sécurité du rapport d'architecture (Helmet, CORS strict, CSP, audit logs) et de détecter toute régression via CI. Cette tâche assure la cohérence cross-stack entre les modules (`auth`, `orders`, `shipments`, `tracking`) et valide contractuellement l'API REST + WebSocket.",
+      "subtasks": [
+        "Synchroniser les rôles RBAC entre frontend et backend en créant un enum partagé (`RoleEnum`) dans (`src/features/auth/roles.ts`) avec valeurs ('ADMIN'), ('WAREHOUSE_MANAGER'), ('DISPATCHER'), ('DRIVER'), ('VIEWER') correspondant aux guards NestJS (`@Roles()` decorator + `RolesGuard`).",
+        "Implémenter les guards React Router dans (`src/components/auth/RequireRole.tsx`) qui vérifie `useSelector((state) => state.auth.user.role)` et redirige vers (`/forbidden`) si l'utilisateur n'a pas le rôle requis, avec fallback SSR-safe côté hydratation.",
+        "Créer un intercepteur d'erreurs global dans (`src/services/apiClient.ts`) qui mappe les codes HTTP : 400 → toast validation, 401 → refresh + retry, 403 → redirect forbidden, 404 → message silencieux, 429 → toast rate limit, 500+ → ErrorBoundary + Sentry capture.",
+        "Configurer le composant (`src/components/ErrorBoundary.tsx`) avec React Error Boundary qui catch les erreurs de rendu et envoie à (`POST /api/v1/audit/client-errors`) via RTK Query mutation pour audit log côté NestJS.",
+        "Écrire les tests d'intégration E2E dans (`tests/e2e/auth-flow.spec.ts`) avec Playwright couvrant : login valide, refresh automatique après 15min (mock), logout, accès interdit à une route protégée sans rôle, expiration session.",
+        "Écrire le test E2E du flux tracking dans (`tests/e2e/tracking-flow.spec.ts`) : un chauffeur mobile émet 3 positions GPS via WebSocket, le dispatcher visualise les markers mis à jour sur la carte Leaflet en moins de 2 secondes, avec assertions sur le DOM des coordonnées lat/lng.",
+        "Configurer les headers de sécurité CSP dans (`nginx.conf`) du frontend avec `Content-Security-Policy: default-src 'self'; connect-src 'self' wss://*.erp.example.com https://api.erp.example.com` pour autoriser uniquement le backend NestJS et le WebSocket Gateway.",
+        "Mettre en place le pipeline CI dans (`.github/workflows/integration.yml`) qui exécute en série : `pnpm lint`, `pnpm tsc --noEmit`, `pnpm test:unit` (Vitest), `pnpm test:e2e` (Playwright headless), `pnpm build`, puis déploie le bundle frontend vers le CDN Cloudflare/BunnyCDN avec cache busting par hash Vite."
+      ]
+    }
+  ]
+}

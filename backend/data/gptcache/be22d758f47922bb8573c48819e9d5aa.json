@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Initialisation du dépôt Git et conventions de branchement",
+      "description": "Cette tâche vise à créer le dépôt GitHub qui servira de source unique pour toute l'application de location de voiture, en définissant dès le départ les bonnes pratiques de collaboration. Elle inclut la mise en place de documents fondamentaux (README, LICENSE) ainsi que la configuration d'un .gitignore strict pour éviter la pollution du dépôt. En outre, elle établit une convention de nommage de branches claire afin de faciliter le suivi des fonctionnalités, des corrections et des releases. Enfin, un hook pré‑commit avec Husky et lint‑staged garantit que chaque contribution respecte les standards de code avant d'être intégrée.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Initialiser le dépôt GitHub privé nommé ('car-rental-desktop') en créant le fichier ('README.md') et le fichier ('LICENSE') afin de documenter le projet et de définir les droits d’utilisation dès le départ.",
+        "Définir une convention de nommage de branches basée sur le modèle ('feature/xxx', 'bugfix/xxx', 'release/vX.Y') et consigner ces règles dans le fichier ('CONTRIBUTING.md') pour garantir une collaboration structurée entre les développeurs.",
+        "Configurer le fichier ('gitignore') pour exclure les dossiers ('node_modules/', 'dist/', '.env') et les fichiers temporaires afin d’éviter de pousser des artefacts inutiles dans le dépôt.",
+        "Mettre en place un hook Git pré‑commit utilisant ('husky') et ('lint-staged') qui exécutera automatiquement les linters ESLint et Prettier sur les fichiers modifiés, garantissant ainsi la qualité du code avant chaque commit."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Configuration de l'intégration continue avec GitHub Actions",
+      "description": "Cette tâche met en place un pipeline d'intégration continue complet afin d'automatiser les vérifications de qualité et les builds à chaque modification du code. Le workflow GitHub Actions déclenchera les jobs sur les pushes et pull‑requests des branches principales, exécutant tests unitaires, linting et packaging de l'application Electron. Le pipeline assure également la génération et la publication des artefacts de build sous forme de releases GitHub, garantissant une distribution fiable et reproductible. Cette automatisation réduit les erreurs humaines et accélère le cycle de livraison.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le workflow GitHub Actions ('ci.yml') dans le répertoire ('.github/workflows/') qui déclenchera les jobs sur chaque push et pull‑request vers les branches ('main', 'develop') afin d’automatiser les tests et la construction.",
+        "Dans le job de build, installer les dépendances Node.js avec la version spécifiée ('node-version: 20') puis exécuter les suites de tests unitaires backend ('npm run test:backend') et frontend ('npm run test:frontend') pour valider l’intégrité du code.",
+        "Ajouter une étape de linting ('npm run lint') et de vérification de formatage ('npm run format:check') dans le pipeline afin de s’assurer que le code respecte les standards définis dans le fichier ('eslint.config.js') et ('prettier.config.js').",
+        "Déployer les artefacts générés (fichiers d’installation Electron via 'electron-builder') vers les releases GitHub en utilisant l’action ('actions/upload-artifact') et ('softprops/action-gh-release') pour publier automatiquement les exécutables (.exe, .dmg) après chaque tag de version."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Containerisation de l'application avec Docker et Docker‑Compose",
+      "description": "Cette tâche assure que l'application backend et sa base de données PostgreSQL peuvent être exécutées de manière isolée et reproductible grâce à Docker, facilitant le développement local ainsi que le déploiement en production. Un Dockerfile décrit la construction de l'image Node.js contenant le serveur Express, tandis que docker‑compose orchestre le service API et le service PostgreSQL avec persistance des données. L'intégration de la construction d'image dans le pipeline CI garantit que chaque version du code est packagée et stockée dans le registre GitHub Packages, simplifiant les déploiements futurs.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Rédiger le fichier Dockerfile à la racine du projet qui utilise l’image officielle ('node:20-alpine') comme base, copie les sources, installe les dépendances en mode production et exécute la commande ('npm run start') pour lancer le serveur Express.",
+        "Créer le fichier docker-compose.yml qui orchestre deux services : ('api') basé sur le Dockerfile précédent et ('db') utilisant l’image officielle ('postgres:16') avec les variables d’environnement ('POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB') pour initialiser la base de données.",
+        "Configurer les volumes persistants dans docker‑compose pour le service ('db') afin de conserver les données PostgreSQL entre les redémarrages, et exposer les ports ('3000:3000' pour l’API, '5432:5432' pour PostgreSQL) pour permettre les connexions locales.",
+        "Intégrer la construction de l’image Docker dans le pipeline GitHub Actions en ajoutant un job qui exécute ('docker build -t car-rental-desktop:$(git rev-parse --short HEAD) .') puis pousse l’image vers le registre GitHub Packages ('docker push ghcr.io/<owner>/car-rental-desktop:latest') pour centraliser les artefacts."
+      ]
+    }
+  ]
+}

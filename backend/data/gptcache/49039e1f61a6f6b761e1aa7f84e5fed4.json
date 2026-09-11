@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Développement API REST Auth (NestJS)",
+      "description": "Cette tâche consiste à implémenter le module d’authentification complet en NestJS, incluant la génération et la validation de JWT, la gestion des refresh tokens, la réinitialisation de mot de passe et l’attribution des rôles utilisateurs. Le service doit interagir avec la table ('users') et la table ('roles') via Prisma, en assurant la sécurité des mots de passe avec bcrypt et la protection CSRF. Les endpoints REST devront être exposés sous le préfixe '/api/auth' et respecter les conventions de versioning et de documentation OpenAPI. L’implémentation doit également préparer les sockets Socket.io pour les notifications d’authentification en temps réel.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le module AuthModule dans NestJS, injecter PrismaService et JwtService, et définir les DTOs pour login, refresh et reset.",
+        "Implémenter le contrôleur AuthController avec les routes REST précises : 'POST /api/auth/login', 'POST /api/auth/refresh', 'POST /api/auth/reset-password', 'POST /api/auth/verify-reset' et documenter chaque endpoint via Swagger.",
+        "Développer le service AuthService qui génère un JWT signé (payload contenant 'sub', 'email', 'roles') et un refresh token sécurisé stocké dans la table ('user_tokens') avec expiration, en utilisant la stratégie Passport JWT.",
+        "Ajouter la logique de vérification des rôles dans le guard AuthGuard, créer un middleware CSRF, et configurer les cookies HttpOnly pour le token d’accès et le refresh token, tout en émettant un événement Socket.io 'user:login' à chaque connexion réussie."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Développement API REST & GraphQL Catalog (NestJS)",
+      "description": "Cette tâche couvre la création du service de catalogue complet, incluant les entités produits, catégories, variantes, tags, images et modèles 3D. Le module doit exposer des endpoints REST pour CRUD et un schéma GraphQL pour la recherche avancée, le filtrage et l’agrégation. Les relations N‑N et 1‑N décrites dans le schéma relationnel seront gérées via Prisma, avec des validations de données robustes et des transactions atomiques. L’implémentation doit également préparer un endpoint d’upload d’actifs 3D (GLTF/FBX) et servir les fichiers via un bucket S3 ou un serveur statique.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "subtasks": [
+        "Modéliser les entités Prisma pour ('products'), ('categories'), ('product_variants'), ('product_tags'), ('product_images'), ('product_3d_models') et leurs relations N‑N, en générant les migrations correspondantes.",
+        "Développer le ProductService avec des méthodes CRUD, en incluant la logique de gestion des variantes et des tags, et en appliquant des règles de validation (ex: prix > 0, SKU unique).",
+        "Créer le ProductController REST avec les routes 'GET /api/products', 'POST /api/products', 'PUT /api/products/:id', 'DELETE /api/products/:id', et un endpoint 'POST /api/products/:id/models' pour l’upload de fichiers 3D.",
+        "Élaborer le schéma GraphQL (type Product, Category, Variant, Tag, Image, Model) et les résolveurs pour la recherche par nom, catégorie, tag, et la pagination, en utilisant DataLoader pour éviter le N+1."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Développement API REST Order & Cart (NestJS)",
+      "description": "Cette tâche englobe la logique métier du panier et des commandes, incluant la création et la mise à jour des paniers, le processus de checkout, la génération d’ordres, la gestion des statuts et l’intégration d’un service de paiement Stripe. Le module doit interagir avec les tables ('carts'), ('cart_items'), ('orders'), ('order_items'), ('payments') et ('shipping_addresses') en assurant la cohérence transactionnelle et la gestion des erreurs. Les notifications en temps réel via Socket.io seront déclenchées pour les changements de statut d’ordre et les mises à jour d’inventaire. Le service doit également fournir des endpoints REST sécurisés et un schéma GraphQL pour la consultation d’historique de commandes.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "subtasks": [
+        "Construire le CartService qui initialise un panier unique par utilisateur, ajoute et supprime des items en vérifiant la disponibilité des variantes via la table ('product_variants') et calcule le total en temps réel.",
+        "Implémenter le CheckoutController avec la route 'POST /api/cart/checkout', qui crée une entrée dans la table ('orders'), génère les 'order_items', calcule les taxes, et déclenche la création d’un paiement Stripe via PaymentService.",
+        "Développer le OrderService pour gérer les statuts (PENDING, PAID, SHIPPED, DELIVERED, CANCELED), mettre à jour la table ('orders') et émettre des événements Socket.io 'order:status' à chaque changement.",
+        "Créer un endpoint GraphQL 'orders(userId: ID!)' pour retourner l’historique des commandes avec pagination, en utilisant des résolveurs qui joint les tables ('order_items', 'product_variants', 'products') et applique des filtres par date et statut."
+      ]
+    }
+  ]
+}

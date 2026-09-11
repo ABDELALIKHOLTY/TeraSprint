@@ -1,0 +1,51 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "ERPSETUP-1",
+      "title": "Analyse du besoin métier et rédaction de la vision produit (ERP Logistique & Entrepôt avec Suivi GPS)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche constitue le socle stratégique du projet ERP Logistique & Entrepôt avec Suivi GPS. Elle consiste à analyser en profondeur le besoin métier des gestionnaires d'entrepôt, des logisticiens, des drivers et des responsables supply chain, afin de rédiger une vision produit claire, un backlog initial et une cartographie des processus (réception marchandises, mise en zone, picking, packing, expédition, suivi GPS temps réel, retours). L'objectif est d'aligner toutes les parties prenantes (Product Owner, Tech Lead, stakeholders métier) sur le périmètre fonctionnel MVP (gestion multi-entrepôts, modules `warehouses`, `zones`, `inventory`, `orders`, `shipments`, `tracking`, `fleet`) et de produire un document de vision servant de référence pour toutes les User Stories ultérieures. Le livrable inclura également un diagramme de contexte, une matrice des rôles (Admin, Warehouse Manager, Operator, Driver, Customer) et une priorisation MoSCoW des fonctionnalités. Cette étape est cruciale car elle conditionne l'ensemble des choix d'architecture (PostgreSQL 16 + PostGIS pour le géospatial, NestJS pour le backend, React 18 + Vite pour le frontend) et évite les refontes coûteuses en cours de projet.",
+      "subtasks": [
+        "Organiser une série d'ateliers de discovery avec les parties prenantes métier (logisticiens, responsables d'entrepôt, chauffeurs) afin d'identifier les pain points actuels, les workflows critiques (réception, stockage, préparation, expédition, tracking GPS) et les indicateurs KPI prioritaires (taux de service, taux de rupture, ETA livraisons).",
+        "Rédiger un document de vision produit structuré incluant le problème résolu, la proposition de valeur, les personas (Admin, Warehouse Manager, Operator, Driver, Customer) et les objectifs mesurables (OKR) sur un horizon de 12 mois pour le système ERP Logistique.",
+        "Établir la cartographie des processus métier (BPMN) couvrant la chaîne complète : approvisionnement fournisseurs (`suppliers`, `products`), réception en entrepôt (`warehouses`, `zones`), gestion de stock (`inventory_items`, `stock_movements`), traitement des commandes clients (`orders`, `order_items`), planification des tournées (`shipments`, `delivery_routes`) et tracking GPS temps réel (`gps_positions` via PostGIS).",
+        "Prioriser le backlog MVP selon la méthode MoSCoW (Must have / Should have / Could have / Won't have) en identifiant clairement les modules critiques pour le Go-To-Market : `auth`, `warehouses`, `inventory`, `orders`, `shipments`, `tracking` (WebSocket gateway) et `fleet`.",
+        "Produire une matrice des rôles et permissions (RBAC) définissant les accès par module (ex: Driver ne peut voir que ses tournées et mettre à jour le statut des `shipments` qui lui sont assignés via `driver_id`) afin d'alimenter la conception du module `auth` et des guards NestJS."
+      ]
+    },
+    {
+      "id": "ERPSETUP-2",
+      "title": "Initialisation du monorepo (pnpm workspaces) avec frontend React 18 + Vite et backend NestJS",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche couvre la mise en place de l'architecture monorepo qui hébergera l'ensemble du codebase de l'ERP Logistique. L'objectif est d'initialiser un workspace `pnpm` (gestionnaire de paquets choisi pour sa performance et son support natif des workspaces) contenant deux packages principaux : `apps/web` (frontend React 18 + TypeScript + Vite avec MUI v5, Redux Toolkit, RTK Query, Leaflet, Recharts) et `apps/api` (backend NestJS 10 avec modules `auth`, `users`, `warehouses`, `inventory`, `orders`, `shipments`, `tracking`, `fleet`). Le monorepo inclura également un package `packages/shared-types` (types TypeScript partagés entre frontend et backend, notamment les DTOs des endpoints `/api/v1/...`) et un package `packages/eslint-config` pour mutualiser les règles de lint. Cette structure permet de garantir la cohérence des contrats d'API, de simplifier le refactoring cross-stack et de centraliser les dépendances de développement. Le `pnpm-workspace.yaml` sera configuré pour orchestrer les builds, les tests (Vitest pour le frontend, Jest pour le backend) et le lint via Turborepo ou Nx pour le caching des pipelines.",
+      "subtasks": [
+        "Initialiser le workspace `pnpm` à la racine du projet en créant le fichier `pnpm-workspace.yaml` déclarant les globs `apps/*` (contenant `web` et `api`) et `packages/*` (contenant `shared-types`, `eslint-config`, `tsconfig-base`) afin d'activer le mécanisme de workspaces et le hoisting des dépendances.",
+        "Créer le package `apps/web` via `pnpm create vite web --template react-ts` puis installer les dépendances cœur : `@reduxjs/toolkit`, `react-redux`, `@mui/material`, `@emotion/react`, `@emotion/styled`, `react-router-dom@6`, `@tanstack/react-table`, `leaflet`, `react-leaflet`, `recharts`, `react-hook-form`, `zod`, `i18next`, `socket.io-client`, `react-hot-toast` et Axios.",
+        "Créer le package `apps/api` via `pnpm dlx @nestjs/cli new api --package-manager pnpm` puis installer les dépendances métier : `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `@nestjs/swagger`, `@nestjs/throttler`, `@nestjs/websockets`, `@nestjs/platform-socket.io`, `@nestjs/schedule`, `class-validator`, `class-transformer`, `helmet`, `bcrypt` et Prisma (`prisma`, `@prisma/client`).",
+        "Configurer le package `packages/shared-types` en TypeScript pur exportant les interfaces et enums partagés (ex: `UserRole`, `ShipmentStatus`, `OrderStatus`, `GpsPositionDTO`, `InventoryMovementType`) qui seront importés à la fois par `apps/web` (pour le typage des réponses RTK Query) et par `apps/api` (pour les DTOs Swagger) afin de garantir un contrat d'API strict.",
+        "Mettre en place Turborepo (`turbo.json`) à la racine pour orchestrer les pipelines `build`, `lint`, `test`, `type-check` avec cache partagé entre les packages, et configurer les scripts racine (`pnpm dev`, `pnpm build`, `pnpm lint`) lançant simultanément les serveurs Vite (port 5173) et NestJS (port 3000)."
+      ]
+    },
+    {
+      "id": "ERPSETUP-3",
+      "title": "Configuration Git, conventions de code, ESLint, Prettier, Husky et Commitlint",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 3,
+      "description": "Cette tâche vise à industrialiser la qualité du code et la collaboration Git dès le démarrage du projet ERP Logistique. Elle couvre l'initialisation du repository Git (avec une stratégie de branching GitFlow adaptée : `main`, `develop`, `feature/*`, `hotfix/*`, `release/*`), la rédaction d'un fichier `.gitignore` exhaustif (excluant `node_modules`, `dist`, `.env`, `coverage`, `*.log`), la configuration d'ESLint (avec plugins TypeScript, React, import-order, a11y) et de Prettier (formatage uniforme) pour les deux stacks frontend et backend, ainsi que la mise en place de Husky (hooks Git) et de Commitlint (Conventional Commits) pour garantir un historique de commits lisible et traçable. L'objectif est d'automatiser le linting en pre-commit, les tests en pre-push, et de préparer l'intégration avec la CI/CD (GitHub Actions). Cette standardisation est indispensable dans un projet d'envergure ERP impliquant plusieurs développeurs, plusieurs modules (`auth`, `tracking`, `inventory`, `shipments`) et plusieurs mois de développement, car elle évite la dette technique liée aux incohérences de style et facilite les code reviews.",
+      "subtasks": [
+        "Initialiser le repository Git avec `git init`, créer la branche `main` (production) et `develop` (intégration), puis adopter la stratégie GitFlow documentée dans `CONTRIBUTING.md` avec les conventions de nommage des branches (`feature/ERPSETUP-12-add-warehouse-module`, `hotfix/ERPSETUP-45-fix-jwt-expiration`) et les règles de merge (Pull Requests obligatoires, squash and merge, au moins 1 review).",
+        "Rédiger un fichier `.gitignore` exhaustif à la racine du monorepo excluant `node_modules/`, `dist/`, `build/`, `.env`, `.env.local`, `coverage/`, `*.log`, `.DS_Store`, `.idea/`, `.vscode/` (sauf settings recommandés) et `apps/api/prisma/migrations/dev.db*` pour éviter tout commit accidentel de secrets ou de fichiers générés.",
+        "Configurer ESLint via le package partagé `packages/eslint-config` exposant deux presets : `@erp/eslint-config/react` (pour `apps/web` avec plugins `@typescript-eslint`, `eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y`, `eslint-plugin-import`) et `@erp/eslint-config/nest` (pour `apps/api` avec règles NestJS et décorateurs), en intégrant Prettier via `eslint-config-prettier` pour désactiver les conflits de formatage.",
+        "Configurer Prettier (`packages/prettier-config/index.json`) avec les règles du projet : `singleQuote: true`, `semi: true`, `trailingComma: 'all'`, `printWidth: 100`, `tabWidth: 2`, et l'exécuter automatiquement via `pnpm format` à la racine, en l'intégrant aussi dans l'IDE des développeurs via l'extension VSCode et l'option `editor.formatOnSave`.",
+        "Installer et configurer Husky (`pnpm dlx husky init`) avec les hooks `pre-commit` lançant `pnpm lint-staged` (qui exécute ESLint --fix et Prettier --write uniquement sur les fichiers staged) et `commit-msg` lançant `pnpm commitlint --edit $1` pour valider le format Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `perf:`) via `@commitlint/config-conventional`."
+      ]
+    }
+  ]
+}
+```

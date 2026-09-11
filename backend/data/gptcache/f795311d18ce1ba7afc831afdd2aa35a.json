@@ -1,0 +1,48 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Conception et persistence du schéma relationnel avec Spring Data JPA",
+      "description": "Cette tâche consiste à concevoir la couche de persistance en définissant rigoureusement les entités JPA qui reflètent le schéma relationnel de l'application LivePoll. L'objectif est de garantir l'intégrité des données, les relations une-à-plusieurs entre les tables, et l'efficacité des requêtes de lecture pour l'affichage des polls et des votes. Nous utiliserons Spring Data JPA pour générer les repositories et gérer les contraintes de clés étrangères et d'unicité au niveau de la base de données.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Définir les entités JPA `Session` pour la table ('sessions') avec les clés ('id' UUID), ('pin_code' unique à 6 chiffres), ('status' Enum ACTIVE/CLOSED) et `Poll` pour la table ('polls') avec ('id'), ('session_id' FK), ('title'), ('is_active') en configurant la relation OneToMany pour l'association entre une session et ses polls.",
+        "Créer les entités JPA `Question` pour la table ('questions') avec ('id' PK), ('poll_id' FK), ('text'), ('order_index') et `Option` pour la table ('options') avec ('id'), ('question_id' FK), ('text') en établissant une relation OneToMany pour les choix de réponse d'une question.",
+        "Implémenter l'entité `Vote` pour la table ('votes') avec ('id' PK), ('option_id' FK), ('voter_id'), ('submitted_at') en définissant une contrainte d'unicité sur la paire ('voter_id', 'option_id') pour empêcher un votant de voter plusieurs fois sur la même question.",
+        "Générer les interfaces de repositories Spring Data JPA `SessionRepository`, `PollRepository`, `QuestionRepository`, `OptionRepository`, et `VoteRepository` en exposant des méthodes de recherche par clés étrangères pour une recuperation rapide des options d'une question active dans un poll ouvert."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Implémentation de la logique métier et des API REST avec Spring Boot",
+      "description": "Cette tâche consiste à développer les services applicatifs centraux (`SessionService`, `PollService`, `VoteService`) qui encapsulent toute la logique métier du système de vote. Nous allons implémenter les contrôleurs REST (`SessionController`, `PollController`, `QuestionController`, `VoteController`) pour exposer des endpoints HTTP fiables. La génération des codes PIN aléatoires et uniques, la gestion des états des sessions, et la transactionnalité des votes pour éviter les doubles soumissions font partie des exigences fonctionnelles majeures de cette tâche.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Implémenter le service `SessionService` pour générer un code PIN aléatoire et unique de 6 chiffres pour la table ('sessions') ('pin_code'), et concevoir le contrôleur `SessionController` avec la route ('POST /api/sessions') pour créer une nouvelle session d'état ('ACTIVE').",
+        "Développer le service `PollService` et le contrôleur `PollController` en exposant la route ('POST /api/polls') pour associer un nouveau poll à une session existante via son identifiant ('session_id'), en initialisant le statut ('is_active' à false).",
+        "Créer les endpoints REST dans `QuestionController` et `VoteController` en utilisant les routes ('GET /api/questions/{questionId}') pour récupérer les détails d'une question et ses options, et ('POST /api/votes') pour soumettre le choix d'un participant.",
+        "Écrire la logique métier cruciale dans `VoteService` pour vérifier de manière transactionnelle si l'utilisateur (identifié par son 'voter_id') n'a pas déjà voté sur la question cible, incrémenter le score de l'option ('option_id') selectionnée, et sauvegarder l'entité ('votes') de manière atomique."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Configuration WebSocket STOMP et diffusion instantanée des scores via SimpMessagingTemplate",
+      "description": "Le cœur de l'application LivePoll réside dans sa capacité à diffuser les résultats en temps réel sans rafraîchissement de page. Cette tâche nécessite la configuration d'un broker WebSocket basé sur STOMP dans l'application Spring Boot, la définition des destinations de messages, et l'implémentation de la logique de publication des événements. Lorsqu'un vote est soumis avec succès par le `VoteService`, le système doit calculer les pourcentages actuels et publier instantanément ces données JSON sur un topic dédié pour que les clients React puissent les recevoir.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Configurer la classe de configuration `WebSocketBroker` en Spring Boot pour enregistrer les endpoints STOMP (ex: '/ws-connect') et les destinations simplifiées avec le préfixe '/topic' pour permettre l'abonnement des clients navigateurs.",
+        "Implémenter la logique d'envoi dans le `VoteService` en utilisant le `SimpMessagingTemplate` pour convertir les scores actualisés de la question en un objet JSON structuré contenant les pourcentages de chaque option de vote.",
+        "Publier le message de mise à jour sur la destination dynamique ('/topic/polls/{pollId}/results') dès que le vote est enregistré en base de données, garantissant une propagation instantanée de l'état des scores à tous les participants connectés.",
+        "Mettre en place une sécurité basique sur les endpoints WebSocket et les topics STOMP en utilisant Spring Security pour s'assurer que seuls les utilisateurs authentifiés ou possédant un token de session valide peuvent publier ou s'abonner aux mises à jour d'un poll spécifique."
+      ]
+    }
+  ]
+}

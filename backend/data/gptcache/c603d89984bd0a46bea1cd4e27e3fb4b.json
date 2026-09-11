@@ -1,0 +1,177 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "CONFIG-001",
+      "title": "Initialisation du projet Spring Boot avec les dépendances requises",
+      "description": "Créez un projet Spring Boot en utilisant Spring Initializr ou une configuration Maven/Gradle équivalente pour initialiser la structure de base du backend. Ce projet doit inclure les dépendances critiques : Spring Web pour l'exposition des endpoints REST, Spring Data JPA pour l'interaction avec la base de données via Hibernate, MySQL Driver pour la connexion à MySQL, Lombok pour réduire le code boilerplate (getters, setters, constructeurs), Validation pour valider les contraintes des DTOs, Spring Security pour la gestion de l'authentification et l'autorisation, et JJWT pour la génération et validation des tokens JWT. L'objectif est d'avoir un squelette de projet prêt à être configuré et développé.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Accéder à Spring Initializr ou configurer manuellement un fichier pom.xml (Maven) ou build.gradle (Gradle) avec les groupes et artefacts appropriés pour le projet Spring Boot.",
+        "Sélectionner les dépendances suivantes : Spring Web, Spring Data JPA, MySQL Driver, Lombok, Validation, Spring Security, et JJWT dans l'interface graphique ou les ajouter manuellement dans le fichier de configuration.",
+        "Télécharger l'archive du projet ou l'initialiser directement dans l'IDE (comme IntelliJ IDEA ou VS Code) et l'importer dans l'espace de travail.",
+        "Vérifier la structure générée : le fichier application.properties ou application.yml, le package principal avec l'annotazione @SpringBootApplication, et la présence des dossiers entity, repository, service, controller.",
+        "Compiler le projet pour s'assurer qu'il n'y a pas d'erreurs de configuration initiales et que toutes les dépendances sont correctement résolues."
+      ]
+    },
+    {
+      "id": "CONFIG-002",
+      "title": "Configuration de la base de données MySQL et de JPA",
+      "description": "Configurez la connexion à la base de données MySQL locale en créant la base 'taskdb' et en paramétrant Spring Data JPA. L'objectif est de permettre à l'application Spring Boot de se connecter à la base de données, de créer les tables automatiquement via l'option 'update' de Hibernate, et d'activer les logs SQL pour le débogage. Cette configuration est essentielle pour le stockage persistant des entités Utilisateur et Tâche.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Ouvrir le client MySQL (comme MySQL Workbench ou la ligne de commande) et exécuter la commande CREATE DATABASE IF NOT EXISTS taskdb; pour créer la base de données.",
+        "Accéder au fichier application.properties dans le dossier src/main/resources et configurer les propriétés suivantes : spring.datasource.url=jdbc:mysql://localhost:3306/taskdb, spring.datasource.username=root, spring.datasource.password=root, spring.jpa.hibernate.ddl-auto=update, spring.jpa.show-sql=true, et spring.jpa.properties.hibernate.format_sql=true pour une meilleure lisibilité des logs.",
+        "S'assurer que le pilote MySQL est correctement inclus dans les dépendances du projet et que la version de MySQL utilisée est compatible avec la version du pilote.",
+        "Démarrer l'application Spring Boot pour vérifier que la connexion à la base de données est établie et que les tables 'user' et 'task' sont créées automatiquement selon les entités définies."
+      ]
+    },
+    {
+      "id": "CONFIG-003",
+      "title": "Création des entités JPA : User et Task",
+      "description": "Développez les classes d'entités JPA pour modéliser les tables 'user' et 'task' dans la base de données. L'entité User doit contenir les attributs id, username, email, password, et roles, avec des contraintes d'unicité sur username et email. L'entité Task doit inclure id, title, description, status, createdAt, et userId, avec une relation ManyToOne vers l'entité User. Utilisez Lombok pour générer les getters, setters, et constructeurs afin de réduire le code.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le package entity et y définir la classe Task avec les annotations @Entity, @Table(name = \"task\"), @Id @GeneratedValue pour la clé primaire, et @Column pour les autres attributs. Ajouter @ManyToOne @JoinColumn(name = \"user_id\") pour la relation avec User.",
+        "Créer la classe User dans le même package avec les annotations @Entity, @Table(name = \"user\"), @Id @GeneratedValue, et @Column(unique = true) pour username et email. Ajouter les attributs password et roles.",
+        "Utiliser Lombok avec les annotations @Data, @NoArgsConstructor, @AllArgsConstructor pour automatiser la génération des méthodes d'accès et des constructeurs.",
+        "Vérifier la cohérence des types de données (Long pour les IDs, String pour les chaînes, LocalDateTime pour createdAt) et ajouter les validations de base si nécessaire."
+      ]
+    },
+    {
+      "id": "CONFIG-004",
+      "title": "Implémentation des repositories JPA",
+      "description": "Créez les interfaces de repository pour l'accès aux données des entités Task et User. Ces interfaces doivent étendre JpaRepository pour bénéficier des méthodes CRUD de base et des méthodes de requête personnalisées. L'objectif est d'interagir avec la base de données de manière simple et efficace, en exploitant les fonctionnalités de Spring Data JPA pour réduire le code d'accès aux données.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 3,
+      "subtasks": [
+        "Créer le package repository et y définir l'interface TaskRepository qui étend JpaRepository<Task, Long>. Ajouter des méthodes comme findByUserId(Long userId) pour récupérer les tâches d'un utilisateur.",
+        "Dans le même package, créer l'interface UserRepository qui étend JpaRepository<User, Long>. Ajouter des méthodes comme findByEmail(String email) et findByUsername(String username) pour la recherche d'utilisateurs.",
+        "S'assurer que les interfaces sont annotées avec @Repository pour que Spring Data JPA les détecte et les enregistre comme beans.",
+        "Tester les repositories en créant un test unitaire ou en utilisant un endpoint temporaire pour valider les opérations de base."
+      ]
+    },
+    {
+      "id": "CONFIG-005",
+      "title": "Configuration de Spring Security et JWT",
+      "description": "Configurez Spring Security pour protéger l'API RESTful avec un mécanisme d'authentification JWT. L'objectif est de désactiver CSRF, d'autoriser les requêtes CORS, de rendre les endpoints /api/auth/** publics, et d'exiger un token JWT valide pour tous les autres endpoints. Implémentez un filtre JWT personnalisé pour valider les tokens et extraire les informations d'utilisateur.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer une classe de configuration SecurityConfig qui étend WebSecurityConfigurerAdapter (ou implmente SecurityFilterChain dans Spring Boot 2.7+) et annotée avec @EnableWebSecurity.",
+        "Dans la configuration, désactiver CSRF avec http.csrf().disable(), configurer CORS avec http.cors().and(), et autoriser les endpoints /api/auth/** avec http.authorizeRequests().antMatchers(\"/api/auth/**\").permitAll().",
+        "Ajouter un filtre JWT personnalisé en créant une classe JwtAuthenticationFilter qui étend OncePerRequestFilter pour extraire le token de l'en-tête Authorization, le valider avec JJWT, et charger l'utilisateur dans le contexte de sécurité.",
+        "Configurer la gestion des sessions pour être stateless avec http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).",
+        "Définir la source de données utilisateur en créant un service qui charge l'utilisateur depuis le repository par username ou email."
+      ]
+    },
+    {
+      "id": "CONFIG-006",
+      "title": "Développement des services métier : TaskService et UserService",
+      "description": "Implémentez les services métier pour gérer la logique des tâches et des utilisateurs. TaskService doit inclure les méthodes createTask, getAllTasks, getTaskById, updateTask, deleteTask, et getTasksByUser, en s'assurant que les tâches sont filtrées par l'utilisateur connecté. UserService doit gérer l'inscription avec validation, l'authentification, et la génération de token JWT. L'objectif est de centraliser la logique métier et de rendre le code des contrôleurs plus simple.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le package service et y définir la classe TaskService avec les méthodes CRUD. Pour getAllTasks et getTasksByUser, utiliser le repository pour filtrer par userId. Ajouter une méthode pour valider que l'utilisateur a le droit de modifier ou supprimer une tâche.",
+        "Dans la même classe UserService, implémenter registerUser avec validation de l'unicité de l'email et du username, et stockage du mot de passe chiffré avec BCrypt. Ajouter authenticateUser pour vérifier les identifiants et générer un token JWT avec JJWT.",
+        "Utiliser les annotations @Service et @Transactional de Spring pour gérer les transactions et l'injection des dépendances.",
+        "Tester les services en créant des tests d'intégration ou en utilisant l'application pour valider les scénarios d'inscription, connexion, et CRUD des tâches."
+      ]
+    },
+    {
+      "id": "CONFIG-007",
+      "title": "Création des contrôleurs REST : TaskController et AuthController",
+      "description": "Développez les contrôleurs REST pour exposer les endpoints API. TaskController doit gérer les opérations CRUD sur les tâches avec les chemins /api/tasks, en utilisant les méthodes HTTP appropriées (POST, GET, PUT, DELETE). AuthController doit gérer l'inscription et la connexion avec /api/auth/register et /api/auth/login. L'objectif est de fournir une API RESTful qui communique en JSON et respecte les standards.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le package controller et y définir la classe TaskController annotée avec @RestController et @RequestMapping(\"/api/tasks\"). Ajouter les méthodes avec @PostMapping, @GetMapping, @GetMapping(\"/{id}\"), @PutMapping(\"/{id}\"), et @DeleteMapping(\"/{id}\").",
+        "Dans AuthController, ajouter @RequestMapping(\"/api/auth\") et les méthodes register et login avec @PostMapping. Utiliser @Valid pour valider les DTOs d'entrée.",
+        "Retourner les réponses avec des codes HTTP appropriés (201 pour création, 200 pour succès, 404 pour non trouvé, etc.) et utiliser @ResponseBody pour renvoyer du JSON.",
+        "Tester les endpoints en utilisant Postman ou une outil similaire pour vérifier le bon fonctionnement de l'API."
+      ]
+    },
+    {
+      "id": "CONFIG-008",
+      "title": "Initialisation du projet Angular avec Angular CLI",
+      "description": "Créez un projet Angular en utilisant la ligne de commande Angular CLI (version 16 ou 17). L'objectif est d'initialiser la structure de base du projet frontend, d'installer Bootstrap pour le design responsive, et de configurer les outils nécessaires pour le développement. Ce projet doit être prêt pour le développement des composants, services, et routage.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Ouvrir un terminal et exécuter la commande ng new task-manager-app pour créer un nouveau projet Angular avec les options par défaut ou personnalisées (comme le style CSS pour Bootstrap).",
+        "Suivre les invites pour configurer le projet : choisir le routage strict (yes), sélectionner le format de style (CSS ou Sass), et vérifier que la version d'Angular CLI est compatible.",
+        "Accéder au dossier du projet et installer Bootstrap avec la commande npm install bootstrap, puis importer les styles dans le fichier angular.json ou dans le global styles.css.",
+        "Vérifier la structure générée : le fichier app.component, le dossier src, les dossiers pour les composants, services, et guards.",
+        "Compiler le projet avec ng serve pour s'assurer que le serveur de développement démarre correctement sur le port 4200."
+      ]
+    },
+    {
+      "id": "CONFIG-009",
+      "title": "Création des composants Angular : Login, Register, TaskList, TaskForm, Navbar",
+      "description": "Développez les composants Angular nécessaires pour l'interface utilisateur de l'application Task Manager. Chaque composant doit être conçu pour une fonctionnalité spécifique : LoginForm pour la connexion, RegisterForm pour l'inscription, TaskList pour l'affichage des tâches, TaskForm pour le formulaire de création/édition, et Navbar pour la navigation. Utilisez Bootstrap pour assurer une interface responsive et attractive.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer les composants en utilisant la commande ng generate component login, register, task-list, task-form, navbar dans le dossier src/app.",
+        "Pour chaque composant, concevoir le template HTML en utilisant les classes Bootstrap pour les formulaires, tableaux, et boutons. Par exemple, dans TaskForm, utiliser un select pour le statut avec les options TODO, IN_PROGRESS, DONE.",
+        "Développer la logique de composant en TypeScript : gérer les formulaires avec Reactive Forms ou Template-Driven Forms, et implémenter les méthodes de soumission pour appeler les services.",
+        "Intégrer les composants dans l'application en les déclarant dans le module principal (app.module.ts) et en les utilisant dans les routes correspondantes."
+      ]
+    },
+    {
+      "id": "CONFIG-010",
+      "title": "Configuration du routage et des guards d'authentification",
+      "description": "Configurez le routage de l'application Angular pour définir les chemins d'accès aux différents composants. Implémentez un guard AuthGuard pour protéger les routes des tâches (list, new, edit) en vérifiant si l'utilisateur est authentifié. Si non, rediriger vers la page de login. L'objectif est de sécuriser l'accès aux fonctionnalités protégées et d'améliorer l'expérience utilisateur.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Créer un module de routage avec la commande ng generate module app-routing --flat --module=app et définir les routes dans le fichier app-routing.module.ts.",
+        "Définir les routes suivantes : { path: 'login', component: AppComponent }, { path: 'register', component: RegisterComponent }, { path: 'tasks', component: TaskListComponent,-canActivate: [AuthGuard] }, { path: 'tasks/new', component: TaskFormComponent,-canActivate: [AuthGuard] }, { path: 'tasks/edit/:id', component: TaskFormComponent,-canActivate: [AuthGuard] }, et une redirection par défaut vers '/tasks' si connecté sinon '/login'.",
+        "Implémenter AuthGuard en créant une classe qui implmente CanActivate et utilise AuthService pour vérifier si l'utilisateur est connecté. Rediriger vers '/login' si non authentifié.",
+        "Importer le module de routage dans app.module.ts et configurer le <router-outlet> dans le template de AppComponent pour afficher les composants."
+      ]
+    },
+    {
+      "id": "CONFIG-011",
+      "title": "Développement des services Angular : AuthService et TaskService",
+      "description": "Créez les services Angular pour interagir avec l'API backend. AuthService doit gérer la connexion, l'inscription, et le stockage du token JWT dans le localStorage. TaskService doit effectuer les appels HTTP pour le CRUD des tâches, en incluant le token JWT dans les en-têtes via un intercepteur. L'objectif est d'abstract la communication HTTP et de centraliser la logique d'authentification.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer les services avec les commandes ng generate service auth et ng generate service task. Dans AuthService, implémenter les méthodes login, register, getToken, isLoggedIn, et logout en utilisant HttpClient pour les requêtes POST.",
+        "Dans TaskService, ajouter les méthodes getTasks, createTask, updateTask, deleteTask avec les appels HTTP GET, POST, PUT, DELETE vers l'URL de base 'http://localhost:8080/api'.",
+        "Créer un intercepteur HTTP pour ajouter automatiquement l'en-tête Authorization avec le token JWT à toutes les requêtes sortantes. Enregistrer l'intercepteur dans app.module.ts.",
+        "Tester les services en créant des tests unitaires ou en utilisant l'application pour valider les appels API et la gestion du token."
+      ]
+    },
+    {
+      "id": "CONFIG-012",
+      "title": "Configuration CORS et tests d'intégration",
+      "description": "Configurez le CORS (Cross-Origin Resource Sharing) côté Spring Boot pour autoriser les requêtes provenant de l'application Angular en localhost:4200. Effectuez des tests d'intégration pour vérifier que le frontend et le backend communiquent correctement, que les endpoints sont protégés, et que les erreurs sont gérées proprement. L'objectif est de s'assurer que l'application full-stack fonctionne comme prévu.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Dans la configuration Spring Security, ajouter une méthode de configuration CORS pour autoriser l'origine http://localhost:4200 avec les méthodes HTTP et en-têtes nécessaires.",
+        "Alternative : utiliser l'annotation @CrossOrigin(origins = \"http://localhost:4200\") sur les contrôleurs TaskController et AuthController pour une configuration plus fine.",
+        "Démarrer l'application Spring Boot et l'application Angular ensemble, puis tester les scénarios d'inscription, connexion, et CRUD des tâches depuis le frontend.",
+        "Vérifier la gestion des erreurs : par exemple, when l'email est déjà utilisé, afficher un message d'erreur, et when les identifiants sont incorrects, rediriger avec un message."
+      ]
+    }
+  ]
+}

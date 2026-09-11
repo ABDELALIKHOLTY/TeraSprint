@@ -1,0 +1,164 @@
+# Rapport d'Architecture - SkillMatch AI
+
+## 1. Setup & Stack Technique
+
+### Frontend
+- Langage : TypeScript
+- Framework : Angular
+- State Management : NgRx (présumé standard Angular)
+
+### Backend
+- Langage : Java
+- Framework : Spring Boot
+- Architecture : Microservices modulaires
+- Sécurité : JWT / OAuth2
+
+### Bases de Données
+- PostgreSQL : Données critiques (SQL)
+- Redis : Cache et gestion de sessions
+- MongoDB : Logs et historique (NoSQL)
+
+### Déploiement / DevOps
+- Conteneurisation : Docker
+- Orchestration : Kubernetes
+- Cloud Provider : AWS
+- Monitoring : Prometheus
+- Visualisation / Dashboards : Grafana
+
+---
+
+## 2. Schéma Relationnel de la Base de Données
+
+### Entités Principales (PostgreSQL)
+
+#### Table `users`
+- Clé Primaire : `id`
+- Champs typiques : `email`, `password_hash`, `role` (CANDIDATE / RECRUITER), `created_at`
+- Relations :
+  - 1-N vers `candidates`
+  - 1-N vers `companies`
+
+#### Table `candidates`
+- Clé Primaire : `id`
+- Clé Étrangère : `user_id` -> `users.id`
+- Champs typiques : `first_name`, `last_name`, `linkedin_url`, `cv_url`, `current_title`
+- Relations :
+  - N-N vers `skills` (via `candidate_skills`)
+  - 1-N vers `skill_evolution` (graphe temporel)
+  - 1-N vers `applications`
+
+#### Table `companies`
+- Clé Primaire : `id`
+- Clé Étrangère : `user_id` -> `users.id`
+- Champs typiques : `name`, `sector`, `size`
+- Relations :
+  - 1-N vers `job_offers`
+
+#### Table `skills`
+- Clé Primaire : `id`
+- Champs typiques : `name`, `category`
+- Relations :
+  - N-N vers `candidates` (via `candidate_skills`)
+  - N-N vers `job_offers` (via `job_offer_skills`)
+
+#### Table `candidate_skills` (Table de liaison)
+- Clés Étrangères : `candidate_id` -> `candidates.id`, `skill_id` -> `skills.id`
+- Champs typiques : `acquired_at`, `proficiency_level`
+
+#### Table `skill_evolution` (Graphe dynamique)
+- Clé Primaire : `id`
+- Clé Étrangère : `candidate_id` -> `candidates.id`
+- Champs typiques : `skill_id`, `acquired_at`, `source` (CV / LINKEDIN / MANUAL)
+
+#### Table `job_offers`
+- Clé Primaire : `id`
+- Clé Étrangère : `company_id` -> `companies.id`
+- Champs typiques : `title`, `description`, `status`, `created_at`
+- Relations :
+  - 1-N vers `applications`
+  - N-N vers `skills` (via `job_offer_skills`)
+
+#### Table `job_offer_skills` (Table de liaison)
+- Clés Étrangères : `job_offer_id` -> `job_offers.id`, `skill_id` -> `skills.id`
+- Champs typiques : `required_level`, `weight`
+
+#### Table `applications`
+- Clé Primaire : `id`
+- Clés Étrangères : `candidate_id` -> `candidates.id`, `job_offer_id` -> `job_offers.id`
+- Champs typiques : `match_score`, `status`, `applied_at`
+
+#### Table `pipelines` (Pipelines de recrutement visuels)
+- Clé Primaire : `id`
+- Clé Étrangère : `company_id` -> `companies.id`
+- Champs typiques : `name`, `stages_config` (JSON)
+
+### Résumé des Relations
+- 1-N : `users` -> `candidates`, `users` -> `companies`, `candidates` -> `skill_evolution`, `companies` -> `job_offers`, `job_offers` -> `applications`
+- N-N : `candidates` <-> `skills`, `job_offers` <-> `skills`
+
+### Données NoSQL (MongoDB)
+- Collections : `chat_messages`, `nlp_extraction_logs`, `audit_logs`, `user_activity_history`
+
+### Cache (Redis)
+- Keys : `session:{user_id}`, `match_score:{candidate_id}:{offer_id}`, `notifications:{user_id}`
+
+---
+
+## 3. Architecture Backend & APIs
+
+### Paradigme
+- Style : REST (principal)
+- Protocole additionnel : WebSocket (chat temps réel)
+
+### Services / Microservices
+- `auth-service` : Authentification JWT/OAuth2, gestion utilisateurs
+- `candidate-service` : Profils candidats, import CV/LinkedIn, graphe de compétences
+- `recruiter-service` : Comptes entreprises, pipelines de recrutement
+- `matching-service` : Calcul de scores de compatibilité (NLP + scoring)
+- `notification-service` : Alertes intelligentes (seuil de match > 80%)
+- `chat-service` : Messagerie temps réel (WebSocket)
+
+### Contrôleurs REST Principaux
+- `AuthController` : `/api/auth/login`, `/api/auth/register`, `/api/auth/oauth/{provider}`
+- `CandidateController` : `/api/candidates`, `/api/candidates/{id}/skills`, `/api/candidates/{id}/import-cv`
+- `JobOfferController` : `/api/job-offers`, `/api/job-offers/{id}`
+- `MatchingController` : `/api/matching/score`, `/api/matching/reverse-search`
+- `PipelineController` : `/api/pipelines`, `/api/pipelines/{id}/stages`
+- `ChatController` : `/api/chat/messages` (historique)
+- `NotificationController` : `/api/notifications`
+
+### Services Métier
+- `NlpExtractionService` : Extraction de compétences depuis CV/LinkedIn
+- `SkillGraphService` : Construction du graphe dynamique de compétences
+- `MatchingEngineService` : Algorithme de scoring et ranking
+- `AlertingService` : Déclenchement des alertes > 80%
+- `WebSocketSessionService` : Gestion des sessions WebSocket
+
+---
+
+## 4. Architecture Frontend et Intégration
+
+### Stack UI
+- Framework : Angular
+- Composants : Angular Material (présumé)
+- Visualisation de graphes : Librairie de graphes (ex. D3.js / Cytoscape.js) pour le graphe de compétences et pipelines visuels
+
+### Sécurité
+- Mécanisme : JWT (stockage en cookie httpOnly ou localStorage)
+- Flux OAuth2 : Pour import LinkedIn
+- Intercepteurs HTTP : Injection automatique du token, refresh token
+
+### Communication
+- HTTP/REST : Appels standards vers les microservices backend
+- WebSocket : Communication bidirectionnelle temps réel
+  - Endpoint : `/ws/chat`
+  - Framework serveur : Spring WebSocket / STOMP
+  - Usage : Chat candidat-recruteur, notifications live de mise à jour des scores de match
+
+### Intégrations Externes
+- API LinkedIn : Import de profil et extraction de compétences
+- Parser CV : Service d'extraction NLP (depuis PDF / DOCX)
+
+### Observabilité (côté client)
+- Logs frontend agrégés vers MongoDB via backend
+- Métriques exposées vers Prometheus via exporters backend

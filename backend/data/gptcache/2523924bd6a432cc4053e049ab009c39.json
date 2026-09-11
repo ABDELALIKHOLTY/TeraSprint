@@ -1,0 +1,59 @@
+# Setup & Stack Technique
+- **Frontend** : React 18, TypeScript, Vite, Redux Toolkit, Chart.js, Axios, Socket.io-client  
+- **Backend** : Node.js 20, NestJS framework, TypeORM, Python 3.11 (FastAPI) pour services IA, gRPC inter‑service  
+- **Base de données** : PostgreSQL 15, pgvector extension pour embeddings  
+- **Déploiement / DevOps** : Docker, Docker‑Compose (dev), Kubernetes (helm charts), GitHub Actions CI/CD, Prometheus + Grafana monitoring, ELK stack logs, Nginx ingress, Let's Encrypt TLS  
+
+# Schéma Relationnel de la Base de Données
+- **users** (`id` PK, `email` UNIQUE, `password_hash`, `role` ENUM[candidate, recruiter], `created_at`)  
+- **candidate_profiles** (`user_id` PK FK→users.id, `full_name`, `phone`, `location`, `updated_at`)  
+- **recruiter_profiles** (`user_id` PK FK→users.id, `company_name`, `company_website`, `updated_at`)  
+- **jobs** (`id` PK, `recruiter_id` FK→users.id, `title`, `description`, `location`, `employment_type`, `created_at`, `updated_at`)  
+- **cv_files** (`id` PK, `candidate_id` FK→users.id, `file_path`, `uploaded_at`, `parsed_text`)  
+- **skills** (`id` PK, `name` UNIQUE)  
+- **candidate_skills** (`candidate_id` FK→users.id, `skill_id` FK→skills.id, `score` FLOAT, PK(`candidate_id`,`skill_id`))  
+- **job_skills** (`job_id` FK→jobs.id, `skill_id` FK→skills.id, `weight` FLOAT, PK(`job_id`,`skill_id`))  
+- **matches** (`id` PK, `candidate_id` FK→users.id, `job_id` FK→jobs.id, `match_score` FLOAT, `created_at`)  
+- **applications** (`id` PK, `candidate_id` FK→users.id, `job_id` FK→jobs.id, `status` ENUM[applied, reviewed, interviewed, hired, rejected], `applied_at`, `updated_at`)  
+- **dashboard_stats** (`id` PK, `recruiter_id` FK→users.id, `period_start`, `period_end`, `total_applications`, `hired_count`, `avg_match_score`, `updated_at`)  
+
+Relations principales :  
+- users 1‑N candidate_profiles / recruiter_profiles  
+- users 1‑N cv_files  
+- users 1‑N jobs (recruiter side)  
+- users 1‑N applications (candidate side)  
+- jobs N‑N skills via job_skills  
+- users N‑N skills via candidate_skills  
+- jobs 1‑N matches  
+- users 1‑N matches (candidate side)  
+- users 1‑N dashboard_stats  
+
+# Architecture Backend & APIs
+- **API REST** (NestJS) :  
+  - `AuthController` (login, refresh, logout)  
+  - `UsersController` (CRUD profil)  
+  - `JobsController` (CRUD offres)  
+  - `ApplicationsController` (postuler, mettre à jour statut)  
+  - `MatchesController` (liste matching candidat/offre)  
+  - `StatsController` (données dashboard)  
+- **Services IA** (FastAPI) exposés via gRPC :  
+  - `ParseCVService` (PDF → texte, extraction compétences)  
+  - `MatchService` (calcul score cosine similarity entre embeddings CV et offre)  
+- **WebSocket Gateway** (NestJS) pour notifications temps réel (nouvelle offre, mise à jour statut candidature)  
+- **Middleware** : JWT validation, rôle‑based guard, rate limiting, validation pipes  
+
+# Architecture Frontend et Intégration
+- **UI Library** : Ant Design (React) + custom theme  
+- **State Management** : Redux Toolkit (slices auth, jobs, applications, matches, dashboard)  
+- **Routing** : React Router v6  
+- **Communication** :  
+  - REST API via Axios (intercepteur JWT)  
+  - WebSocket via Socket.io-client (canal `notifications`)  
+  - gRPC-web stub pour appel aux services IA (optionnel, fallback REST)  
+- **Sécurité** : stockage JWT dans HttpOnly cookie (via backend), CSRF token, CSP headers  
+- **Visualisation** : Chart.js (barres, lignes, camembert) intégrés dans composants Dashboard  
+- **Réal‑time** : mise à jour immédiate du tableau de bord et de la liste des candidatures via WebSocket events (`application:updated`, `new_match`)  
+- **Build** : Vite, multi‑stage Docker build, nginx serving static assets  
+
+---  
+*Fin du rapport.*

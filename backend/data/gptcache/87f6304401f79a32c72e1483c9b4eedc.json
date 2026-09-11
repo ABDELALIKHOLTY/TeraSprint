@@ -1,0 +1,78 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Implémentation du module Auth (NestJS) avec JWT, Refresh Token et Passport.js",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche vise à poser les fondations sécuritaires du système ERP en développant le module d'authentification complet dans NestJS. Elle couvre l'enregistrement des utilisateurs, la connexion avec génération de paires de tokens (Access Token JWT courte durée de 15 minutes + Refresh Token longue durée de 7 jours stocké en cookie HttpOnly Secure), la rotation et la révocation des tokens, ainsi que l'intégration de Passport.js avec les stratégies locales (vérification email/mot de passe hashé en Argon2) et JWT. L'objectif est de garantir une authentification stateless conforme aux meilleures pratiques OWASP, prête à être consommée par les autres modules métier (RBAC, orders, inventory, etc.) via des Guards NestJS réutilisables.",
+      "subtasks": [
+        "Créer le module 'AuthModule' dans 'src/modules/auth/' avec contrôleur ('AuthController'), service ('AuthService') et DTOs ('LoginDto', 'RegisterDto', 'RefreshTokenDto') validés via class-validator et décorateurs Swagger (@ApiProperty)",
+        "Implémenter la stratégie Passport locale ('LocalStrategy') qui charge l'utilisateur depuis la table ('users') via Prisma et vérifie le mot de passe hashé en Argon2id stocké dans ('users.password_hash')",
+        "Implémenter la stratégie Passport JWT ('JwtStrategy') en configurant 'JwtModule.registerAsync' avec un secret extrait de la config (process.env.JWT_SECRET) et extraction du payload depuis le header Authorization Bearer",
+        "Développer la route ('POST /api/v1/auth/login') retournant un access_token (15 min) + refresh_token (cookie HttpOnly Secure SameSite=Strict) en utilisant '@nestjs/jwt' avec payload contenant ('sub': userId, 'email', 'role')",
+        "Développer la route ('POST /api/v1/auth/refresh') qui valide le refresh_token depuis le cookie, vérifie sa présence dans Redis avec TTL, et émet une nouvelle paire de tokens (rotation)",
+        "Développer la route ('POST /api/v1/auth/logout') qui blacklist le refresh_token dans Redis via la clé ('blacklist:refresh:{jti}') et efface le cookie côté client",
+        "Implémenter la route ('POST /api/v1/auth/register') créant un utilisateur dans la table ('users') avec ('email'), ('password_hash') Argon2id, ('role_id') par défaut et déclenchant un audit log dans ('audit_logs')",
+        "Mettre en place le 'JwtAuthGuard' global dans 'src/common/guards/' avec反射eur metadata pour protéger l'ensemble des routes du sous-répertoire '/api/v1/*' sauf '/auth/login' et '/auth/register'"
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Implémentation du module RBAC (Roles, Permissions, Guards et Decorators NestJS)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche est dédiée à la mise en place du contrôle d'accès basé sur les rôles (RBAC) au-dessus du module Auth. Elle permet de restreindre l'accès aux endpoints selon les rôles ('ADMIN', 'WAREHOUSE_MANAGER', 'DRIVER', 'OPERATOR', etc.) et les permissions granulaires (ex: 'orders:create', 'inventory:read'). L'implémentation s'appuie sur les décorateurs personnalisés '@Roles()' et '@Permissions()' couplés à un 'RolesGuard' et 'PermissionsGuard' génériques. Cette couche est critique car elle conditionne l'accès aux modules sensibles (orders, shipments, fleet) et doit s'intégrer proprement avec la table ('roles') et la future table de jonction ('role_permissions').",
+      "subtasks": [
+        "Créer l'entité Prisma 'Role' dans ('schema.prisma') avec ('id' UUID, ('name') UNIQUE, ('description') String, ('permissions') String[]) en miroir de la table ('roles') prévue dans le rapport d'architecture",
+        "Créer le module 'RbacModule' dans 'src/modules/rbac/' avec service ('RbacService') exposant 'getUserPermissions(userId): Promise<string[]>' qui agrège les permissions via jointure ('users') → ('roles')",
+        "Implémenter le décorateur personnalisé ('@Roles') dans 'src/common/decorators/roles.decorator.ts' utilisant 'SetMetadata' pour attacher la liste des rôles requis au handler de la route",
+        "Implémenter le décorateur personnalisé ('@Permissions') dans 'src/common/decorators/permissions.decorator.ts' pour attacher les permissions fines ('orders:create', 'inventory:transfer', etc.)",
+        "Créer le 'RolesGuard' dans 'src/common/guards/roles.guard.ts' qui lit la metadata '@Roles', extrait ('user.role') depuis la request et vérifie l'appartenance via 'Reflector.getAllAndOverride'",
+        "Créer le 'PermissionsGuard' dans 'src/common/guards/permissions.guard.ts' effectuant la même logique mais sur les permissions effectives de l'utilisateur chargé par un interceptor",
+        "Créer le 'RolesInterceptor' dans 'src/common/interceptors/roles.interceptor.ts' qui précharge les permissions de l'utilisateur depuis Redis (cache clé 'user:perms:{userId}' TTL 5 min) pour éviter des requêtes SQL répétitives",
+        "Appliquer les décorateurs '@Roles('ADMIN', 'WAREHOUSE_MANAGER')' et '@Permissions('inventory:transfer')' sur les routes critiques comme ('POST /api/v1/inventory/transfers') et ('PATCH /api/v1/shipments/:id/assign')"
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Développement des services métier Inventory, Orders et Shipments (NestJS + Prisma)",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "description": "Cette tâche constitue le cœur fonctionnel du système ERP : elle orchestre la logique métier de bout en bout, depuis la gestion du stock physique dans les entrepôts (avec zones et mouvements), jusqu'au cycle de vie d'une commande client (draft → confirmed → shipped → delivered) et son expédition associée. Elle exploite pleinement PostgreSQL avec PostGIS pour les calculs de distances et l'optimisation des tournées via pgRouting. L'objectif est de garantir la cohérence transactionnelle du stock (réservation à la confirmation, décrémentation à l'expédition, traçabilité via la table ('stock_movements')) et de fournir une API REST robuste, versionnée, documentée via Swagger et testée via Jest + Supertest.",
+      "subtasks": [
+        "Créer le module 'InventoryModule' avec ('InventoryService') implémentant les méthodes 'getStock(productId, warehouseId)', 'reserveStock(orderId)' et 'transferStock(fromZoneId, toZoneId, quantity)' avec verrouillage transactionnel Prisma ($transaction) sur les tables ('inventory_items') et ('stock_movements')",
+        "Implémenter la route ('GET /api/v1/inventory/stock') retournant la liste paginée des ('inventory_items') avec jointures eager vers ('products'), ('warehouses') et ('zones') via Prisma 'include', plus filtre par ('warehouse_id') et ('zone_id')",
+        "Développer la route ('POST /api/v1/inventory/movements') créant un enregistrement dans ('stock_movements') avec ('product_id'), ('from_warehouse_id'), ('to_warehouse_id'), ('quantity'), ('user_id') et type enum 'IN'/'OUT'/'TRANSFER', tout en mettant à jour atomiquement ('inventory_items.quantity')",
+        "Créer le module 'OrdersModule' avec 'OrderService' exposant les transitions de statut via une machine à états 'draft → confirmed → packed → shipped → delivered → cancelled' stockée dans la table ('orders.status') avec validation des transitions autorisées",
+        "Implémenter la route ('POST /api/v1/orders') qui crée une commande dans ('orders') avec ('customer_id'), ('warehouse_id'), ('created_by') et génère les ('order_items') liés, en appelant 'InventoryService.reserveStock()' pour bloquer le stock réservable",
+        "Implémenter la route ('PATCH /api/v1/orders/:id/status') qui valide la transition, met à jour ('orders.status') et déclenche les actions en cascade (ex: passage en 'shipped' crée une ('shipments') liée et décrémente le stock réservé)",
+        "Créer le module 'ShipmentsModule' avec 'ShipmentService' contenant 'planDeliveryRoute(shipmentId)' qui utilise une requête PostGIS raw 'ST_Distance' et l'extension pgRouting via ('delivery_routes') pour calculer le trajet optimal entre ('warehouses.location') et l'adresse client ('addresses.coords')",
+        "Implémenter les routes ('GET /api/v1/shipments'), ('POST /api/v1/shipments') et ('PATCH /api/v1/shipments/:id/assign') permettant de lister, créer une expédition (à partir d'une commande) et assigner un ('driver_id') + ('vehicle_id') avec mise à jour de ('shipments.assigned_at')"
+      ]
+    },
+    {
+      "id": "TERA-104",
+      "title": "Implémentation du Tracking GPS temps réel (WebSocket Gateway NestJS + Socket.IO) et Geofencing PostGIS",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "description": "Cette tâche met en place la brique de tracking temps réel et de géolocalisation, différenciatrice de l'ERP. Elle comprend un WebSocket Gateway Socket.IO dans un namespace '/tracking', l'ingestion asynchrone de positions GPS (depuis les appareils mobiles des chauffeurs ou boîtiers IoT) via une route REST dédiée, la persistance dans une table append-only ('gps_positions') partitionnée par date avec colonne PostGIS ('coords GEOGRAPHY(POINT)') indexée GIST, ainsi qu'un service de Geofencing qui détecte les entrées/sorties des zones d'entrepôt polygonales définies dans ('zones.boundary'). L'objectif est de permettre aux dispatchers de visualiser les tournées en direct sur la carte frontend (Leaflet/Mapbox) et de déclencher des alertes automatiques lors d'événements géographiques.",
+      "subtasks": [
+        "Créer la migration Prisma ajoutant la table ('gps_positions') avec ('id' UUID, ('shipment_id') FK, ('coords') GEOGRAPHY(POINT) via colonne raw SQL unsupported), ('recorded_at') TIMESTAMPTZ et index GIST 'idx_gps_coords' pour optimiser les requêtes spatiales",
+        "Créer le module 'TrackingModule' avec 'TrackingGateway' (@WebSocketGateway) exposant le namespace '/tracking' et les événements 'joinShipment', 'leaveShipment' utilisant les rooms Socket.IO indexées par ('shipment_id')",
+        "Implémenter la route ('POST /api/v1/tracking/positions') (HTTP REST, appelée par les devices) authentifiée par JWT, qui insère un enregistrement dans ('gps_positions') via 'prisma.$executeRaw`INSERT INTO gps_positions (coords) VALUES (ST_MakePoint(${lng}, ${lat}))`' puis émet un événement Socket.IO 'positionUpdate' sur la room correspondante",
+        "Implémenter la route ('GET /api/v1/tracking/shipments/:id/positions') qui retourne l'historique paginé des positions depuis ('gps_positions') trié par ('recorded_at') DESC, avec sélection de la position courante via 'ORDER BY recorded_at DESC LIMIT 1'",
+        "Développer 'TrackingService.ingestPosition(positionDto)' qui orchestre la persistance, déclenche le geofencing check et broadcast Socket.IO en s'assurant que la transaction DB est commitée avant l'émission pour éviter les race conditions",
+        "Créer le module 'GeoModule' avec 'GeofencingService' exposant 'checkGeofence(shipmentId, coords)' exécutant une requête PostGIS 'ST_Contains(zones.boundary, ST_MakePoint($1, $2))' sur les zones actives de l'entrepôt lié au ('shipments.from_warehouse_id')",
+        "Implémenter la détection d'événements 'entered_zone' et 'exited_zone' dans 'GeofencingService' en comparant l'état précédent (cache Redis clé 'geofence:state:{shipmentId}:{zoneId}') au nouveau résultat PostGIS pour éviter les faux positifs",
+        "Intégrer 'GeofencingService' avec 'NotificationService' pour émettre des notifications push/email lors d'événements critiques (ex: 'entered_zone:delivery' → notifie le client, 'exited_zone:warehouse' → met à jour le statut shipment)"
+      ]
+    }
+  ]
+}
+```

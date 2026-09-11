@@ -1,0 +1,47 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Implémentation du module Auth et des services Utilisateurs (NestJS, TypeORM, JWT)",
+      "description": "Cette tâche consiste à créer le module NestJS responsable de l'authentification et de la gestion des profils utilisateurs, en définissant les entités TypeORM correspondant aux tables ('users') avec ('id'), ('email'), ('password_hash'), ('role'), ('created_at'), ('candidate_profiles') avec ('user_id'), ('full_name'), ('phone'), ('location'), ('updated_at') et ('recruiter_profiles') avec ('user_id'), ('company_name'), ('company_website'), ('updated_at'). Nous implémenterons les DTOs, les guards JWT et rôle‑based, les pipes de validation, ainsi que les contrôleurs AuthController (routes ('POST /api/login'), ('POST /api/refresh'), ('POST /api/logout')) et UsersController (routes CRUD sur '/api/users' et '/api/profiles'). Enfin, nous ajouterons des tests unitaires et d’intégration pour garantir la sécurité et la conformité aux exigences du schéma relationnel.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer les entités TypeORM User, CandidateProfile et RecruiterProfile avec les décorateurs @Entity, @PrimaryGeneratedColumn, @Column, @OneToOne et les contraintes d’unicité sur ('email') et les clés étrangères appropriées.",
+        "Développer le service AuthService qui utilise le module @nestjs/jwt pour signer et vérifier les tokens, incluant la méthode validateUser(email, password) qui interroge le repository User et compare le hash de mot de passe avec bcrypt.",
+        "Implémenter le AuthController avec les routes ('POST /api/login') retournant un access token et un refresh token dans des cookies HttpOnly, ('POST /api/refresh') pour renouveler le token, et ('POST /api/logout') pour invalider le token côté client, en appliquant le guard JwtAuthGuard et le rôle‑based guard RolesGuard selon le champ ('role').",
+        "Construire le UsersController offrant les endpoints CRUD ('GET /api/users/:id'), ('PATCH /api/users/:id'), ('DELETE /api/users/:id') pour les données génériques, ainsi que ('GET /api/profiles/me'), ('PATCH /api/profiles/me') pour récupérer/mettre à jour le profil candidat ou recruteur selon le rôle, en utilisant les DTOs CreateUserDto, UpdateUserDto, CandidateProfileDto et RecruiterProfileDto avec les pipes de validation ValidationPipe."
+      ]
+    },
+      {
+        "id": "TERA-102",
+        "title": "Développement du module Offres, Compétences et Matching (NestJS, TypeORM, gRPC vers FastAPI IA)",
+        "description": "Cette tâche couvre la création des entités liées aux offres d’emploi, aux compétences et aux matchs, en mappant exactement les tables ('jobs') avec ('id'), ('recruiter_id'), ('title'), ('description'), ('location'), ('employment_type'), ('created_at'), ('updated_at'), ('skills') avec ('id'), ('name'), ('job_skills') avec ('job_id'), ('skill_id'), ('weight'), ('candidate_skills') avec ('candidate_id'), ('skill_id'), ('score'), et ('matches') avec ('id'), ('candidate_id'), ('job_id'), ('match_score'), ('created_at'). Nous construirons les services JobService, SkillService et MatchingService, exposant les contrôleurs JobsController (routes CRUD sur '/api/jobs'), JobSkillsController (gestion des relations many‑to‑many) et MatchesController (route ('GET /api/matches/:candidateId') pour récupérer les matchs d’un candidat). Le MatchingService appellera le service gRPC MatchService du serveur FastAPI pour calculer la similarité cosinus entre l’embedding du CV (stocké dans le champ ('parsed_text') de la table ('cv_files')) et l’embedding de l’offre, puis persistera le score dans la table ('matches'). Enfin, nous ajouterons un WebSocket Gateway qui émet l'événement 'new_match' dès qu’un nouveau match est inséré.",
+        "status": "TO DO",
+        "priority": "High",
+        "story_points": 8,
+        "subtasks": [
+          "Définir les entités TypeORM Job, Skill, JobSkill, CandidateSkill et Match avec les décorateurs appropriés, en spécifiant les colonnes exactement comme décrites dans le schéma, y compris les clés étrangères ('recruiter_id') référençant ('users.id'), ('job_id') et ('skill_id') dans les tables de jointure, et les colonnes ('weight') et ('score') de type FLOAT.",
+          "Créer le JobService contenant les méthodes createJob(dto), getJob(id), updateJob(id, dto), deleteJob(id) et getJobsWithFilters(filters) qui utilisent le repository Job et rejoignent les tables ('job_skills') et ('skills') pour retourner les compétences associées avec leurs poids.",
+          "Implémenter le MatchingService qui injecte un client gRPC généré à partir du proto du service FastAPI MatchService, reçoit l’ID du candidat, récupère le texte parsé du CV depuis la table ('cv_files') champ ('parsed_text'), appelle le service gRPC pour obtenir l’embedding du CV, récupère l’embedding de l’offre (pré‑calculé et stocké dans un champ dédié ou calculé à la volée), calcule la similarité cosinus, puis enregistre un nouvel enregistrement dans la table ('matches') avec les champs ('candidate_id'), ('job_id'), ('match_score') et le timestamp ('created_at').",
+          "Développer le MatchesController avec la route sécurisée ('GET /api/matches/:candidateId') protégée par JwtAuthGuard et le rôle‑based guard permettant uniquement aux candidats d’accéder à leurs propres matchs, retourner une liste paginée enrichie des données de l’offre via un join, et enregistrer un événement WebSocket 'new_match' via le SocketIOGateway dès qu’un match est persistant."
+        ]
+      },
+      {
+        "id": "TERA-103",
+        "title": "Mise en place du module Candidatures, Tableau de bord et statistiques temps réel (NestJS, TypeORM, WebSocket, cron)",
+        "description": "Cette tâche vise à implémenter la gestion des candidatures des candidats envers les offres, ainsi que l’agrégation des statistiques du tableau de bord pour les recruteurs, en respectant exactement la structure des tables ('applications') avec ('id'), ('candidate_id'), ('job_id'), ('status') ENUM[applied, reviewed, interviewed, hired, rejected], ('applied_at'), ('updated_at'), et ('dashboard_stats') avec ('id'), ('recruiter_id'), ('period_start'), ('period_end'), ('total_applications'), ('hired_count'), ('avg_match_score'), ('updated_at'). Nous créerons les services ApplicationService et DashboardStatService, exposant les contrôleurs ApplicationsController (routes ('POST /api/applications') pour postuler, ('PATCH /api/applications/:id/status') pour mettre à jour le statut) et StatsController (route ('GET /api/stats/:recruiterId?period=...') pour récupérer les métriques agrégées). Un WebSocket Gateway diffusera les événements 'application:updated' et 'stats:updated' afin que le frontend React mette à jour en temps réel la liste des candidatures et les graphiques du dashboard. Enfin, nous planifierons une tâche cron (via @nestjs/schedule) qui, chaque nuit, recalculera les agrégats du tableau de bord pour chaque recruteur en fonction de la période définie (ex. semaine, mois) et mettra à jour la table ('dashboard_stats').",
+        "status": "TO DO",
+        "priority": "High",
+        "story_points": 8,
+        "subtasks": [
+          "Créer l’entité TypeORM Application avec les colonnes exactement comme spécifiées : @PrimaryGeneratedColumn() id, @Column({ type: 'int' }) candidate_id avec une relation @ManyToOne(() => User, user => user.applications), @Column({ type: 'int' }) job_id avec relation @ManyToOne(() => Job, job => job.applications), @Column({ type: 'enum', enum: ['applied','reviewed','interviewed','hired','rejected'] }) status, @CreateDateColumn() applied_at, @UpdateDateColumn() updated_at, et ajouter les index appropriés sur les clés étrangères pour optimiser les recherches.",
+          "Implémenter le ApplicationService comportant les méthodes createApplication(candidateId, jobId) qui vérifie l’absence d’une candidature existante (unique sur (candidate_id, job_id)), enregistre la nouvelle ligne avec le statut 'applied', updateApplicationStatus(applicationId, newStatus) qui effectue une transition de statut autorisée et met à jour le champ updated_at, et getApplicationsByCandidate(candidateId) qui retourne les candidatures enrichies des données de l’offre via un join.",
+          "Développer le ApplicationsController avec les endpoints protégés : ('POST /api/applications') (candidat uniquement) appelant ApplicationService.createApplication, et ('PATCH /api/applications/:id/status') (candidat ou recruteur selon le rôle) appelant ApplicationService.updateApplicationStatus, chaque endpoint déclenchant ensuite une émission WebSocket via le EventsGateway avec le payload contenant l’application mise à jour et l’événement 'application:updated'.",
+          "Construire le DashboardStatService contenant une méthode calculateStats(recruiterId, periodStart, periodEnd) qui agrège depuis les tables ('applications') et ('matches') : total_applications = COUNT(*) où job.recruiter_id = recruiterId, hired_count = COUNT(*) où status = 'hired', avg_match_score = AVG(m.match_score) où m.job_id appartient aux offres du recruteur, puis enregistre ou met à jour une ligne dans la table ('dashboard_stats') avec les champs correspondants, et planifier cette méthode via une tâche @ Cron('0 0 * * *') pour exécuter chaque jour à minuit."
+        ]
+      }
+    ]
+  }
+}

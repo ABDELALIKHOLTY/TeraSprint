@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Modélisation du schéma relationnel PostgreSQL avec PostGIS (Entités principales)",
+      "description": "Cette tâche consiste à concevoir le modèle de données central de l'ERP, en définissant les tables essentielles et leurs relations, tout en intégrant les types géographiques de PostGIS pour la localisation des entrepôts. Le but est d'assurer une structure normalisée, extensible et prête à supporter les futures exigences fonctionnelles comme le suivi GPS et les alertes de stock. Chaque table sera créée avec des clés primaires UUID, des contraintes d'intégrité référentielle et des index adaptés aux requêtes fréquentes. La modélisation doit respecter les bonnes pratiques de PostgreSQL et exploiter les capacités géospatiales de PostGIS.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Définir la table ('companies') avec les colonnes ('id' UUID primary key), ('name' varchar not null), ('address' text), ('created_at' timestamp default now()), et ajouter une contrainte d’unicité sur ('name') afin d’éviter les doublons de sociétés.",
+        "Créer la table ('warehouses') contenant ('id' UUID primary key), ('company_id' UUID not null), ('name' varchar), ('location' geography(Point,4326)), ('capacity' integer), ('created_at' timestamp), en ajoutant la clé étrangère vers ('companies')('id') et un index GIST sur ('location') pour les requêtes géospatiales.",
+        "Modéliser la table ('zones') avec ('id' UUID primary key), ('warehouse_id' UUID not null), ('code' varchar), ('description' text), en liant ('warehouse_id') à ('warehouses')('id') et en créant un index unique sur la combinaison ('warehouse_id','code') pour garantir l’unicité du code de zone par entrepôt.",
+        "Définir les tables ('stock_items') et ('stock_item_batches') : ('stock_items') possède ('id' UUID primary key), ('warehouse_id' UUID), ('zone_id' UUID), ('sku' varchar), ('product_name' varchar), ('quantity' integer), ('reorder_point' integer); ('stock_item_batches') possède ('id' UUID primary key), ('stock_item_id' UUID), ('batch_number' varchar), ('expiry_date' date), ('quantity' integer), avec les clés étrangères appropriées et des index sur ('sku') et ('batch_number')."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Implémentation des contraintes, index et triggers PostgreSQL (Intégrité & Performance)",
+      "description": "Cette tâche vise à renforcer la robustesse du schéma en ajoutant des contraintes d'intégrité avancées, des index optimisés pour les requêtes fréquentes et des triggers permettant de générer automatiquement des alertes de réapprovisionnement ainsi que des calculs de distance entre camions et entrepôts. L'objectif est de garantir la cohérence des données tout en assurant des performances élevées pour les opérations de lecture et d'écriture critiques du système logistique.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Ajouter une contrainte CHECK sur la colonne ('quantity') de la table ('stock_items') pour empêcher les valeurs négatives, et créer un index B‑tree sur ('sku') afin d’accélérer les recherches d’articles par référence.",
+        "Déployer un trigger PL/pgSQL sur la table ('stock_item_batches') qui, après chaque INSERT ou UPDATE, calcule la somme des quantités des lots associés et met à jour la colonne ('quantity') de la table ('stock_items') correspondante, assurant ainsi la cohérence du stock total.",
+        "Créer un index GIST sur la colonne ('position') de la table ('truck_locations') (type geography(Point,4326)) pour optimiser les requêtes de proximité utilisées par le service de géofencing et de suivi en temps réel.",
+        "Implémenter un trigger qui, lorsqu'une ligne de la table ('stock_items') passe en dessous du ('reorder_point'), insère un enregistrement dans la table ('audit_logs') avec les détails de l'alerte, permettant aux services de notification de détecter rapidement les ruptures potentielles."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Gestion des migrations, seed data et intégration CI/CD pour PostgreSQL",
+      "description": "Cette tâche assure la mise en place d'un processus de migration automatisé, la création de jeux de données de base (seed) pour les environnements de développement et de test, ainsi que l'intégration de ces étapes dans les pipelines GitLab CI. L'objectif est de garantir que chaque développeur puisse provisionner une base de données identique, que les migrations soient versionnées et que les déploiements en production soient fiables et reproductibles.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Configurer l'outil de migration TypeORM (ou Prisma) avec un répertoire ('migration/') contenant des scripts SQL versionnés, et définir la commande ('npm run migration:run') pour appliquer toutes les migrations sur la base cible.",
+        "Écrire un script de seed ('seed.ts') qui insère des enregistrements de référence dans les tables ('companies'), ('warehouses'), ('zones') et ('stock_items'), en utilisant des UUID générés et des coordonnées géographiques réalistes pour les entrepôts.",
+        "Intégrer les étapes de migration et de seed dans le fichier '.gitlab-ci.yml' en ajoutant des jobs ('db:migrate' et 'db:seed') qui s'exécutent après le job de build, avec des variables d'environnement sécurisées pour la connexion PostgreSQL.",
+        "Mettre en place un rollback automatique en cas d'échec de migration en ajoutant un job ('db:rollback') qui exécute la commande ('npm run migration:revert') et notifier l'équipe via Slack grâce à un webhook configuré dans le pipeline."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Étude de l'Architecture Technique et Modélisation du Domaine Métier",
+      "description": "Cette tâche consiste à réaliser une étude approfondie de l'architecture technique définie dans le rapport d'architecture global et à valider les choix technologiques pour le projet ERP d'entrepôt et logistique avec suivi GPS. L'objectif est d'analyser en détail le schéma relationnel de la base de données PostgreSQL 15.x, les relations entre les 16 tables principales (users, warehouses, zones, products, inventory, suppliers, purchase_orders, order_items, customers, sales_orders, sales_order_items, vehicles, gps_tracking, shipments, inventory_movements, alerts, notifications) et de s'assurer que le mapping objet-relationnel via Prisma ORM sera correctement implémenté. Cette étude permettra également de valider les patterns d'architecture microservices, la stratégie d'authentification JWT avec Refresh Tokens, et le système de permissions RBAC basé sur les rôles (admin, manager, operator, driver). Une attention particulière sera portée sur la cohérence des UUID comme Primary Keys et sur l'intégrité référentielle entre les entités.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Analyser le schéma relationnel complet avec les 16 tables (users, warehouses, zones, products, inventory, suppliers, purchase_orders, order_items, customers, sales_orders, sales_order_items, vehicles, gps_tracking, shipments, inventory_movements, alerts, notifications) et documenter les 15 relations principales (1-N) entre entités avec leurs Foreign Keys respectifs (manager_id → users.id, warehouse_id → warehouses.id, product_id → products.id, vehicle_id → vehicles.id, driver_id → users.id)",
+        "Valider le mapping Prisma ORM pour toutes les entités en vérifiant que les types UUID, Enum (role, status, type), DateTime et Decimal seront correctement générés dans le fichier schema.prisma avec les directives @id, @default(uuid()), @relation, @map et @@unique",
+        "Étudier et documenter le flux métier complet desde la réception des marchandises (purchase_orders) jusqu'à la livraison (sales_orders, shipments) en passant par le stockage (inventory, inventory_movements) et le suivi GPS temps réel (gps_tracking, vehicles)",
+        "Définir la stratégie de sécurité et d'autorisation avec JWT Access Tokens (15min) et Refresh Tokens (7 jours),的保护 des routes API avec Guards NestJS, validation des rôles via Decorators (@Roles('admin')), et chiffrement des mots de passe avec bcrypt (cost factor 12)"
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Setup de l'Environnement Backend avec NestJS, PostgreSQL et Redis",
+      "description": "Cette tâche concerne la mise en place complète de l'environnement de développement backend pour le projet ERP. Il s'agit d'initialiser le projet NestJS 10.x avec TypeScript 5.x, de configurer la connexion à la base de données PostgreSQL 15.x via Prisma ORM, et de mettre en place l'instance Redis 7.x pour le caching des sessions et des queues Bull. L'objectif est de créer une structure de projet solide avec les modules Auth, Users, Warehouses, Products, Inventory, Orders, Vehicles, GPS, Alerts et Notifications. Cette configuration inclut également l Setup des stratégies Passport.js (JWT, Local), des pipes de validation (class-validator, class-transformer), des interceptors (logging, caching, transform), et des guards de protection des endpoints. La structure follows Domain-Driven Design (DDD) avec controllers, services, repositories, entities, DTOs et modules distincts pour chaque domaine métier.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 13,
+      "subtasks": [
+        "Initialiser le projet NestJS 10.x avec TypeScript 5.x en utilisant @nestjs/cli, configurer tsconfig.json avec strict mode (strictNullChecks, noImplicitAny, experimentalDecorators), et installer les dépendances core (prisma, @prisma/client, @nestjs/passport, passport, passport-jwt, passport-local, @nestjs/jwt, bcrypt, class-validator, class-transformer, automapper, @automapper/classes)",
+        "Configurer Prisma ORM avec le provider PostgreSQL dans le fichier schema.prisma en définissant toutes les tables avec leurs champs (id UUID @id @default(uuid()), timestamps avec @updatedAt, relations @relation avec onDelete et onUpdate en CASCADE), générer le client Prisma avec npx prisma generate, et créer la migration initiale avec npx prisma migrate dev --name init",
+        "Mettre en place Redis 7.x avec Docker Compose (image redis:7-alpine, ports 6379:6379, volumes redis-data:/data) et configurer @nestjs/cache-manager avec le driver redis, implémenter le caching des endpoints GET /products, GET /warehouses, GET /customers avec TTL de 5 minutes, et configurer Bull queues pour les jobs asynchrones (inventory alerts, email notifications, GPS data processing)",
+        "Créer la structure de modules DDD avec les répertoires auth (controllers, services, strategies, guards, dto), users, warehouses (avec sous-modules zones), products, inventory, orders (avec purchase et sales), vehicles (avec gps submodule), alerts, notifications, et reports, en implémentant le pattern Repository avec PrismaService comme Data Access Layer"
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Setup de l'Environnement Frontend avec React 18, TypeScript et Redux Toolkit",
+      "description": "Cette tâche consiste à initialiser et configurer l'environnement de développement frontend pour le projet ERP d'entrepôt et logistique. Il s'agit de créer un projet React 18.x avec TypeScript 5.x, de configurer Redux Toolkit pour le state management centralisé, React Query (RTK Query) pour la gestion du caching et de la synchronisation des données API, et Tailwind CSS pour le styling. L'objectif est de mettre en place l'architecture de routing avec React Router v6, le système d'authentification avec gestion des JWT Access/Refresh tokens via Axios interceptors, et la connexion Socket.io-client pour les mises à jour temps réel (suivi GPS, alertes, notifications). Cette configuration inclut également l Setup du système de design avec Ant Design (ou Material UI), la configuration des variables d'environnement, ESLint, Prettier, et Husky pour les pre-commit hooks.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Initialiser le projet React 18.x avec Vite (vite@latest create project), configurer tsconfig.json avec path aliases (@/ → src/), strict mode TypeScript, et installer les dépendances core (@reduxjs/toolkit, react-redux, rtk-query, axios, socket.io-client, react-router-dom@6, @tanstack/react-query, jwt-decode, immer, lodash, date-fns)",
+        "Configurer Tailwind CSS 3.x avec PostCSS et Autoprefixer, définir le design system avec les couleurs brand (primary: #1890ff, secondary: #52c41a, danger: #ff4d4f), spacing scale, typography utilities, et custom components pour les formulaires, tables, cards et modals",
+        "Implémenter le store Redux avec slices pour auth (accessToken, refreshToken, user, isAuthenticated), ui (sidebarCollapsed, theme, notifications), et intégrer RTK Query avec les endpoints API (auth, users, warehouses, products, inventory, orders, vehicles, shipments, alerts) avec tags pour invalidation automatique du cache",
+        "Créer la structure de routing avec React Router v6 et protected routes (PrivateRoute component) basées sur les rôles utilisateur (admin, manager, operator, driver), implémenter les axios interceptors pour l'ajout automatique du Bearer token dans les headers Authorization et la logique de refresh token automatique avec retry sur erreur 401, et configurer Socket.io-client pour la connexion WebSocket permanente au serveur NestJS"
+      ]
+    }
+  ]
+}
+```

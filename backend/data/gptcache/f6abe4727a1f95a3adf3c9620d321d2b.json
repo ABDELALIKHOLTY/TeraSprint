@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Création des schémas PostgreSQL (users, warehouses, products, orders, shipments, suppliers, customers)",
+      "description": "Cette tâche vise à définir et implémenter les schémas de la base de données relationnelle PostgreSQL en conformité avec les exigences de l'architecture globale. Elle inclut la création des tables principales avec leurs champs, types de données, contraintes d'intégrité et clés primaires. Chaque table doit être conçue pour supporter les relations FK définies dans le rapport d'architecture, tout en garantissant l'optimisation des performances via des index stratégiques. Les sous-tâches détaillent la création de chaque entité avec ses attributs spécifiques et ses contraintes métier.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer la table ('users') avec ('id' UUID en tant que PK), ('email' VARCHAR UNIQUE), ('password_hash' TEXT), ('role' ENUM: admin, manager, staff), et ('created_at' TIMESTAMP), en appliquant une contrainte d'unicité sur ('email') pour éviter les doublons lors de l'authentification.",
+        "Définir la table ('warehouses') avec ('id' UUID PK), ('name' VARCHAR), ('location' POINT pour stocker les coordonnées GPS), ('capacity' INTEGER), et ('created_at' TIMESTAMP), en préparant l'espace pour les opérations de gestion des stocks et des expéditions.",
+        "Construire la table ('products') avec ('id' UUID PK), ('sku' VARCHAR UNIQUE), ('name' VARCHAR), ('quantity' INTEGER), ('warehouse_id' UUID FK vers 'warehouses.id'), ('supplier_id' UUID FK vers 'suppliers.id'), et ('created_at' TIMESTAMP), en intégrant les relations critiques pour la traçabilité des stocks.",
+        "Implémenter les tables ('orders', 'shipments', 'suppliers', 'customers') avec leurs champs respectifs : ('orders' avec ('id' UUID PK), ('customer_id' FK vers 'customers.id'), ('status' ENUM), ('created_at' TIMESTAMP)), ('shipments' avec ('id' UUID PK), ('order_id' FK vers 'orders.id'), ('tracking_number' VARCHAR UNIQUE), ('status' ENUM), ('estimated_delivery_date' DATE)), ('suppliers' avec ('id' UUID PK), ('name' VARCHAR), ('contact_email' VARCHAR)), et ('customers' avec ('id' UUID PK), ('name' VARCHAR), ('email' VARCHAR), ('phone' VARCHAR))."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Modélisation et création de la collection MongoDB (gps_logs)",
+      "description": "Cette tâche se concentre sur la conception de la base de données NoSQL MongoDB pour stocker les logs GPS des expéditions. Elle inclut la définition de la structure de la collection, l'optimisation des requêtes via des index, et l'implémentation de règles de validation pour garantir la cohérence des données géographiques. La collection doit permettre un suivi en temps réel des colis via Socket.IO et faciliter les analyses spatiales dans le frontend.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Créer la collection ('gps_logs') avec ('id' UUID en tant que PK), ('shipment_id' UUID FK vers 'shipments.id'), ('latitude' DECIMAL), ('longitude' DECIMAL), et ('timestamp' TIMESTAMP), en définissant un schéma de validation pour s'assurer que les coordonnées GPS sont dans les plages valides (-90 à 90 pour latitude, -180 à 180 pour longitude).",
+        "Configurer un index TTL sur ('timestamp') avec une durée de conservation de 30 jours pour automatiser le nettoyage des anciens logs GPS et réduire l'empreinte mémoire de la base de données.",
+        "Mettre en place un index compound sur ('shipment_id', 'timestamp') pour optimiser les requêtes de récupération des logs GPS par expédition et triés chronologiquement, améliorant ainsi la performance du suivi en temps réel.",
+        "Implémenter une validation MongoDB pour rejeter les documents avec des coordonnées GPS invalides ou des timestamps futurs, garantissant la fiabilité des données géospatiales dans l'application ERP."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Définition des relations FK, indexation des champs critiques (email, sku, tracking_number) et optimisation des performances",
+      "description": "Cette tâche vise à établir les contraintes d'intégrité référentielle entre les tables PostgreSQL via les clés étrangères (FK) et à créer des index sur les champs critiques pour accélérer les opérations de recherche et de jointure. Elle inclut également la vérification des flux de données entre les entités (ex: produits → entrepôts, commandes → clients) et l'optimisation des requêtes fréquentes comme la recherche par email ou le suivi des colis via tracking_number.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Ajouter les contraintes FK dans la table ('products') : ('warehouse_id' référence 'warehouses.id' avec ON DELETE CASCADE) et ('supplier_id' référence 'suppliers.id' avec ON DELETE RESTRICT), assurant la cohérence des données lors de la suppression ou mise à jour des entités liées.",
+        "Créer un index B-tree sur ('email') dans les tables ('users') et ('customers') pour accélérer les opérations de recherche et d'authentification, tout en évitant les scans de table complets lors des requêtes de connexion.",
+        "Définir un index unique sur ('sku') dans la table ('products') et un index sur ('tracking_number') dans la table ('shipments'), optimisant les requêtes de recherche de produits et de suivi d'expéditions via l'API REST.",
+        "Valider les relations entre ('orders' → 'customers'), ('shipments' → 'orders'), et ('gps_logs' → 'shipments') via des FK avec des actions ON DELETE CASCADE pour nettoyer automatiquement les données orphelines lors de la suppression d'une entité parente."
+      ]
+    }
+  ]
+}

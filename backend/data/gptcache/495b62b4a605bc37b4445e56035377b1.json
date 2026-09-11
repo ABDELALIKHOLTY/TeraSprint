@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "FF-101",
+      "title": "Configuration de l'ORM Prisma et du schéma relationnel (Prisma Schema)",
+      "description": "Cette tâche consiste à initialiser l'ORM Prisma dans le projet backend Node.js/TypeScript et à définir le schéma complet de la base de données dans le fichier 'schema.prisma'. L'objectif est de modéliser précisément les entités 'User', 'Idea', 'Tag' et 'Vote' ainsi que leurs relations (1-N et N-N) conformément au rapport d'architecture. Il est crucial de définir les types de données exacts (UUID, VARCHAR, TEXT, TIMESTAMP) et les contraintes d'intégrité référentielle pour garantir la robustesse des données. Cette étape pose les fondations logiques sur lesquelles les migrations seront générées, assurant que le modèle de données correspond exactement aux besoins métier de FeedbackFlow.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Initialiser Prisma dans le projet backend en exécutant la commande 'npx prisma init' et configurer le datasource 'postgresql' avec la variable d'environnement 'DATABASE_URL' pointant vers le conteneur Docker.",
+        "Définir le modèle 'User' dans 'schema.prisma' avec les champs ('id' UUID @id @default(uuid()), 'email' String @unique, 'password_hash' String, 'created_at' DateTime @default(now())) et les relations inverses vers 'ideas' et 'votes'.",
+        "Définir le modèle 'Idea' avec les champs ('id' UUID @id @default(uuid()), 'title' String, 'description' String?, 'author_id' UUID, 'created_at' DateTime @default(now())) et les relations vers 'User' (author), 'Tag' (tags) et 'Vote' (votes).",
+        "Définir les modèles 'Tag' et 'Vote' ainsi que la table de jointure implicite ou explicite pour la relation N-N entre 'Idea' et 'Tag', en s'assurant que 'Vote' possède une contrainte unique composite sur ('idea_id', 'user_id') pour empêcher les votes multiples."
+      ]
+    },
+    {
+      "id": "FF-102",
+      "title": "Génération des migrations SQL et application à PostgreSQL",
+      "description": "Une fois le schéma Prisma validé, cette tâche vise à générer les scripts de migration SQL qui traduiront le modèle logique en instructions DDL (Data Definition Language) pour PostgreSQL. L'objectif est de créer physiquement les tables ('users', 'ideas', 'tags', 'votes', 'idea_tags') dans la base de données avec les index appropriés pour optimiser les requêtes futures (notamment le tri par votes). L'application de ces migrations doit être testée dans un environnement de développement isolé pour vérifier l'absence d'erreurs de syntaxe SQL et la correcte création des contraintes d'unicité et des clés étrangères.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 2,
+      "subtasks": [
+        "Exécuter la commande 'npx prisma migrate dev --name init_feedbackflow' pour générer le script SQL de migration initial et l'appliquer à la base de données PostgreSQL de développement.",
+        "Vérifier manuellement le script SQL généré dans le dossier 'prisma/migrations' pour s'assurer que les types de colonnes correspondent aux spécifications (ex: 'VARCHAR(255)' pour 'email', 'TEXT' pour 'description') et que les contraintes 'UNIQUE' sont bien présentes sur ('email') et ('idea_id', 'user_id').",
+        "Créer un index composite sur la table 'votes' pour les colonnes ('idea_id', 'user_id') si Prisma ne le fait pas automatiquement, afin d'optimiser les requêtes de comptage de votes et les vérifications d'unicité lors des opérations de vote.",
+        "Valider la structure de la base de données en utilisant un client SQL (comme psql ou DBeaver) pour confirmer l'existence des tables ('users', 'ideas', 'tags', 'votes') et la correcte configuration des clés étrangères (Foreign Keys) avec les règles de suppression en cascade si nécessaire."
+      ]
+    },
+    {
+      "id": "FF-103",
+      "title": "Création du client Prisma et script de seed pour les données initiales",
+      "description": "Cette tâche consiste à instancier le client Prisma dans le code applicatif pour permettre l'accès typé à la base de données et à créer un script de 'seeding' pour peupler la base avec des données de référence essentielles. Le script de seed est indispensable pour initialiser la table 'tags' avec les valeurs métier fixes ('En cours', 'Fait', 'À faire') qui sont attendues par le système. De plus, la création d'un utilisateur de test et d'une idée de test permettra de vérifier la fonctionnalité des relations et des contraintes d'unicité avant le développement des API. Cette étape garantit que l'application démarre avec un état de données cohérent et testable.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 2,
+      "subtasks": [
+        "Créer un fichier 'prisma/seed.ts' qui utilise le client Prisma pour insérer les trois tags obligatoires ('En cours', 'Fait', 'À faire') dans la table 'tags' en gérant l'idempotence (vérifier si le tag existe avant insertion).",
+        "Configurer le script de seed pour créer un utilisateur de test avec un mot de passe haché (utilisant bcrypt) et une idée de test associée à ce utilisateur, en liant cette idée au tag 'À faire' via la relation N-N.",
+        "Ajouter la configuration du script de seed dans le fichier 'package.json' (clé 'prisma' avec 'seed' command) et exécuter 'npx prisma db seed' pour peupler la base de données de développement.",
+        "Vérifier l'intégrité des données insérées en exécutant une requête Prisma simple pour récupérer l'idée de test avec ses tags et son auteur, confirmant ainsi que les relations et les jointures fonctionnent correctement au niveau de l'ORM."
+      ]
+    }
+  ]
+}

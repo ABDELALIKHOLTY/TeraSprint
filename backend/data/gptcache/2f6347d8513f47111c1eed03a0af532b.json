@@ -1,0 +1,124 @@
+# Rapport d'Architecture – Application Desktop de Location de Voiture  
+
+---  
+
+## 1. Setup & Stack Technique  
+
+| Côté | Technologie / Outil | Version |
+|------|---------------------|---------|
+| Frontend (Desktop) | Electron + React | Electron 23, React 18 |
+| UI Library | Material‑UI (MUI) | 5.15 |
+| State Management | Redux Toolkit | 1.9 |
+| Backend | Node.js + Express | Node 20, Express 4.19 |
+| API Layer | REST (Express Router) | — |
+| Auth | JSON Web Token (jwt) | 9.0 |
+| BDD | PostgreSQL | 16 |
+| ORM | Prisma | 5.12 |
+| Tests Backend | Jest + Supertest | Jest 29, Supertest 6 |
+| Tests Frontend | Jest + React Testing Library | — |
+| CI/CD | GitHub Actions | — |
+| Containerisation | Docker | 27 |
+| Orchestration (optionnel) | Docker‑Compose | 2.27 |
+| Monitoring | Prometheus + Grafana | — |
+| Logging | Winston | 3.12 |
+| Packaging Desktop | electron‑builder | 24 |
+| Distribution | GitHub Releases (assets .exe/.dmg) | — |
+
+---  
+
+## 2. Schéma Relationnel de la Base de Données  
+
+**Entités principales**  
+
+| Table | PK | Colonnes clés | FK | Relation |
+|-------|----|---------------|----|----------|
+| users | id (UUID) | email, password_hash, name, driver_license_number, created_at, updated_at | — | 1‑N → rentals |
+| cars | id (UUID) | make, model, year, license_plate, daily_rate, status (available/rented/maintenance), created_at, updated_at | — | 1‑N → rentals |
+| rentals | id (UUID) | user_id, car_id, start_date, end_date, total_price, status (reserved/active/completed/cancelled), created_at, updated_at | user_id → users.id (N‑1) <br> car_id → cars.id (N‑1) | N‑1 (users) <br> N‑1 (cars) |
+| payments | id (UUID) | rental_id, amount, payment_method, payment_date, status, created_at, updated_at | rental_id → rentals.id (N‑1) | N‑1 → rentals |
+| locations | id (UUID) | address_line, city, postal_code, country, latitude, longitude, created_at, updated_at | — | 1‑N → cars (optional, if car linked to location) |
+| car_images | id (UUID) | car_id, url, alt_text, created_at, updated_at | car_id → cars.id (N‑1) | N‑1 → cars |
+| audit_logs | id (UUID) | user_id, action, entity_type, entity_id, timestamp, details | user_id → users.id (N‑1) | N‑1 → users |
+
+**Relations**  
+
+- users 1‑N rentals  
+- cars 1‑N rentals  
+- rentals 1‑N payments  
+- cars 1‑N car_images  
+- (optionnel) locations 1‑N cars  
+
+---  
+
+## 3. Architecture Backend & APIs  
+
+**Familles d’API**  
+
+- **Auth API** (`/api/auth`) – login, logout, token refresh.  
+- **User API** (`/api/users`) – CRUD utilisateur, profil.  
+- **Car API** (`/api/cars`) – CRUD véhicule, recherche, disponibilité.  
+- **Rental API** (`/api/rentals`) – création réservation, mise à jour état, historique.  
+- **Payment API** (`/api/payments`) – création paiement, statut.  
+- **Location API** (`/api/locations`) – gestion des points de prise en charge.  
+- **Image API** (`/api/cars/:id/images`) – upload / list images.  
+
+**Contrôleurs** (Express Router)  
+
+- `authController` – login, refresh, logout.  
+- `userController` – getUser, updateUser, deleteUser.  
+- `carController` – listCars, getCar, createCar, updateCar, deleteCar.  
+- `rentalController` – createRental, getRental, updateRentalStatus, listUserRentals.  
+- `paymentController` – createPayment, getPaymentStatus.  
+- `locationController` – listLocations, createLocation.  
+- `imageController` – uploadImage, listImages, deleteImage.  
+
+**Services** (business logic)  
+
+- `authService` – hashPassword, verifyPassword, generateJWT, verifyJWT.  
+- `userService` – user CRUD, driver‑license validation.  
+- `carService` – availability check, status transition, pricing calc.  
+- `rentalService` – conflict detection, total price calc, schedule management.  
+- `paymentService` – integration Stripe (or PayPal), webhook handling.  
+- `locationService` – geocoding (optional).  
+- `imageService` – storage (local FS / S3), URL generation.  
+
+**Middleware**  
+
+- `jwtAuthMiddleware` – protect routes.  
+- `errorHandler` – central error format.  
+- `requestLogger` – Winston request logging.  
+
+---  
+
+## 4. Architecture Frontend et Intégration  
+
+**Outils UI**  
+
+- Electron main process – window management, auto‑update.  
+- React (functional components, hooks).  
+- Material‑UI (MUI) – thèmes, composants.  
+- Redux Toolkit – store, slices (`auth`, `user`, `cars`, `rentals`, `payments`).  
+- React Router v6 – navigation (pages: Login, Dashboard, CarCatalog, RentalForm, Profile).  
+
+**Sécurité**  
+
+- JWT stocké en HttpOnly Secure cookie (via Electron session).  
+- CSRF protection via SameSite cookie.  
+- Password hashing uniquement côté serveur (bcrypt).  
+- CSP header set by Electron main.  
+
+**Mécanismes de communication**  
+
+- REST HTTP (Axios) – appels API (`/api/...`).  
+- WebSocket (Socket.io) – notifications temps réel (rental status change, payment confirmation).  
+- IPC (Electron) – bridge entre renderer et main process (file system access, auto‑update).  
+
+**Build / Packaging**  
+
+- `electron-builder` – targets Windows (nsis), macOS (dmg), Linux (AppImage).  
+- Webpack (production mode) – bundle React, CSS, assets.  
+- Environment variables injected via `dotenv` (API_URL, WS_URL).  
+
+---  
+
+*Fin du rapport.*

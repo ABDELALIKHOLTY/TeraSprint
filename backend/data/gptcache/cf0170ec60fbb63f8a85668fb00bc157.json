@@ -1,0 +1,48 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "SM-FE-001",
+      "title": "Mise en place de l'architecture Angular, NgRx et Angular Material",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche constitue le socle technique du frontend SkillMatch AI et doit être réalisée en amont de tout développement fonctionnel. Elle consiste à initialiser un workspace Angular (CLI v17+) en TypeScript strict, à intégrer Angular Material pour la bibliothèque de composants UI (boutons, formulaires, dialogs, snackbars, data-tables), et à configurer NgRx (Store, Effects, Entity, DevTools) pour centraliser la gestion d'état de l'application (authentification, profil candidat, offres, pipelines, chat, notifications). L'objectif est de garantir une architecture évolutive, testable et découplée, où chaque microservice backend sera consommé via des services Angular dédiés reliés à des actions/reducers NgRx. Cette fondation conditionne la qualité, la maintenabilité et la performance de l'ensemble de l'UI.",
+      "subtasks": [
+        "Initialiser le projet Angular avec la CLI (ng new skillmatch-frontend --strict --routing --style=scss) et configurer le fichier 'tsconfig.json' en mode strict avec les options strictNullChecks, noImplicitAny et strictPropertyInitialization activées pour garantir un typage TypeScript rigoureux.",
+        "Installer et personnaliser Angular Material via 'ng add @angular/material' en sélectionnant un thème moderne (ex: Indigo/Pink) et en important les modules nécessaires (MatButtonModule, MatInputModule, MatDialogModule, MatSnackBarModule, MatTableModule, MatCardModule) dans un module partagé 'SharedModule'.",
+        "Configurer NgRx en installant '@ngrx/store', '@ngrx/effects', '@ngrx/entity', '@ngrx/store-devtools' et '@ngrx/router-store', puis déclarer les meta-reducers globaux et le module 'StoreModule.forRoot(reducers)' dans 'AppModule' avec activation du monitoring Redux DevTools en environnement de développement uniquement.",
+        "Créer la structure de dossiers 'src/app/core' (intercepteurs, guards, services singleton), 'src/app/shared' (composants réutilisables), 'src/app/features' (modules métier 'auth', 'candidate', 'recruiter', 'pipeline', 'chat') et 'src/app/store' (reducers, actions, effects, selectors par domaine fonctionnel)."
+      ]
+    },
+    {
+      "id": "SM-FE-002",
+      "title": "Développement des interfaces Candidat : import CV/LinkedIn et graphe dynamique de compétences",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 13,
+      "description": "Cette tâche couvre l'expérience complète du candidat sur SkillMatch AI : authentification, onboarding, import de CV (PDF/DOCX) ou de profil LinkedIn via OAuth2, visualisation du graphe dynamique des compétences acquises dans le temps et consultation des offres matchées avec score de compatibilité évolutif. Elle s'appuie sur les entités backend 'users', 'candidates', 'candidate_skills', 'skill_evolution' et exploite la route ('POST /api/candidates/{id}/import-cv') ainsi que ('GET /api/candidates/{id}/skills'). Le rendu du graphe nécessitera une librairie de visualisation (Cytoscape.js ou D3.js) pour offrir une expérience visuelle différenciante et démontrer la 'trajectoire d'apprentissage' prédictive, élément différenciateur clé de la plateforme.",
+      "subtasks": [
+        "Implémenter le module d'authentification candidat avec un Reactive Form (email/password), branché sur la route ('POST /api/auth/login') et la route ('POST /api/auth/oauth/linkedin'), en stockant le JWT reçu dans un AuthService injectable (avec intercepteur HTTP pour injection automatique du header 'Authorization: Bearer <token>' et gestion du refresh token).",
+        "Développer le composant 'ImportCvComponent' utilisant MatStepper (Angular Material) pour guider l'utilisateur : étape 1 upload de fichier via 'MatFileInput' (formats PDF/DOCX validés côté client), envoi multipart/form-data à ('POST /api/candidates/{id}/import-cv'), affichage du loader puis récupération des compétences extraites par NLP ; étape 2 import LinkedIn via redirection OAuth2 avec récupération du code et échange contre access_token.",
+        "Construire le composant 'SkillGraphComponent' qui appelle la route ('GET /api/candidates/{id}/skills') et affiche le graphe dynamique à l'aide de Cytoscape.js en représentant chaque 'skill' (issue de la table 'skills') comme un nœud, chaque 'skill_evolution' (table 'skill_evolution' avec champ 'acquired_at') comme une arête temporelle, et en coloriant les nœuds par 'category' pour révéler la trajectoire d'apprentissage (ex: Docker -> Kubernetes -> Terraform).",
+        "Créer le tableau de bord candidat 'DashboardComponent' listant les 'job_offers' recommandées via la route ('GET /api/matching/score?candidate_id={id}'), avec un indicateur visuel MatProgressBar pour le 'match_score' (champ 'match_score' de la table 'applications'), un système de subscription temps réel (WebSocket /ws/notifications) pour mettre à jour le score en live, et un système d'alertes Material Snackbar lorsqu'un match dépasse le seuil de 80% (déclenché par le 'notification-service' backend)."
+      ]
+    },
+    {
+      "id": "SM-FE-003",
+      "title": "Développement des interfaces Recruteur : pipelines drag & drop, reverse search et chat WebSocket intégré",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "description": "Cette tâche adresse l'ensemble du parcours recruteur sur SkillMatch AI et constitue le pendant de l'expérience candidat. Elle couvre la gestion visuelle des pipelines de recrutement avec drag & drop entre étapes (Kanban), le lancement de recherches inversées (trouver des candidats à partir d'une offre ou d'un profil cible) et l'intégration d'un chat temps réel avec les candidats via WebSocket (STOMP sur endpoint '/ws/chat'). Elle consomme les routes ('GET /api/pipelines', ('PUT /api/pipelines/{id}/stages'), ('POST /api/matching/reverse-search') et ('GET /api/chat/messages'). L'objectif est de doter les recruteurs d'un cockpit puissant, ergonomique et réactif, différenciant SkillMatch AI des ATS traditionnels.",
+      "subtasks": [
+        "Implémenter le module 'RecruiterModule' avec guard de rôle 'ROLE_RECRUITER' (route guard Angular vérifiant le rôle stocké dans le JWT décodé), puis développer le 'PipelineBoardComponent' utilisant '@angular/cdk/drag-drop' pour permettre le déplacement de cartes candidats entre colonnes représentant les étapes (configurées dans 'pipelines.stages_config' JSON de la table 'pipelines'), avec persistance optimiste via NgRx Effects appelant ('PUT /api/pipelines/{id}/stages') puis rollback en cas d'erreur backend.",
+        "Créer le composant 'ReverseSearchComponent' qui expose un formulaire de critères (skills pondérés via 'job_offer_skills.weight', niveau requis via 'required_level', secteur), envoie la requête à ('POST /api/matching/reverse-search') et affiche les résultats sous forme de cartes Material avec score de compatibilité décroissant, en utilisant 'MatPaginator' et 'MatSort' pour la navigation dans les résultats.",
+        "Développer le 'ChatComponent' intégrant la librairie 'sockjs-client' et 'stompjs' pour établir une connexion WebSocket persistante vers '/ws/chat', avec souscription aux topics '/user/{recruiterId}/queue/messages' pour la réception, envoi via ('POST /api/chat/messages') pour la persistance MongoDB (collection 'chat_messages') et affichage optimisé avec scrollToBottom automatique, indicateurs de saisie et horodatage relatif (ex: 'il y a 2 minutes').",
+        "Mettre en place le 'NotificationCenterComponent' (badge MatBadge sur l'icône de cloche) connecté au WebSocket '/ws/notifications' pour recevoir en temps réel les alertes émises par le 'notification-service' backend lorsque 'match_score > 80%' (champ 'match_score' de 'applications'), avec ouverture d'un MatBottomSheet listant les notifications stockées dans Redis (key 'notifications:{user_id}') via ('GET /api/notifications'), et action directe 'Voir le profil candidat' menant au détail d'une 'candidate_skills' (table 'candidate_skills')."
+      ]
+    }
+  ]
+}
+```

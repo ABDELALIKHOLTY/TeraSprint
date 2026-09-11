@@ -1,0 +1,150 @@
+# Rapport d'Architecture Technique  
+
+## 1. Setup & Stack Technique  
+**Frontend** :  
+- React.js (v18) + TypeScript  
+- Redux Toolkit (Gestion d’état)  
+- Material-UI (v5) / Tailwind CSS (UI Components)  
+- Axios (Communication API)  
+- Socket.IO Client (Temps réel)  
+
+**Backend** :  
+- Node.js (v18) + NestJS (Framework)  
+- Express.js (Middleware HTTP)  
+- PostgreSQL (v15) (BDD relationnelle)  
+- MongoDB (v6) (BDD NoSQL pour logs GPS)  
+- Redis (v7) (Cache/Sessions)  
+- JWT (Authentification)  
+- OAuth2 (Authentification externe)  
+
+**Déploiement/DevOps** :  
+- Docker (Conteneurisation)  
+- Kubernetes (Orchestration)  
+- GitHub Actions (CI/CD)  
+- AWS (EC2, RDS, S3, Lambda)  
+- Terraform (Infrastructure as Code)  
+
+---
+
+## 2. Schéma Relationnel de la Base de Données  
+**Entités principales** :  
+1. **users**  
+   - `id` (PK, UUID)  
+   - `email` (Unique)  
+   - `password_hash`  
+   - `role` (ENUM: admin, manager, staff)  
+   - `created_at`  
+
+2. **warehouses**  
+   - `id` (PK, UUID)  
+   - `name`  
+   - `location` (GPS coordinates)  
+   - `capacity`  
+   - `created_at`  
+
+3. **products**  
+   - `id` (PK, UUID)  
+   - `sku` (Unique)  
+   - `name`  
+   - `quantity`  
+   - `warehouse_id` (FK vers `warehouses.id`)  
+   - `supplier_id` (FK vers `suppliers.id`)  
+
+4. **orders**  
+   - `id` (PK, UUID)  
+   - `customer_id` (FK vers `customers.id`)  
+   - `status` (ENUM: pending, shipped, delivered)  
+   - `created_at`  
+
+5. **shipments**  
+   - `id` (PK, UUID)  
+   - `order_id` (FK vers `orders.id`)  
+   - `tracking_number`  
+   - `status` (ENUM: in_transit, delivered)  
+   - `estimated_delivery_date`  
+
+6. **gps_logs**  
+   - `id` (PK, UUID)  
+   - `shipment_id` (FK vers `shipments.id`)  
+   - `latitude`  
+   - `longitude`  
+   - `timestamp`  
+
+7. **suppliers**  
+   - `id` (PK, UUID)  
+   - `name`  
+   - `contact_email`  
+
+8. **customers**  
+   - `id` (PK, UUID)  
+   - `name`  
+   - `email`  
+   - `phone`  
+
+**Relations** :  
+- `products.warehouse_id` → 1-N vers `warehouses.id`  
+- `products.supplier_id` → 1-N vers `suppliers.id`  
+- `orders.customer_id` → 1-N vers `customers.id`  
+- `shipments.order_id` → 1-N vers `orders.id`  
+- `gps_logs.shipment_id` → 1-N vers `shipments.id`  
+
+---
+
+## 3. Architecture Backend & APIs  
+**API REST** :  
+- `/api/v1/auth` (Login, Register, JWT Token)  
+- `/api/v1/users` (Gestion utilisateurs)  
+- `/api/v1/warehouses` (CRUD entrepôts)  
+- `/api/v1/products` (Gestion produits)  
+- `/api/v1/orders` (Gestion commandes)  
+- `/api/v1/shipments` (Suivi expéditions)  
+- `/api/v1/gps-logs` (Historique GPS)  
+
+**API GraphQL** :  
+- `/graphql` (Requêtes complexes pour données relationnelles)  
+
+**Contrôleurs** :  
+- `AuthController` (Authentification)  
+- `UserController` (Gestion utilisateurs)  
+- `WarehouseController` (Entrepôts)  
+- `ProductController` (Produits)  
+- `OrderController` (Commandes)  
+- `ShipmentController` (Expéditions)  
+- `GPSLogController` (Logs GPS)  
+
+**Services** :  
+- `AuthService` (JWT, OAuth2)  
+- `WarehouseService` (Logique métier entrepôts)  
+- `ProductService` (Gestion stocks)  
+- `OrderService` (Gestion commandes)  
+- `ShipmentService` (Suivi expéditions)  
+- `GPSLogService` (Analyse données GPS)  
+
+---
+
+## 4. Architecture Frontend et Intégration  
+**Outils UI** :  
+- React Hooks (Gestion composants)  
+- Material-UI (Composants visuels)  
+- Chart.js (Visualisation données)  
+
+**Sécurité** :  
+- JWT (Stocké en HttpOnly Cookie)  
+- CSRF Protection (SameSite Cookies)  
+- Input Validation (Zod/Yup)  
+
+**Communication** :  
+- Axios (Appels API REST)  
+- Socket.IO (Mise à jour temps réel GPS)  
+- GraphQL Client (Apollo)  
+
+**Gestion d’état** :  
+- Redux Toolkit (Global state)  
+- React Query (Caching API)  
+
+**Modules Frontend** :  
+- Dashboard (Vue globale)  
+- Gestion des entrepôts (Carte + Liste)  
+- Suivi des expéditions (Carte GPS en temps réel)  
+- Gestion des stocks (Tableaux + Filtres)  
+- Authentification (Login/Register)

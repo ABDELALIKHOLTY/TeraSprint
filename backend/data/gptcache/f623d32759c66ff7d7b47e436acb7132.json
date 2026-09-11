@@ -1,0 +1,121 @@
+
+<think>
+Here's a thinking process:
+
+1.  **Analyze User Input:**
+   - **Role:** Senior Software Architect
+   - **Task:** Generate a LITERAL and FACTUAL "Architecture Report" for a complete IT project.
+   - **Style Rules:**
+     - Telegraphic & Neutral: Describe only what IS (raw stack).
+     - No functional fluff: Literally list technologies and structures.
+   - **Required Sections (Chronological):**
+     1. Setup & Stack Technique: Frontend, Backend, DB, Deployment/DevOps.
+     2. Schéma Relationnel de la Base de Données: Explicit list of main Entities, Tables (e.g., 'users', 'orders'), Primary Keys, Foreign Keys, Relations (1-N, N-N). Crucial.
+     3. Architecture Backend & APIs: List of main API families (REST/GraphQL), controllers, services.
+     4. Architecture Frontend et Intégration: UI tools, Security (e.g., JWT), communication mechanisms (e.g., WebSockets).
+   - **Project Idea:** Car rental agency management system.
+   - **Output Format:** Markdown, very clean, NO JSON, strictly text.
+
+2.  **Deconstruct Requirements & Plan Content:**
+   - *Project:* Car Rental Management System
+   - *Section 1: Setup & Stack Technique*
+     - Frontend: React, TypeScript, Vite, Tailwind CSS, React Router
+     - Backend: Node.js, Express, TypeScript, Prisma ORM
+     - DB: PostgreSQL
+     - Deployment/DevOps: Docker, Docker Compose, GitHub Actions, Nginx, AWS EC2/S3 (or similar standard)
+   - *Section 2: Schéma Relationnel de la Base de Données*
+     - Need explicit tables, PKs, FKs, relations.
+     - Entities: `users`, `vehicles`, `rentals`, `payments`, `locations` (branches), `bookings` (or merge with rentals), `reviews` (optional, keep it minimal), `categories` (vehicle types)
+     - Let's define core tables strictly:
+       - `users` (id, email, password_hash, role, created_at)
+       - `locations` (id, name, address, city, country, created_at)
+       - `vehicles` (id, location_id, category, brand, model, license_plate, status, daily_rate, created_at)
+       - `rentals` (id, user_id, vehicle_id, location_id, start_date, end_date, total_price, status, created_at)
+       - `payments` (id, rental_id, amount, method, status, transaction_id, created_at)
+       - `vehicle_categories` (id, name, description)
+     - Relations:
+       - `users` 1-N `rentals`
+       - `locations` 1-N `vehicles`
+       - `locations` 1-N `rentals`
+       - `vehicles` 1-N `rentals`
+       - `rentals` 1-N `payments`
+       - `vehicle_categories` 1-N `vehicles`
+     - Format strictly as requested.
+   - *Section 3: Architecture Backend & APIs*
+     - API Family: RESTful JSON
+     - Controllers: `AuthController`, `UserController`, `LocationController`, `VehicleController`, `RentalController`, `PaymentController`
+     - Services: `AuthService`, `UserService`, `LocationService`, `VehicleService`, `RentalService`, `PaymentService`, `NotificationService`
+     - Middleware: `authMiddleware`, `roleMiddleware`, `validationMiddleware`, `errorHandler`
+   - *Section 4: Architecture Frontend et Intégration*
+     - UI Tools: React, TypeScript, Vite, Tailwind CSS, Shadcn/UI, React Hook Form, Zod
+     - Security: JWT (Access/Refresh), HTTP-only cookies, CORS, Helmet, Rate Limiting
+     - Communication: REST over HTTPS, WebSockets (Socket.io) for real-time status updates, Server-Sent Events (optional, stick to WS)
+     - State Management: React Context, TanStack Query
+
+3.  **Draft Generation (Mental Refinement - adhering strictly to rules):**
+   *Check against rules:*
+   - Telegraphic & Neutral? Yes.
+   - No functional fluff? Yes. Only tech/structure.
+   - Chronological sections? Yes.
+   - DB schema explicit? Yes.
+   - Backend/APIs listed? Yes.
+   - Frontend/Integration listed? Yes.
+   - Format: Markdown, clean, no JSON.
+   - Language: French (as requested).
+
+   *Structure the output in French:*
+   # Rapport d'Architecture : Gestion Cabinet de Location de Voitures
+
+   ## 1. Setup & Stack Technique
+   - **Frontend** : React 18, TypeScript, Vite, Tailwind CSS, React Router v6, TanStack Query, React Hook Form, Zod
+   - **Backend** : Node.js 20, Express.js, TypeScript, Prisma ORM, Zod (validation), Winston (logging)
+   - **Base de Données** : PostgreSQL 15
+   - **Déploiement & DevOps** : Docker, Docker Compose, GitHub Actions (CI/CD), Nginx (reverse proxy), AWS EC2 (compute), AWS RDS (DB), AWS S3 (stockage images), PM2 (process manager)
+
+   ## 2. Schéma Relationnel de la Base de Données
+   - **Entités principales** : `users`, `locations`, `vehicle_categories`, `vehicles`, `rentals`, `payments`
+   - **Tables & Structure** :
+     - `users`
+       - PK : `id` (UUID)
+       - Champs : `email` (VARCHAR, UNIQUE), `password_hash` (VARCHAR), `role` (ENUM: 'admin', 'agent', 'client'), `created_at` (TIMESTAMP)
+     - `locations`
+       - PK : `id` (UUID)
+       - Champs : `name` (VARCHAR), `address` (VARCHAR), `city` (VARCHAR), `country` (VARCHAR), `created_at` (TIMESTAMP)
+     - `vehicle_categories`
+       - PK : `id` (UUID)
+       - Champs : `name` (VARCHAR, UNIQUE), `description` (TEXT)
+     - `vehicles`
+       - PK : `id` (UUID)
+       - FK : `location_id` -> `locations.id`, `category_id` -> `vehicle_categories.id`
+       - Champs : `brand` (VARCHAR), `model` (VARCHAR), `license_plate` (VARCHAR, UNIQUE), `status` (ENUM: 'available', 'rented', 'maintenance'), `daily_rate` (DECIMAL), `created_at` (TIMESTAMP)
+     - `rentals`
+       - PK : `id` (UUID)
+       - FK : `user_id` -> `users.id`, `vehicle_id` -> `vehicles.id`, `location_id` -> `locations.id`
+       - Champs : `start_date` (TIMESTAMP), `end_date` (TIMESTAMP), `total_price` (DECIMAL), `status` (ENUM: 'pending', 'active', 'completed', 'cancelled'), `created_at` (TIMESTAMP)
+     - `payments`
+       - PK : `id` (UUID)
+       - FK : `rental_id` -> `rentals.id`
+       - Champs : `amount` (DECIMAL), `method` (ENUM: 'card', 'cash', 'transfer'), `status` (ENUM: 'pending', 'success', 'failed'), `transaction_ref` (VARCHAR), `created_at` (TIMESTAMP)
+   - **Relations** :
+     - `users` (1) → (N) `rentals`
+     - `locations` (1) → (N) `vehicles`
+     - `locations` (1) → (N) `rentals`
+     - `vehicle_categories` (1) → (N) `vehicles`
+     - `vehicles` (1) → (N) `rentals`
+     - `rentals` (1) → (N) `payments`
+
+   ## 3. Architecture Backend & APIs
+   - **Famille d'API** : RESTful JSON
+   - **Contrôleurs** :
+     - `AuthController` : `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`
+     - `UserController` : `/api/users`, `/api/users/:id`
+     - `LocationController` : `/api/locations`, `/api/locations/:id`
+     - `VehicleController` : `/api/vehicles`, `/api/vehicles/:id`, `/api/vehicles/search`
+     - `RentalController` : `/api/rentals`, `/api/rentals/:id`, `/api/rentals/:id/status`
+     - `PaymentController` : `/api/payments`, `/api/payments/:id/verify`
+   - **Services** :
+     - `AuthService` : Hashing, JWT generation/verification, session management
+     - `UserService` : CRUD users, role assignment
+     - `LocationService` : CRUD locations, geolocation filtering
+     - `VehicleService` : CRUD vehicles, availability calculation, status update
+     - `RentalService` : Booking logic, date conflict resolution

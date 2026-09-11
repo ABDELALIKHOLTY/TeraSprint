@@ -1,0 +1,185 @@
+
+
+```json
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Configuration Initiale du Projet Spring Boot avec Dépendances JWT",
+      "description": "Initialisation du projet backend Spring Boot avec les dépendances critiques pour l'authentification JWT et la sécurité. Configuration de l'environnement de développement pour garantir une intégration fluide avec Angular. Cette étape est fondamentale pour établir une base solide et sécurisée avant le développement des fonctionnalités métier.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer un projet Spring Boot via Spring Initializer avec les dépendances Spring Web, Spring Data JPA, MySQL Driver, Lombok, Validation, Spring Security, et JJWT (version 0.11.5) pour la gestion des tokens JWT.",
+        "Configurer le fichier application.properties avec la base de données MySQL taskdb, les identifiants root/root, et activer les logs SQL pour le débogage (spring.jpa.show-sql=true).",
+        "Définir le port d'écoute du serveur Spring Boot à 8080 et configurer le mode de mise à jour automatique du schéma de base de données (spring.jpa.hibernate.ddl-auto=update).",
+        "Vérifier la structure du projet généré et s'assurer que les packages entity, repository, service, et controller sont correctement organisés pour l'architecture en couches."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Création des Entités JPA User et Task avec Relations",
+      "description": "Conception et implémentation des entités JPA User et Task représentant les tables de la base de données taskdb. Établissement de la relation ManyToOne entre User et Task pour lier chaque tâche à son propriétaire. Cette étape est cruciale pour modéliser correctement les données et garantir l'intégrité relationnelle.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer la classe Entité User dans le package entity avec les attributs id (Long, clé primaire auto-générée), username (String, unique), email (String, unique), password (String), et roles (String).",
+        "Créer la classe Entité Task dans le package entity avec les attributs id (Long, clé primaire auto-générée), title (String), description (String), status (String avec valeurs TODO, IN_PROGRESS, DONE), createdAt (LocalDateTime), et userId (Long, clé étrangère).",
+        "Définir la relation ManyToOne de Task vers User en utilisant l'annotation @ManyToOne sur le champ userId, créant ainsi une association bidirectionnelle ou unidirectionnelle selon les besoins.",
+        "Appliquer les annotations Lombok (@Getter, @Setter, @NoArgsConstructor, @AllArgsConstructor) pour réduire le boilerplate code et améliorer la lisibilité du code."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Implémentation des Repositories JPA pour Accès aux Données",
+      "description": "Création des interfaces de repository JPA pour les opérations CRUD sur les entités User et Task. Ces repositories étendent JpaRepository et définissent les méthodes de requête personnalisées pour les opérations spécifiques comme la recherche par email ou username.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Créer l'interface TaskRepository dans le package repository en étendant JpaRepository<Task, Long> et définir les méthodes de requête pour les opérations de base et les recherches personnalisées.",
+        "Créer l'interface UserRepository dans le package repository en étendant JpaRepository<User, Long> et ajouter des méthodes comme findByEmail(String email) et findByUsername(String username) pour les authentifications.",
+        "Tester les repositories en les injectant dans un contrôleur temporaire ou en utilisant un test unitaire pour s'assurer que les méthodes JPA fonctionnent correctement avec la configuration de base de données."
+      ]
+    },
+    {
+      "id": "TERA-4",
+      "title": "Développement des Services Métier TaskService et UserService",
+      "description": "Implémentation de la logique métier pour la gestion des tâches et des utilisateurs, y compris l'inscription, l'authentification, et la génération de tokens JWT. Ces services centralisent les règles métier et isolent les opérations de base de données des contrôleurs.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Implémenter la classe TaskService avec les méthodes createTask, getAllTasks, getTaskById, updateTask, deleteTask, et getTasksByUser en utilisant le TaskRepository pour les opérations de base de données.",
+        "Implémenter la classe UserService avec les méthodes registerUser (avec validation de l'unicité de l'email et du username), authenticateUser, et generateToken pour la création des tokens JWT.",
+        "Intégrer la bibliothèque JJWT dans le UserService pour générer des tokens JWT avec une expiration de 24 heures et les valider lors de l'authentification.",
+        "Appliquer les annotations Spring (@Service, @Transactional) pour gérer les transactions et l'injection des dépendances."
+      ]
+    },
+    {
+      "id": "TERA-5",
+      "title": "Création des Contrôleurs REST TaskController et AuthController",
+      "description": "Développement des contrôleurs REST pour exposer les endpoints API de gestion des tâches et d'authentification. Ces contrôleurs gèrent les requêtes HTTP, déléguent le traitement aux services et retournent les réponses JSON appropriées avec les codes de statut HTTP.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer la classe TaskController avec les endpoints REST : POST /api/tasks pour créer une tâche, GET /api/tasks pour lister les tâches de l'utilisateur connecté, GET /api/tasks/{id} pour récupérer une tâche, PUT /api/tasks/{id} pour modifier, et DELETE /api/tasks/{id} pour supprimer.",
+        "Créer la classe AuthController avec les endpoints POST /api/auth/register pour l'inscription et POST /api/auth/login pour la connexion, en renvoyant un token JWT successful upon successful authentication.",
+        "Appliquer les annotations Spring MVC (@RestController, @RequestMapping, @RequestBody, @PathVariable) pour mapper les requêtes HTTP aux méthodes du contrôleur.",
+        "Gérer les erreurs avec des @ExceptionHandler pour retourner des réponses d'erreurs appropriées (ex: Email déjà utilisé, identifiants incorrects)."
+      ]
+    },
+    {
+      "id": "TERA-6",
+      "title": "Configuration de la Sécurité Spring Security avec Filtre JWT",
+      "description": "Configuration de Spring Security pour protéger les endpoints de l'API. Désactivation de la protection CSRF pour une architecture stateless avec JWT, configuration des routes publiques pour l'authentification, et mise en place d'un filtre personnalisé pour valider les tokens JWT sur les requêtes entrantes.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 13,
+      "subtasks": [
+        "Créer une classe de configuration SecurityConfig en étendant WebSecurityConfigurerAdapter (ou utiliser la nouvelle approche avec SecurityFilterChain) pour désactiver CSRF et configurer les autorisations CORS.",
+        "Définir les règles d'autorisation : autoriser les requêtes vers /api/auth/** sans authentification, et exiger un token JWT valide pour tous les autres endpoints /api/**.",
+        "Créer un filtre JWT personnalisé (JwtAuthenticationFilter) qui extrait le token de l'en-tête Authorization, le valide avec JJWT, et charge l'utilisateur dans le contexte de sécurité Spring.",
+        "Ajouter le filtre JWT à la chaîne de filtres de sécurité avant le filtre d'authentification par défaut pour gérer l'authentification stateless."
+      ]
+    },
+    {
+      "id": "TERA-7",
+      "title": "Configuration Globale CORS pour Autoriser les Requêtes Angular",
+      "description": "Résolution des problèmes CORS entre l'application Angular (port 4200) et le backend Spring Boot (port 8080). Configuration des en-têtes HTTP pour autoriser les requêtes cross-origin et garantir une communication fluide entre le frontend et le backend.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Appliquer l'annotation @CrossOrigin(origins = "http://localhost:4200") sur les contrôleurs TaskController et AuthController pour autoriser spécifiquement les requêtes provenant d'Angular.",
+        "Alternative : configurer une CorsConfigurationSource globale dans la configuration Spring Security pour autoriser les origines, les méthodes HTTP, et les en-têtes requises par Angular.",
+        "Tester les requêtes CORS depuis Angular vers le backend en vérifiant que les en-têtes Access-Control-Allow-Origin et Access-Control-Allow-Methods sont correctement définis."
+      ]
+    },
+    {
+      "id": "TERA-8",
+      "title": "Initialisation du Projet Angular avec Bootstrap et Structure de Composants",
+      "description": "Création de l'application Angular avec la CLI et installation de Bootstrap pour un design responsive. Structure des composants UI selon les besoins de l'application : login, register, task list, task form, et navbar. Cette étape établit l'architecture frontend pour l'intégration avec le backend.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Initialiser un projet Angular avec la CLI (version 16 ou 17) et installer Bootstrap via npm pour la mise en page responsive.",
+        "Créer les composants suivants : AppComponent, LoginComponent, RegisterComponent, TaskListComponent, TaskFormComponent, et NavbarComponent en utilisant la commande ng generate component.",
+        "Organiser la structure des dossiers avec des dossiers dédiés pour les composants, services, guards, et interceptors pour une maintenance facilitée."
+      ]
+    },
+    {
+      "id": "TERA-9",
+      "title": "Développement des Services Angular AuthService et TaskService",
+      "description": "Implémentation des services Angular pour la communication avec le backend. AuthService gère l'authentification et le stockage du token JWT, tandis que TaskService effectue les opérations CRUD sur les tâches avec les en-têtes d'autorisation appropriées.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le service AuthService avec les méthodes login(username, password) qui envoie une requête POST à /api/auth/login, register(userData) pour /api/auth/register, et les méthodes getToken(), isLoggedIn(), logout() pour la gestion du token dans localStorage.",
+        "Créer le service TaskService avec les méthodes getTasks(), createTask(task), updateTask(id, task), deleteTask(id) en utilisant HttpClient pour les requêtes HTTP vers /api/tasks, avec l'en-tête Authorization Bearer token.",
+        "Injecter HttpClient dans les services et configurer les options des requêtes pour inclure les en-têtes nécessaires et gérer les réponses JSON."
+      ]
+    },
+    {
+      "id": "TERA-10",
+      "title": "Implémentation de l'Intercepteur HTTP pour le Passage Automatique du JWT",
+      "description": "Création d'un intercepteur HTTP Angular qui ajoute automatiquement le token JWT dans l'en-tête Authorization de toutes les requêtes sortantes. Cela évite de devoir répéter le code pour chaque appel API et garantit une authentification sécurisée pour toutes les interactions avec le backend.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer un service d'intercepteur HTTP en étendant HttpInterceptor et implémenter la méthode intercept() pour capturer les requêtes sortantes.",
+        "Dans l'intercepteur, récupérer le token JWT du localStorage et, s'il est présent, ajouter l'en-tête Authorization avec la valeur 'Bearer <token>' à la requête avant de la transmettre.",
+        "Enregistrer l'intercepteur dans le module principal (app.module.ts) en le fournissant dans les providers avec l'option HTTP_INTERCEPTORS pour qu'il soit appliqué globalement."
+      ]
+    },
+    {
+      "id": "TERA-11",
+      "title": "Configuration des Guards d'Authentification et des Routes Angular",
+      "description": "Mise en place de la protection des routes avec un AuthGuard pour rediriger les utilisateurs non connectés vers la page de login. Configuration du routage avec les routes pour login, register, task list, task form, et redirections par défaut selon l'état de connexion.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer un guard AuthGuard en étendant CanActivate et implémenter la logique pour vérifier si l'utilisateur est connecté (via AuthService.isEmptyTokenOrExpired) et rediriger vers /login si ce n'est pas le cas.",
+        "Configurer le routage dans app-routing.module.ts avec les routes : /login, /register, /tasks, /tasks/new, /tasks/edit/:id, et appliquer le AuthGuard sur les routes protégées (/tasks, /tasks/new, /tasks/edit/:id).",
+        "Définir une redirection par défaut vers /tasks si l'utilisateur est connecté, sinon vers /login, en utilisant le chemin de redirection dans les routes."
+      ]
+    },
+    {
+      "id": "TERA-12",
+      "title": "Développement des Composants UI Angular avec Formulaires et Affichage",
+      "description": "Implémentation des composants UI pour l'interface utilisateur : login, register, task list avec tableau, task form pour création/édition, et navbar avec déconnexion. Utilisation de Bootstrap pour un design responsive et intuitive.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 13,
+      "subtasks": [
+        "Développer le.component login avec un formulaire contenant les champs username et password, et une méthode onSubmit qui appelle AuthService.login() et stocke le token dans localStorage avant de rediriger vers /tasks.",
+        "Développer le register component avec un formulaire incluant username, email, password, confirmation password, avec validation côté client (correspondance des mots de passe, longueur minimale) et appel à AuthService.register().",
+        "Créer le task list component qui affiche un tableau Bootstrap avec les colonnes id, title, status, et actions (boutons modifier et supprimer). Ajouter un bouton pour ouvrir le task form en mode création.",
+        "Développer le task form component comme un composant réutilisable avec les champs title, description, et un select status (avec options TODO, IN_PROGRESS, DONE), utilisé pour la création et la modification.",
+        "Implémenter le navbar component avec un titre, un lien vers la liste des tâches, et un bouton de déconnexion qui appelle AuthService.logout() et redirige vers /login."
+      ]
+    },
+    {
+      "id": "TERA-13",
+      "title": "Tests d'Intégration et Correction des Problèmes CORS et Authentification",
+      "description": "Phase de test complète pour valider l'intégration entre Angular et Spring Boot. Vérification de la communication CORS, du flux d'authentification JWT, de la protection des routes, et du bon fonctionnement des opérations CRUD sur les tâches. Correction des problèmes identifiés pour garantir une application stable.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 8,
+      "subtasks": [
+        "Tester le flux d'inscription et de connexion en envoyant des requêtes depuis Angular vers les endpoints /api/auth/register et /api/auth/login, et vérifier que le token JWT est correctement généré et stocké dans localStorage.",
+        "Vérifier la configuration CORS en s'assurant que les requêtes depuis Angular (port 4200) vers Spring Boot (port 8080) sont autorisées et que les en-têtes CORS sont correctement définis.",
+        "Tester les routes protégées en vérifiant que l'AuthGuard redirige correctement vers /login si l'utilisateur n'est pas connecté, et que les requêtes aux endpoints /api/tasks incluent le token JWT via l'intercepteur.",
+        "Effectuer des tests de CRUD sur les tâches : créer, lire, modifier, et supprimer des tâches depuis l'interface Angular, et vérifier que les données sont correctement filtrées par l'utilisateur connecté."
+      ]
+    }
+  ]
+}
+```

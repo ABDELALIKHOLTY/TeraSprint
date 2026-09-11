@@ -1,0 +1,109 @@
+
+```json
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Configuration de l'infrastructure Docker Compose avec PostgreSQL et Redis",
+      "description": "Cette tâche consiste à configurer l'environnement d'infrastructure de base pour le projet ERP. L'objectif est de créer un fichier docker-compose.yml qui orchestrera les services essentiels au fonctionnement de l'application, à savoir PostgreSQL 15.x pour la base de données relationnelle principale et Redis 7.x pour le cache, les sessions et les queues de jobs. Cette configuration sera la fondation sur laquelle toutes les autres configurations reposeront, garantissant un environnement de développement cohérent et reproductible sur toutes les machines des développeurs. Le fichier Docker Compose doit inclure les volumes persistants pour la protection des données, les variables d'environnement configurables, et les réseaux nécessaires à la communication entre les services. Cette infrastructure sera utilisée tant en développement local qu'en environnement de staging, et servira de base pour la configuration Kubernetes en production.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le fichier docker-compose.yml à la racine du projet avec les services 'postgres', 'redis' et 'pgadmin' pour l'administration de la base de données, en spécifiant les images officielles postgres:15-alpine et redis:7-alpine pour optimiser la taille des conteneurs",
+        "Configurer le service PostgreSQL avec les variables d'environnement POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB pour la base 'erp_warehouse_db', le port 5432:5432 pour l'exposition, et un volume postgres_data:/var/lib/postgresql/data pour la persistance des données",
+        "Configurer le service Redis avec le port 6379:6379, le volume redis_data:/data pour la persistance, et les commandes de configuration Redis pour l'activation de AOF et la politique de eviction allkeys-lru pour une gestion optimale de la mémoire cache",
+        "Créer un fichier .env.example à la racine du projet listant toutes les variables d'environnement nécessaires (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD) avec des valeurs par défaut pour le développement local",
+        "Créer un fichier docker-compose.override.yml pour le développement local qui ajoutera les services de monitoring comme redis-commander et pgadmin4 sur le port 5050, ainsi que les volumes de hot-reload pour le backend et le frontend",
+        "Configurer les réseaux Docker avec un réseau bridge nommé 'erp-network' permettant la communication inter-conteneurs, et documenter la structure réseau dans le fichier ARCHITECTURE.md",
+        "Écrire un script bash 'scripts/dev.sh' qui automatise le démarrage de l'environnement avec docker-compose up -d, la vérification de la santé des services, et l'affichage des logs en temps réel"
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Configuration du projet Backend NestJS avec Prisma ORM et PostgreSQL",
+      "description": "Cette tâche vise à initialiser et configurer le projet backend avec le framework NestJS 10.x, TypeScript 5.x et Prisma ORM pour la gestion de la base de données PostgreSQL. Le backend sera le cœur du système ERP, gérant toutes les logique métier, les API REST, l'authentification JWT, et les communications temps réel via Socket.io. La configuration include l'organisation des modules NestJS selon l'architecturemodulaire définie dans le rapport d'architecture, avec des modules distincts pour Auth, Users, Warehouses, Products, Inventory, Orders, Vehicles, GPS, Shipments, Alerts et Reports. Prisma sera configuré avec le provider PostgreSQL et le schema sera généré à partir des tables définies dans le rapport d'architecture. Cette configuration établit les fondations techniques du backend qui supporteront toutes les fonctionnalités du système ERP de gestion d'entrepôt et de logistique avec suivi GPS.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Initialiser le projet NestJS avec la CLI officielle nest new backend en utilisant le package manager npm, en sélectionnant TypeScript strict mode et en configurant le path mapping @app/* vers src/* pour les imports de modules",
+        "Installer et configurer Prisma ORM avec npm install prisma --save-dev et npx prisma init, puis créer le fichier prisma/schema.prisma avec le provider postgresql et la directive generator client pour TypeScript avec output路径vers src/generated/prisma-client",
+        "Définir le schema Prisma complet avec tous les modèles selon le rapport d'architecture : users (avec enum role: admin, manager, operator, driver), warehouses, zones (avec enum type: storage, receiving, shipping, quarantine), products, inventory, suppliers, purchase_orders (avec enum status), order_items, customers, sales_orders (avec enum status), sales_order_items, vehicles (avec enum type et status), gps_tracking, shipments (avec enum status), inventory_movements (avec enum type), alerts (avec enum type) et notifications",
+        "Configurer les relations Prisma avec les foreign keys explicites : warehouses.manager_id → users.id, zones.warehouse_id → warehouses.id, inventory avec product_id, warehouse_id, zone_id, suppliers → purchase_orders → order_items, customers → sales_orders → sales_order_items, vehicles → gps_tracking et vehicles → shipments",
+        "Installer les dépendances backend essentielles : @nestjs/config pour la configuration, @nestjs/jwt et @nestjs/passport pour l'authentification JWT, bcrypt pour le hashage des mots de passe, class-validator et class-transformer pour la validation DTOs, @nestjs/swagger pour la documentation OpenAPI, socket.io pour le temps réel, @nestjs/bull pour les queues de jobs, et ioredis pour la connection Redis",
+        "Créer la structure de modules NestJS avec src/modules/auth, src/modules/users, src/modules/warehouses, src/modules/zones, src/modules/products, src/modules/inventory, src/modules/orders, src/modules/vehicles, src/modules/gps, src/modules/shipments, src/modules/alerts, src/modules/notifications et src/modules/reports",
+        "Configurer le module AppModule avec les imports des modules de configuration, base de données Prisma, et tous les modules métier, ainsi que le bootstrap de l'application avec Swagger sur /api/docs et CORS activé pour le développement frontend"
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Configuration du projet Frontend React avec TypeScript, Redux Toolkit et Tailwind CSS",
+      "description": "Cette tâche consiste à initialiser et configurer le projet frontend avec React 18.x, TypeScript 5.x, et l'ensemble de la stack technique définie dans le rapport d'architecture. Le frontend sera l'interface utilisateur du système ERP, offrant les modules de dashboard, gestion d'entrepôts, inventaire, commandes, gestion de flotte et suivi GPS temps réel. La configuration inclut la setup de Vite comme bundler pour des performances optimales en développement et build, l'organisation des dossiers selon une architecture modulaire adaptée à la complexité du projet, et l'intégration de tous les outils de styling et d'état global. Cette configuration frontend est cruciale car elle déterminera l'expérience développeur et la maintenabilité du code pour toute l'équipe frontend.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Initialiser le projet React avec Vite via npm create vite@latest frontend -- --template react-ts, en sélectionnant le template TypeScript strict pour bénéficier du typage fort et de l'autocomplétion IntelliSense dans VSCode",
+        "Installer et configurer TypeScript 5.x avec le fichier tsconfig.json optimisé incluant strict: true, noImplicitAny: true, strictNullChecks: true, et les paths aliases @/*指向src/* pour les imports relatifs simplifiés",
+        "Installer et configurer Redux Toolkit avec @reduxjs/toolkit et react-redux, créer le store Redux avec la configuration store.ts, les slices pour auth, users, warehouses, inventory, orders, vehicles, gps, alerts et notifications, et le provider Redux dans main.tsx",
+        "Installer et configurer React Query avec @tanstack/react-query, créer le QueryClient avec les options par défaut de staleTime: 5 * 60 * 1000 pour le cache, retry: 3 pour les retries automatiques, et configurer les fichiers api.ts pour les endpoints REST selon le rapport d'architecture",
+        "Installer et configurer Tailwind CSS avec npm install -D tailwindcss postcss autoprefixer, exécuter npx tailwindcss init -p, configurer le fichier tailwind.config.js avec content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'], et créer le fichier src/index.css avec les directives Tailwind @tailwind base, components et utilities",
+        "Installer les dépendances UI supplémentaires : axios pour les appels HTTP avec interceptors pour le refresh token, react-router-dom v6 pour le routing, socket.io-client pour les communications temps réel, leaflet et react-leaflet pour la cartographie GPS, recharts pour les graphiques du dashboard, et date-fns pour la manipulation de dates",
+        "Créer la structure de dossiers src/components/common pour les composants réutilisables, src/pages pour les vues principales, src/store/slices pour les slices Redux, src/hooks pour les hooks personnalisés, src/services pour les appels API, src/types pour les types TypeScript, src/utils pour les fonctions utilitaires, et src/assets pour les ressources statiques"
+      ]
+    },
+    {
+      "id": "TERA-4",
+      "title": "Configuration des outils de développement et qualité de code (ESLint, Prettier, Husky, lint-staged)",
+      "description": "Cette tâche vise à configurer l'ensemble des outils de qualité de code et de développement qui garantiront la cohérence du code à travers tous les développeurs du projet. L'objectif est de mettre en place un pipeline de pre-commit avec Husky qui exécutera automatiquement ESLint et Prettier sur les fichiers modifiés, assurant que le code soumis au repository respecte les standards de qualité définis par l'équipe. Cette configuration inclut également l'intégration de TypeScript strict dans ESLint, le formatting automatique avec Prettier, et la configuration des scripts npm pour les différentes vérifications. Un code uniformisé et bien formaté facilite les revues de code, réduit les conflits de merge, et améliore la maintenabilité à long terme du projet ERP.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 3,
+      "subtasks": [
+        "Installer ESLint et les plugins nécessaires pour le backend NestJS avec npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-config-prettier eslint-plugin-prettier, et configurer le fichier .eslintrc.js avec le parser TypeScript et les règles recommended pour TypeScript et Prettier",
+        "Installer ESLint et les plugins pour le frontend React avec npm install -D eslint eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-jsx-a11y @typescript-eslint/parser @typescript-eslint/eslint-plugin, et créer le fichier .eslintrc.cjs pour la configuration CommonJS compatible avec Vite",
+        "Installer et configurer Prettier avec npm install -D prettier, créer le fichier .prettierrc avec les règles de formatting : singleQuote: true, semi: true, tabWidth: 2, trailingComma: 'es5', printWidth: 100, et le fichier .prettierignore pour ignorer les fichiers générés et node_modules",
+        "Installer Husky et lint-staged pour le pipeline pre-commit avec npm install -D husky lint-staged, initialiser Husky avec npx husky install, et configurer le hook pre-commit pour exécuter lint-staged sur les fichiers staged",
+        "Configurer lint-staged dans package.json avec la règle '*.{ts,tsx}': ['eslint --fix', 'prettier --write'] pour le frontend et les règles adaptées pour le backend, permettant de corriger automatiquement les erreurs simples et formatter le code avant le commit",
+        "Créer les scripts npm dans package.json root : 'lint' pour l'exécution d'ESLint sur tout le projet, 'lint:fix' pour corriger automatiquement les erreurs, 'format' pour formater tout le code avec Prettier, et 'pre-commit' pour le pipeline complet",
+        "Documenter les conventions de code dans CONTRIBUTING.md incluant les règles de nommage pour les fichiers, fonctions et variables, les conventions de commits avec Conventional Commits, et les instructions d'installation des outils pour les nouveaux développeurs"
+      ]
+    },
+    {
+      "id": "TERA-5",
+      "title": "Configuration de l'environnement de développement intégré (VSCode) et des configurations globales",
+      "description": "Cette tâche consiste à créer et configurer les fichiers de paramètres pour l'éditeur VSCode et les outils de développement afin d'assurer un environnement de développement cohérent et optimisé pour tous les membres de l'équipe. L'objectif est de partager les configurations d'extensions recommandées, les paramètres de workspace, les launch configurations pour le debuggage, et les settings utilisateur optimaux pour le développement React et NestJS. Ces configurations amélioreront la productivité des développeurs en fournissant des raccourcis, des snippets, et des integrations out-of-the-box avec les technologies du stack (TypeScript, ESLint, Prettier, Jest, etc.). Un environnement de développement standardisé réduit le temps d'onboarding des nouveaux développeurs et minimise les problèmes de configuration.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 2,
+      "subtasks": [
+        "Créer le fichier .vscode/extensions.json listant les extensions recommandées pour le projet : ESLint, Prettier, TypeScript Importer, Prisma, Docker, REST Client, Auto Rename Tag, Auto Close Tag, GitLens, et les extensions spécifiques au framework comme Thunder Client pour tester les API NestJS",
+        "Créer le fichier .vscode/settings.json avec les paramètres de workspace : formatOnSave activé avec ESLint, les paths aliases TypeScript configurés, les paramètres de formatting Prettier appliqués par défaut, et les paramètres spécifiques pour les fichiers du projet comme les import paths relatifs",
+        "Créer les fichiers .vscode/launch.json pour le debuggage avec les configurations 'Debug NestJS Backend' utilisant le type node avec ts-node comme runtime, et 'Debug React Frontend' utilisant le type chrome avec le port 5173 pour le serveur Vite dev",
+        "Créer les fichiers de configuration TypeScript backend avec tsconfig.build.json pour la compilation de production excluant les fichiers de test, et tsconfig.json de base avec les paths aliases @app/* configurés pour pointer vers src/* et les roots correctement définis",
+        "Configurer le fichier .gitignore global avec les patterns pour node_modules, dist, build, .env (sauf .env.example), les fichiers IDE (.idea, .vscode), les logs, les fichiers de cache (eslintcache, .turbo), et les fichiers temporaires du système d'exploitation",
+        "Créer le fichier .editorconfig à la racine du projet pour standardiser les settings d'éditeur entre les différents IDEs, configurant charset: utf-8, end_of_line: lf, indent_size: 2, indent_style: space, insert_final_newline: true, et trim_trailing_whitespace: true",
+        "Documenter le guide d'installation de l'environnement de développement dans README.md incluant les prerequisites (Node.js 20.x LTS, Docker Desktop, VSCode), les étapes d'installation pas à pas, et les commandes pour démarrer les services et l'application en mode développement"
+      ]
+    },
+    {
+      "id": "TERA-6",
+      "title": "Configuration du pipeline CI/CD avec GitHub Actions et Docker Registry",
+      "description": "Cette tâche vise à configurer le pipeline d'intégration continue et de déploiement continu (CI/CD) avec GitHub Actions pour automatiser les builds, les tests, et les déploiements du projet ERP. Le pipeline CI/CD est essentiel pour garantir la qualité du code à chaque commit, détecter rapidement les régressions, et automatiser le déploiement des nouvelles versions. La configuration inclura des workflows pour le build et test sur chaque pull request, le build et push des images Docker sur le registry, et le déploiement automatique sur les environnements de staging et production. Cette automatisation réduira le temps de validation des changements et assurera une livraison continue et fiable du système ERP.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le workflow GitHub Actions principal .github/workflows/ci.yml qui se déclenche sur les push et pull requests sur les branches main, develop, et les branches feature/*. Ce workflow installera les dépendances, vérifiera le linting ESLint, exécutera les tests unitaires et d'intégration, et buildera l'application pour vérifier que tout compile correctement",
+        "Configurer le job de test avec la matrice de version Node.js 20.x LTS, installer PostgreSQL et Redis via les services GitHub Actions, configurer les variables d'environnement DATABASE_URL et REDIS_URL pour les tests, et générer le coverage report avec Istanbul pour le suivi de la couverture de tests",
+        "Créer le workflow .github/workflows/docker.yml pour la construction et le push des images Docker sur GitHub Container Registry (ghcr.io) avec les tags appropriés : latest pour main, beta pour develop, et la version semver pour les tags git",
+        "Configurer le Dockerfile multi-stage pour le backend NestJS avec une première étape builder utilisant node:20-alpine et une étape de production utilisant node:20-alpine slim, en copiant uniquement les fichiers nécessaires et en configurant les variables d'environnement au runtime",
+        "Configurer le Dockerfile multi-stage pour le frontend React avec une première étape builder node:20-alpine et une étape de production utilisant nginx:alpine, en configurant Nginx avec le routing SPA et les headers de sécurité pour la production",
+        "Créer le workflow .github/workflows/deploy-staging.yml qui se déclenche sur les push sur la branche develop, extraira les images Docker, exécutera docker-compose sur le serveur de staging avec les variables d'environnement appropriées, et enverra une notification Slack en cas de succès ou d'échec",
+        "Configurer les secrets GitHub pour les credentials de déploiement : DATABASE_URL_PROD, REDIS_URL_PROD, JWT_SECRET, et les credentials du cloud provider (AWS/GCP/Azure) pour le déploiement Kubernetes en production, en documentant les procédures de rotation des secrets"
+      ]
+    }
+  ]
+}
+```

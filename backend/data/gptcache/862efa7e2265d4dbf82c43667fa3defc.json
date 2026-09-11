@@ -1,0 +1,80 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Initialisation du dépôt Git et configuration de base",
+      "description": "Cette tâche consiste à créer le dépôt Git vide, ajouter un fichier .gitignore complet pour Node, Docker et Terraform, rédiger un README détaillé décrivant l'architecture globale, et configurer les règles de protection de branche afin d'imposer les revues de code et les checks CI avant tout merge. Elle garantit que chaque développeur part d'un point de départ cohérent et sécurisé, facilitant la traçabilité et la conformité aux bonnes pratiques DevOps.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Créer le dépôt Git initial sur GitHub et cloner localement afin d'établir le point de départ du projet pour tous les contributeurs.",
+        "Ajouter un fichier .gitignore contenant les entrées spécifiques à Node.js, Docker, Vite, NestJS, ainsi que les dossiers de build et les fichiers de configuration Terraform.",
+        "Rédiger un README.md complet qui décrit le contexte de l'application, le stack technique, les conventions de branchement et les instructions de démarrage rapide pour les nouveaux développeurs.",
+        "Configurer les règles de protection de branche sur la branche principale (main) afin d'exiger au minimum une revue de code et le passage du pipeline CI avant tout merge, garantissant ainsi la qualité du code."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Mise en place du linting et des tests unitaires (ESLint, Prettier, Jest) pour le backend et le frontend",
+      "description": "Cette tâche introduit les outils de qualité de code et de tests automatisés afin d'assurer la conformité du code aux standards du projet, de détecter les régressions tôt et de faciliter le refactoring. Elle couvre à la fois le backend NestJS et le frontend React, en configurant ESLint, Prettier et Jest, et en ajoutant des scripts npm pour les exécuter dans le pipeline CI.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Installer et configurer ESLint avec les plugins @typescript-eslint, eslint-plugin-import et les règles recommandées pour garantir une syntaxe cohérente dans les projets TypeScript du backend et du frontend.",
+        "Intégrer Prettier en tant que formateur de code, créer un fichier .prettierrc avec les conventions de formatage (tabWidth, semi, singleQuote) et ajouter un script npm \"format\" qui applique le formatage sur tout le code source.",
+        "Configurer Jest pour le backend (NestJS) en créant un fichier jest.config.ts qui utilise ts-jest, et ajouter des tests d'exemple pour les services critiques afin de valider le bon fonctionnement du framework de test.",
+        "Configurer Jest pour le frontend (React) en créant un fichier jest.config.js qui utilise @testing-library/react, et ajouter des tests unitaires pour un composant MUI afin de vérifier le rendu et les interactions de base.",
+        "Ajouter les scripts npm \"lint\", \"test\" et \"test:watch\" dans les deux packages.json, puis vérifier que les commandes s'exécutent correctement en local avant de les intégrer au pipeline CI."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Création des Dockerfiles et Docker‑Compose pour les services backend, frontend et base de données",
+      "description": "Cette tâche fournit les artefacts de containerisation nécessaires au déploiement reproductible de l'application. Elle crée des Dockerfiles optimisés pour le build multi‑stage afin de réduire la taille des images, ainsi qu'un fichier Docker‑Compose qui orchestre les conteneurs backend, frontend, PostgreSQL et un service de cache Redis éventuel, facilitant le développement local et les tests d'intégration.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Écrire un Dockerfile multi‑stage pour le backend NestJS qui compile le code TypeScript, installe uniquement les dépendances de production et expose le port 3000, afin de produire une image légère et sécurisée.",
+        "Écrire un Dockerfile multi‑stage pour le frontend React (Vite) qui effectue le build de production, copie les fichiers statiques dans un serveur Nginx minimal et expose le port 80, garantissant des temps de démarrage rapides.",
+        "Créer un fichier docker-compose.yml qui définit les services \"backend\", \"frontend\" et \"db\" (PostgreSQL 15) avec les variables d'environnement nécessaires, les volumes persistants pour la base de données et les dépendances entre services.",
+        "Ajouter des healthchecks Docker pour chaque service afin que Docker‑Compose puisse détecter les états de disponibilité et redémarrer automatiquement les conteneurs en cas de défaillance.",
+        "Documenter les commandes Docker‑Compose (docker-compose up -d, docker-compose down) dans le README afin que les développeurs puissent lancer l'environnement complet en une seule étape."
+      ]
+    },
+    {
+      "id": "TERA-4",
+      "title": "Configuration du pipeline CI/CD GitHub Actions (lint, test, build, push, déploiement)",
+      "description": "Cette tâche met en place un workflow GitHub Actions complet qui s'exécute à chaque push ou pull request. Le pipeline exécute le linting, les tests unitaires, construit les images Docker, les pousse vers Google Container Registry (GCR) et déclenche le déploiement Terraform sur l'environnement de staging, assurant ainsi une chaîne d'intégration continue fiable et automatisée.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "subtasks": [
+        "Créer le fichier .github/workflows/ci-cd.yml avec les jobs \"lint\", \"test\", \"build\", \"push\" et \"deploy\", en définissant les triggers sur les branches \"main\" et les pull requests.",
+        "Configurer le job \"lint\" pour exécuter les scripts npm \"lint\" du backend et du frontend, en utilisant l'action actions/setup-node@v4 avec Node.js 20, afin de garantir la conformité du code avant toute compilation.",
+        "Configurer le job \"test\" pour lancer les suites Jest du backend et du frontend, collecter les rapports de couverture avec l'action codecov/codecov-action@v4, et échouer le pipeline si la couverture descend en dessous de 80%.",
+        "Configurer le job \"build\" pour exécuter les Docker builds multi‑stage des services backend et frontend, taguer les images avec le SHA du commit et le numéro de version, et stocker les artefacts dans le registre GCR via l'action google-github-actions/auth@v2.",
+        "Configurer le job \"push\" pour pousser les images Docker vers GCR, en utilisant les credentials du service account GCP stockés comme secret GitHub, afin de rendre les images disponibles pour le déploiement Kubernetes.",
+        "Configurer le job \"deploy\" pour exécuter Terraform init, plan et apply dans le répertoire infra/, en ciblant l'espace de travail \"staging\", et en utilisant le même service account GCP, garantissant que l'infrastructure est mise à jour automatiquement après chaque build réussi."
+      ]
+    },
+    {
+      "id": "TERA-5",
+      "title": "Provisionnement de l’infrastructure GCP avec Terraform et déploiement sur GKE (monitoring & logging)",
+      "description": "Cette tâche crée l'infrastructure cloud nécessaire au déploiement de l'application, incluant le cluster GKE, le registre de conteneurs, les bases de données CloudSQL (PostgreSQL), ainsi que les stack de monitoring (Prometheus) et de logging (Loki). Elle utilise Terraform pour garantir l'idempotence et la traçabilité des changements d'infrastructure, et applique les manifests Kubernetes générés par Helm ou kubectl.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "subtasks": [
+        "Écrire les modules Terraform pour créer un projet GCP, activer les APIs nécessaires (container, sqladmin, monitoring, logging) et définir les variables d'environnement sécurisées via Google Secret Manager.",
+        "Définir le module GKE qui provisionne un cluster régional avec trois nœuds de type e2-medium, configure les pools de nœuds, les réseaux VPC, les règles de firewall et active l'authentification RBAC, afin de disposer d'une plateforme Kubernetes prête à recevoir les workloads.",
+        "Créer le module CloudSQL qui provisionne une instance PostgreSQL 15 avec le réseau privé, les paramètres de sauvegarde automatisée et les utilisateurs de base, et exporter les informations de connexion comme secrets Kubernetes via le provider kubernetes_secret.",
+        "Déployer les manifests Kubernetes (Deployment, Service, Ingress) pour les pods \"frontend\" et \"backend\", en utilisant les images Docker poussées dans GCR, et configurer les probes de liveness/readiness pour assurer la résilience du service.",
+        "Installer le stack de monitoring Prometheus via le chart Helm stable, configurer les ServiceMonitors pour scraper les métriques des pods, et créer des dashboards Grafana pré‑configurés pour visualiser les performances de l'application.",
+        "Installer le stack de logging Loki avec Fluent Bit en DaemonSet, configurer les pipelines de collecte des logs des conteneurs, et créer des alertes basées sur les patterns d'erreur critiques afin de faciliter le diagnostic en production."
+      ]
+    }
+  ]
+}

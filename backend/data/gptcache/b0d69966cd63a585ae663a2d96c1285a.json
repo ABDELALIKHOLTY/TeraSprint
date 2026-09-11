@@ -1,0 +1,69 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "API-101",
+      "title": "Configuration globale de l'API REST (NestJS) et Swagger/OpenAPI",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche constitue le socle technique de l'ensemble des endpoints REST versionnés (/api/v1/...) de l'ERP Logistique. Elle consiste à mettre en place l'application NestJS, à configurer le préfixe global de versioning URI, à brancher Swagger via @nestjs/swagger et à définir la politique de sécurité documentée (Bearer JWT). L'objectif est d'avoir un point d'entrée unique, documenté automatiquement, capable d'exposer tous les modules métier (auth, users, warehouses, inventory, products, orders, shipments, tracking, fleet, reports) avec une structure cohérente. Cette configuration garantit la conformité OpenAPI 3, facilite l'intégration Frontend (génération de clients TypeScript) et impose un contrat d'API stable dès le démarrage du projet.",
+      "subtasks": [
+        "Initialiser l'application NestJS (Nest CLI) avec le préfixe global 'api/v1' activé via app.setGlobalPrefix('api/v1') et le Versioning URI (enableVersioning() avec VERSION_NEUTRAL) dans le fichier main.ts pour garantir la rétrocompatibilité future",
+        "Installer et configurer @nestjs/swagger ainsi que swagger-ui-express, puis instancier DocumentBuilder dans main.ts pour exposer l'OpenAPI sur la route ('/api/docs') avec titre, description, version et tag de sécurité 'bearer' (JWT)",
+        "Ajouter le décorateur @ApiBearerAuth() au niveau global via un SwaggerCustomOptions ou un plugin (@nestjs/swagger plugin-ts) afin que chaque endpoint protégé apparaisse automatiquement avec un cadenas dans Swagger UI",
+        "Configurer les pipes globaux (ValidationPipe avec whitelist, forbidNonWhitelisted, transform) et les interceptors de transformation de réponse (ClassSerializerInterceptor) pour normaliser les payloads sortants selon les DTOs",
+        "Mettre en place les configurations de sécurité de base : helmet() pour les headers HTTP, CORS strict via enableCors() avec origines whitelistées depuis le fichier de configuration ConfigService, et le rate limiting global avec @nestjs/throttler (10 req/s par IP)"
+      ]
+    },
+    {
+      "id": "API-102",
+      "title": "Implémentation des endpoints REST du module Auth (JWT, Refresh, RBAC)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Le module Auth est le point d'entrée critique de l'API : il gère l'authentification stateless via Passport.js (stratégies JWT + Local), le rafraîchissement de tokens via cookie HttpOnly Secure, l'inscription et la déconnexion. Il fournit également les Guards réutilisables (JwtAuthGuard, RolesGuard) et le décorateur @Roles() consommés par tous les autres modules. Cette tâche couvre l'intégralité des routes ('/api/v1/auth/...') et garantit la sécurité de bout en bout (hash bcrypt/argon2, validation class-validator, audit log). L'enjeu est de produire une couche d'authentification robuste, conforme OWASP, et totalement intégrée au schéma de base PostgreSQL (tables 'users', 'roles', 'audit_logs').",
+      "subtasks": [
+        "Créer le module AuthModule avec AuthController exposant les routes ('POST /api/v1/auth/login'), ('POST /api/v1/auth/refresh'), ('POST /api/v1/auth/logout') et ('POST /api/v1/auth/register'), chacune documentée via @ApiOperation et @ApiResponse de @nestjs/swagger",
+        "Implémenter la stratégie Passport-Local pour la validation des credentials dans ('POST /api/v1/auth/login'), en s'appuyant sur la table ('users') (champs 'id', 'email', 'password_hash') et la table ('roles') (champ 'name') pour charger le rôle de l'utilisateur et le retourner dans le payload JWT",
+        "Implémenter la stratégie Passport-JWT avec extraction du token depuis le header Authorization (Bearer) ET depuis le cookie HttpOnly 'refresh_token', en utilisant les clés secrètes distinctes JWT_ACCESS_SECRET et JWT_REFRESH_RECRET chargées via @nestjs/config",
+        "Générer des access tokens (TTL 15 min via @nestjs/jwt signAsync) et des refresh tokens (TTL 7 jours), stocker le refresh token hashé (SHA-256) dans la table ('refresh_tokens') avec 'user_id', 'expires_at', 'revoked_at' pour permettre la révocation côté serveur",
+        "Créer le décorateur @Roles('admin', 'manager') et le guard RolesGuard (injecté via @UseGuards) qui lit les metadata Reflector et compare avec req.user.role pour bloquer l'accès aux endpoints protégés (réponse 403 ForbiddenApiException)",
+        "Documenter le DTO LoginDto (email: string @IsEmail, password: string @MinLength 8) et RegisterDto (email, password @Matches regex complexité, firstName, lastName) avec @ApiProperty et validation class-validator pour générer automatiquement les schémas dans Swagger UI"
+      ]
+    },
+    {
+      "id": "API-103",
+      "title": "Implémentation des endpoints REST CRUD des modules métier (Users, Roles, Warehouses, Products, Inventory, Orders, Shipments, Fleet)",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "description": "Cette tâche couvre l'implémentation exhaustive de tous les endpoints CRUD des modules métier listés dans le rapport d'architecture, en respectant la structure modulaire NestJS (src/modules/<module>/). Chaque contrôleur expose des routes RESTful versionnées sous (/api/v1/...) et s'appuie sur les services injectés via @nestjs/common. L'objectif est de fournir un ensemble cohérent d'APIs (lecture paginée, création, mise à jour partielle, suppression logique) interagissant avec PostgreSQL via l'ORM Prisma, avec documentation Swagger complète, validation systématique via class-validator et DTOs typés. Cette tâche est le cœur fonctionnel de l'US et permet aux Frontends React/RTK Query de consommer l'ensemble des données de l'ERP.",
+      "subtasks": [
+        "Implémenter le UsersController avec les routes ('GET /api/v1/users') (pagination via @Query page/limit, tri, filtre par 'role_id'), ('GET /api/v1/users/:id'), ('PATCH /api/v1/users/:id'), ('DELETE /api/v1/users/:id') (soft delete via champ 'deleted_at' sur table 'users') et ('POST /api/v1/users/:id/warehouses') pour gérer l'affectation N-N via la table de jonction ('users_warehouses')",
+        "Implémenter le WarehousesController avec routes ('GET /api/v1/warehouses'), ('POST /api/v1/warehouses'), ('GET /api/v1/warehouses/:id'), ('PATCH /api/v1/warehouses/:id'), ('DELETE /api/v1/warehouses/:id') et ('GET /api/v1/warehouses/:id/inventory') qui agrège les données de la table ('inventory_items') filtrée par 'warehouse_id' avec calcul du stock total par produit",
+        "Implémenter le ProductsController avec routes CRUD standards sur la table ('products') (champs 'id', 'sku', 'name', 'category_id', 'supplier_id', 'price', 'weight_kg'), plus ('GET /api/v1/products/:id/stock') qui agrège les quantités par entrepôt depuis ('inventory_items'), et ('GET /api/v1/products/categories/tree') pour exposer l'arbre hiérarchique de la table ('categories') (auto-référentiel 'parent_id')",
+        "Implémenter le InventoryController avec routes ('GET /api/v1/inventory/stock') (filtres warehouse_id, zone_id, product_id, low_stock), ('POST /api/v1/inventory/movements') pour créer une entrée dans ('stock_movements') avec type (IN/OUT/TRANSFER) et quantité signée, et ('POST /api/v1/inventory/transfers') pour orchestrer un transfert entre deux entrepôts dans une transaction Prisma atomique ($transaction)",
+        "Implémenter le OrdersController avec routes ('GET /api/v1/orders') (filtres status, customer_id, date range), ('POST /api/v1/orders') qui crée une commande en statut 'draft' avec ses ('order_items') associés en transaction, ('PATCH /api/v1/orders/:id/status') pour transitions draft → confirmed → shipped → delivered (machine à états validée par OrderStateMachine), et ('GET /api/v1/orders/:id') avec expansion des items et de l'adresse client",
+        "Implémenter le ShipmentsController et FleetController avec routes ('GET /api/v1/shipments'), ('POST /api/v1/shipments') (création depuis order), ('PATCH /api/v1/shipments/:id/assign') (affectation driver_id et vehicle_id), ('GET /api/v1/fleet/vehicles') (CRUD sur table 'vehicles'), ('GET /api/v1/fleet/drivers') (CRUD sur table 'drivers'), chaque endpoint renvoyant les DTOs typés annotés @ApiProperty pour la génération OpenAPI"
+      ]
+    },
+    {
+      "id": "API-104",
+      "title": "Implémentation des endpoints REST de Tracking GPS, Reports/KPIs et WebSocket Gateway",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "description": "Cette tâche finalise l'API en couvrant les deux derniers domaines fonctionnels critiques : (1) le tracking GPS temps réel avec ingestion de positions et exposition d'un historique, (2) les rapports/KPIs avec exports CSV/PDF. Elle inclut également la mise en place du WebSocket Gateway via @nestjs/websockets/Socket.IO pour le canal temps réel de tracking. Les routes REST associées s'appuient sur PostGIS pour les calculs géospatiaux (ST_Distance, ST_Within) et sur des requêtes d'agrégation PostgreSQL pour les KPIs. L'objectif est de fermer la boucle d'observabilité logistique (suivi flotte) et de pilotage (dashboards).",
+      "subtasks": [
+        "Implémenter le TrackingController avec route ('POST /api/v1/tracking/positions') pour ingestion d'une position GPS (champs 'shipment_id', 'coords' de type GEOGRAPHY(POINT), 'speed_kmh', 'heading', 'recorded_at') avec insertion dans la table ('gps_positions') (partitionnée par date) et trigger de broadcast WebSocket vers la room 'shipment_<id>'",
+        "Implémenter les routes ('GET /api/v1/tracking/shipments/:id/positions') (historique paginé, tri par recorded_at desc, filtre date range), ('GET /api/v1/tracking/fleet/live') (dernière position de chaque véhicule actif via LATERAL JOIN sur gps_positions), et ('GET /api/v1/tracking/shipments/:id/eta') (calcul d'ETA utilisant PostGIS ST_Distance + vitesse moyenne des 10 derniers points)",
+        "Créer le TrackingGateway (WebSocket) avec namespace '/tracking', événements 'joinShipment' (rejoint la room), 'leaveShipment' (quitte la room), 'positionUpdate' (broadcast reçu depuis le REST endpoint) et authentification JWT via handshake.auth.token vérifié par WsJwtGuard",
+        "Implémenter le ReportsController avec route ('GET /api/v1/reports/kpi') retournant les indicateurs agrégés : chiffre d'affaires (SUM orders.total_amount WHERE status='delivered'), taux de livraison à temps (COUNT filtré sur delivery_date <= estimated_date), stock total valorisé (SUM inventory_items.quantity * products.price), et taux de rotation stock (vue matérialisée refreshed par @nestjs/schedule cron quotidien à 02:00)",
+        "Implémenter les routes ('GET /api/v1/reports/export') acceptant un paramètre 'type' (orders|inventory|shipments) et un paramètre 'format' (csv|pdf), générant le fichier côté serveur via streams (csv-stringify pour CSV, pdfkit pour PDF) puis upload sur MinIO (bucket 'reports/') et retour d'une URL signée temporaire (TTL 1h) dans la réponse JSON",
+        "Documenter l'ensemble des nouveaux endpoints avec @ApiTags('tracking'), @ApiTags('reports'), @ApiOperation, @ApiResponse pour chaque code HTTP (200, 201, 400, 401, 403, 404, 409, 429) et sécuriser via @UseGuards(JwtAuthGuard, RolesGuard) avec @Roles('admin', 'manager', 'driver', 'viewer') selon le principe du moindre privilège RBAC"
+      ]
+    }
+  ]
+}
+```

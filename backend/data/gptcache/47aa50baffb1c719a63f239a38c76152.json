@@ -1,0 +1,68 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Modélisation PostgreSQL et création du schéma relationnel (Spring Boot + Flyway)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche constitue le socle de toute la plateforme SkillMatch AI : elle consiste à modéliser physiquement le schéma de la base de données PostgreSQL qui hébergera toutes les données critiques (utilisateurs, profils, compétences, offres, pipelines, candidatures). En tant qu'architecte données, nous devons garantir l'intégrité référentielle, la performance des jointures complexes (notamment pour le graphe de compétences et les calculs de matching) et la capacité d'évolution du schéma. L'implémentation se fera via des migrations versionnées Flyway, exécutées au démarrage du microservice `auth-service` et partagées via un schéma SQL commun (`skillmatch_core`). L'objectif est de disposer d'un DDL robuste, idempotent et documenté, capable de supporter des millions de candidats et des calculs de matching en temps réel.",
+      "subtasks": [
+        "Créer la table parente (`users`) avec colonnes (`id` UUID PK, `email` VARCHAR(255) UNIQUE NOT NULL, `password_hash` VARCHAR(255) NOT NULL, `role` ENUM('CANDIDATE','RECRUITER') NOT NULL, `created_at` TIMESTAMP DEFAULT NOW(), `updated_at` TIMESTAMP) et contraintes CHECK sur le format email et index UNIQUE sur (`email`).",
+        "Créer la table (`candidates`) avec FK (`user_id`) vers (`users.id`) ON DELETE CASCADE, colonnes (`id` UUID PK, `first_name`, `last_name`, `linkedin_url`, `cv_url` stocké sur S3, `current_title`, `years_experience` INT) et index BTREE sur (`user_id`) et FULLTEXT sur (`current_title`).",
+        "Créer la table (`companies`) avec FK (`user_id`) vers (`users.id`) ON DELETE CASCADE, colonnes (`id` UUID PK, `name`, `sector`, `size` ENUM('STARTUP','SME','LARGE','ENTERPRISE'), `website_url`) et index sur (`sector`) pour accélérer les filtres recruteurs.",
+        "Créer la table de référence (`skills`) avec colonnes (`id` UUID PK, `name` VARCHAR(150) UNIQUE NOT NULL, `category` VARCHAR(100), `normalized_name` pour déduplication NLP, `created_at`) et index trigram (`pg_trgm`) sur (`name`) pour recherche fuzzy.",
+        "Créer la table de liaison N-N (`candidate_skills`) avec PK composite (`candidate_id`, `skill_id`), colonnes (`acquired_at` DATE, `proficiency_level` ENUM('BEGINNER','INTERMEDIATE','ADVANCED','EXPERT'), `years_practice` DECIMAL(4,1)) et FK avec ON DELETE CASCADE.",
+        "Créer la table de liaison N-N (`job_offer_skills`) avec PK composite (`job_offer_id`, `skill_id`), colonnes (`required_level` ENUM, `weight` DECIMAL(3,2) pour pondération dans le scoring de matching) et FK avec ON DELETE CASCADE.",
+        "Créer la table (`skill_evolution`) représentant le graphe temporel dynamique des compétences du candidat, avec colonnes (`id` UUID PK, `candidate_id` FK, `skill_id` FK, `acquired_at` TIMESTAMP NOT NULL, `source` ENUM('CV','LINKEDIN','MANUAL','NLP_EXTRACTED'), `confidence_score` DECIMAL(3,2)) et index composite sur (`candidate_id`, `acquired_at`) pour optimiser les requêtes de trajectoire.",
+        "Créer la table (`job_offers`) avec FK (`company_id`) vers (`companies.id`), colonnes (`id` UUID PK, `title`, `description` TEXT, `status` ENUM('DRAFT','PUBLISHED','CLOSED','ARCHIVED'), `location`, `salary_min`, `salary_max`, `created_at`, `published_at`) et index GIN sur (`description`) pour recherche full-text PostgreSQL.",
+        "Créer la table (`applications`) avec FK (`candidate_id`) et (`job_offer_id`), colonnes (`id` UUID PK, `match_score` DECIMAL(5,2), `status` ENUM('PENDING','REVIEWING','ACCEPTED','REJECTED','WITHDRAWN'), `applied_at`, `last_match_update` TIMESTAMP) et contrainte UNIQUE sur (`candidate_id`, `job_offer_id`) pour éviter les doublons.",
+        "Créer la table (`pipelines`) pour les pipelines de recrutement visuels Kanban des recruteurs, avec FK (`company_id`), colonnes (`id` UUID PK, `name`, `stages_config` JSONB pour stocker l'ordre et la configuration dynamique des étapes, `created_at`) et index GIN sur (`stages_config`).",
+        "Créer la table (`pipeline_stages`) si nécessaire (alternative à la config JSONB) avec (`id`, `pipeline_id` FK, `name`, `order_index`, `color`) pour un modèle normalisé des étapes de pipeline.",
+        "Configurer le fichier de migration V1__init_schema.sql avec Flyway, ajouter les extensions PostgreSQL (`uuid-ossp`, `pg_trgm`, `pgcrypto`) et configurer Spring Boot (`spring.flyway.enabled=true`, `spring.jpa.hibernate.ddl-auto=validate`) pour garantir que le schéma est toujours géré par migration.",
+        "Créer un script SQL de seed data (V2__seed_skills.sql) injectant un référentiel initial de 500+ compétences techniques et soft skills normalisées utilisées par le moteur NLP.",
+        "Documenter le schéma via un schéma ERD généré automatiquement (via DBeaver ou SchemaSpy) et publier le MLD au format PlantUML dans le repository Git pour partage avec l'équipe."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Configuration MongoDB et modélisation des collections NoSQL (Spring Data MongoDB)",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "description": "Cette tâche adresse la partie NoSQL de la stack : MongoDB est utilisé pour stocker les données semi-structurées, historisées et à fort volume que PostgreSQL gérerait mal (logs, historique de chat, extractions NLP brutes, activité utilisateur). En tant qu'architecte, nous devons définir des schémas de collections flexibles mais avec une validation côté serveur (JSON Schema validators) pour garantir la qualité des données, configurer les index TTL pour la rétention automatique et isoler les collections par microservice via des bases dédiées. Cette base NoSQL est cruciale pour le feature de chat temps réel et pour la traçabilité des calculs de scoring effectués par le `matching-service`.",
+      "subtasks": [
+        "Créer la base de données MongoDB `skillmatch_logs` avec authentification (user `skillmatch_app` avec rôle readWrite) et configurer la connection string dans `application.yml` du microservice `notification-service` et `matching-service`.",
+        "Définir la collection (`chat_messages`) avec un JSON Schema validator imposant les champs (`_id` ObjectId, `conversation_id` UUID, `sender_id` UUID, `recipient_id` UUID, `content` String, `sent_at` ISODate, `read_at` ISODate nullable, `type` ENUM: TEXT/FILE/SYSTEM) et créer un index TTL sur (`sent_at`) avec expiration de 365 jours.",
+        "Définir la collection (`nlp_extraction_logs`) stockant les extractions brutes de compétences depuis CV/LinkedIn avec champs (`_id`, `candidate_id`, `source_type` ENUM('CV','LINKEDIN'), `raw_payload` JSON flexible, `extracted_skills` Array de sous-documents `{skill_name, confidence, source_phrase}`, `processed_at` ISODate, `model_version` String) et index composé sur (`candidate_id`, `processed_at`).",
+        "Définir la collection (`audit_logs`) pour la conformité RGPD avec champs (`_id`, `user_id`, `action` String, `resource_type`, `resource_id`, `ip_address`, `user_agent`, `timestamp` ISODate) et index TTL sur (`timestamp`) avec rétention configurable (par défaut 2 ans).",
+        "Définir la collection (`user_activity_history`) traçant les actions UI importantes (consultation de profil, like, vue d'offre) avec champs (`_id`, `user_id`, `activity_type`, `metadata` JSON flexible, `occurred_at`) et index sur (`user_id`, `occurred_at`) descendant pour le feed d'activité.",
+        "Configurer dans Spring Boot (`spring.data.mongodb.uri`, `spring.data.mongodb.auto-index-creation=true`, `spring.data.mongodb.database=skillmatch_logs`) et créer les entités `@Document` correspondantes dans le package `com.skillmatch.logs.model`.",
+        "Créer un script d'initialisation MongoDB (init-mongo.js) exécuté au démarrage du conteneur Docker pour créer les utilisateurs, les bases et les validators JSON Schema avec `db.createCollection()` et `db.runCommand({collMod: ..., validator: ...})`.",
+        "Documenter le modèle de données NoSQL dans un README dédié avec exemples de documents pour chaque collection et les politiques de rétention/archivage associées."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Configuration Redis pour cache, sessions et files de matching (Spring Data Redis + Lettuce)",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "description": "Cette tâche configure Redis, composant critique pour les performances de SkillMatch AI : il sert de cache pour les scores de matching recalculés en temps réel, de store pour les sessions JWT (avec révocation possible), de file de messages pour les notifications asynchrones et de backing store pour les rate limiters. La mauvaise configuration de Redis peut entraîner des scores obsolètes servis aux candidats ou des failles de sécurité majeures. Nous devons donc définir rigoureusement la stratégie de cache (write-through, TTL, invalidation), les structures de données utilisées (Hash, Sorted Set, Stream) et les conventions de nommage des clés pour garantir la maintenabilité par les autres microservices.",
+      "subtasks": [
+        "Provisionner une instance Redis 7.x sur AWS ElastiCache (ou container Docker local pour dev) avec authentification (requirepass), mode cluster désactivé en v1, et configurer la connection dans `application.yml` via `spring.redis.host`, `spring.redis.port`, `spring.redis.password`, `spring.redis.timeout=2000ms`.",
+        "Définir la convention de nommage des clés : préfixe global `skillmatch:` suivi du service (`session:`, `match:`, `notif:`, `ratelimit:`) puis de l'identifiant (ex: `skillmatch:session:{user_id}`, `skillmatch:match:{candidate_id}:{offer_id}`, `skillmatch:notif:{user_id}`) et documenter dans le wiki technique.",
+        "Configurer le store de sessions JWT avec structure Hash contenant (`user_id`, `role`, `refresh_token_hash`, `ip_address`, `last_activity` ISO timestamp, `device_fingerprint`) et TTL de 7 jours glissants, permettant la révocation immédiate d'un token via `DEL` côté `auth-service`.",
+        "Configurer le cache des scores de matching avec clé `skillmatch:match:{candidate_id}:{offer_id}` stockant un JSON `{score, computed_at, breakdown_skills}` et TTL de 1 heure, avec invalidation proactive (`DEL` ou `EXPIRE`) déclenchée par le `matching-service` lors d'une mise à jour de profil candidat.",
+        "Configurer une Sorted Set (`skillmatch:ranking:offers:{candidate_id}`) pour stocker le top 100 des offres scorées par candidat avec score comme valeur de tri, permettant une récupération O(log N) via `ZREVRANGE` pour la page d'accueil.",
+        "Configurer une structure Pub/Sub ou Stream (`skillmatch:notif:stream`) pour les notifications temps réel (alertes >80%) consommées par le `notification-service` via WebSocket push, avec consumer groups pour scalabilité horizontale.",
+        "Configurer le rate limiter par utilisateur avec clé `skillmatch:ratelimit:{user_id}:{endpoint}` utilisant un compteur INCR + EXPIRE (fenêtre glissante) sur les endpoints sensibles (`/api/auth/login`, `/api/matching/score`) avec limites (ex: 100 req/min pour matching, 10 req/min pour login).",
+        "Créer la classe de configuration Spring `@Configuration RedisConfig` avec beans `RedisTemplate<String, Object>`, `StringRedisTemplate`, `RedisMessageListenerContainer` pour le Pub/Sub, et serializer JSON (Jackson2JsonRedisSerializer) pour les valeurs complexes.",
+        "Implémenter une stratégie d'éviction `maxmemory-policy=allkeys-lru` dans `redis.conf` et dimensionner la mémoire à 2 Go minimum en production avec monitoring via la commande `INFO memory` exposée à Prometheus.",
+        "Rédiger des tests d'intégration (Testcontainers Redis) validant la sérialisation/désérialisation, l'expiration TTL, l'invalidation de cache et le comportement du rate limiter sur 1000 requêtes simulées."
+      ]
+    }
+  ]
+}
+```

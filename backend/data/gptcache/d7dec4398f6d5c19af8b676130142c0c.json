@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "FF-101",
+      "title": "Configuration de l'intercepteur Axios et du client HTTP sécurisé",
+      "description": "Cette tâche consiste à instancier et configurer le client Axios global pour centraliser la gestion des requêtes HTTP entre le frontend React et le backend Node.js. L'objectif est de créer un wrapper robuste qui injecte automatiquement le jeton JWT stocké dans le localStorage dans l'en-tête 'Authorization' de chaque requête sortante, garantissant ainsi l'authentification transparente pour les routes protégées. De plus, il faut implémenter un intercepteur de réponse pour capturer les erreurs 401 (Non Authorisé) et déclencher la redirection vers la page de connexion ou la purge du token, assurant une gestion cohérente de la session utilisateur. Cette couche d'abstraction est critique pour éviter la duplication de code d'authentification dans chaque hook React Query et pour maintenir la sécurité des échanges de données.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "subtasks": [
+        "Créer un fichier 'src/services/apiClient.ts' qui exporte une instance Axios configurée avec l'URL de base du backend (via variable d'environnement VITE_API_URL) et un timeout de 10 secondes.",
+        "Implémenter un intercepteur de requête qui lit le jeton JWT depuis le localStorage (clé 'auth_token') et l'ajoute dynamiquement à l'en-tête 'Authorization' au format 'Bearer <token>' pour toutes les requêtes.",
+        "Développer un intercepteur de réponse qui détecte les codes d'erreur 401, supprime le token obsolète du localStorage, et redirige l'utilisateur vers la route '/login' via le navigate de React Router.",
+        "Définir des types TypeScript stricts pour les réponses API (interfaces 'ApiResponse<T>', 'ErrorPayload') afin de garantir la sécurité des types lors de la consommation des données par les hooks."
+      ]
+    },
+    {
+      "id": "FF-102",
+      "title": "Développement des Hooks React Query pour la gestion des idées et votes",
+      "description": "Cette tâche porte sur la création des hooks personnalisés basés sur TanStack Query (React Query) pour gérer le cycle de vie des données des idées et des votes. Il faut définir les clés de requête uniques pour le cache (ex: ['ideas', {sort, tag}]) et implémenter les hooks 'useQuery' pour la récupération de la liste des idées triées par votes et filtrées par tags, ainsi que pour la liste des tags disponibles. La complexité réside dans l'implémentation des hooks 'useMutation' pour les actions de vote (ajout/suppression) avec des stratégies de mise à jour optimistes (optimistic updates) qui modifient immédiatement le compteur de votes dans le cache local avant la confirmation du serveur, offrant ainsi une réactivité UI instantanée. Il est également nécessaire de gérer les états de chargement et d'erreur de manière granulaire pour chaque mutation.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le hook 'useIdeas' utilisant 'useQuery' avec des paramètres de requête dynamiques (tri 'votes_desc', filtre 'tag') qui appelle la route 'GET /api/ideas' et gère le rechargement automatique lors du changement de filtres.",
+        "Développer le hook 'useVote' utilisant 'useMutation' qui cible les routes 'POST /api/ideas/:id/vote' et 'DELETE /api/ideas/:id/vote', en implémentant une fonction 'onMutate' pour effectuer une mise à jour optimiste du compteur de votes dans le cache React Query.",
+        "Implémenter la logique de rollback dans le hook de vote (via 'onError') pour restaurer l'état précédent du compteur de votes si la requête serveur échoue, et 'onSuccess' pour synchroniser définitivement le cache avec la réponse du backend.",
+        "Créer le hook 'useCreateIdea' pour la soumission de nouvelles idées via 'POST /api/ideas', incluant la validation des tags et le déclenchement d'un 'invalidateQueries' sur la liste des idées après succès pour refléter l'ajout dans l'interface."
+      ]
+    },
+    {
+      "id": "FF-103",
+      "title": "Intégration de l'authentification et du contexte utilisateur global",
+      "description": "Cette tâche vise à connecter le frontend au backend pour la gestion de l'authentification utilisateur en utilisant React Context API et Axios. Il faut créer un contexte 'AuthContext' qui expose les fonctions de login, register et logout, ainsi que l'état de l'utilisateur courant (profil, token). L'intégration implique l'appel aux routes 'POST /api/auth/login' et 'POST /api/auth/register' via le client Axios configuré, avec le stockage sécurisé du JWT retourné. Il est crucial d'implémenter un composant 'ProtectedRoute' qui vérifie la présence et la validité du token avant de rendre les composants protégés, et d'ajouter un hook 'useAuth' pour accéder facilement à l'état d'authentification dans n'importe quel composant. Cette couche assure la cohérence de la session utilisateur à travers toute l'application FeedbackFlow.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le contexte 'AuthContext' avec un provider qui gère l'état 'user' et 'token', et expose les méthodes 'login', 'register', et 'logout' qui interagissent avec le backend via les routes 'POST /api/auth/login' et 'POST /api/auth/register'.",
+        "Implémenter la logique de stockage du JWT dans le localStorage après un login réussi, et sa récupération au chargement initial de l'application pour restaurer la session utilisateur sans re-login.",
+        "Développer le composant 'ProtectedRoute' qui utilise le hook 'useAuth' pour vérifier si un token valide existe, et redirige vers '/login' si l'utilisateur n'est pas authentifié, tout en rendant les enfants si l'accès est autorisé.",
+        "Créer le hook 'useAuth' qui consomme le contexte et retourne les données utilisateur et les actions, en s'assurant que le composant 'IdeaForm' utilise ce hook pour récupérer l'ID de l'auteur ('author_id') à envoyer dans le body de la requête 'POST /api/ideas'."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "FF-101",
+      "title": "Configuration de l'Infrastructure Frontend (Vite, React, TailwindCSS, React Query)",
+      "description": "Cette tâche fondamentale consiste à initialiser le projet frontend avec Vite et React 18, en intégrant TypeScript pour la sécurité des types et TailwindCSS pour le stylisation utilitaire. Il est impératif de configurer le client HTTP (Axios ou Fetch wrapper) pour injecter automatiquement le JWT stocké dans le localStorage dans le header 'Authorization: Bearer <token>' de chaque requête. De plus, l'initialisation de TanStack Query (React Query) est requise pour gérer le cache des données serveur, les états de chargement et les refetchings, garantissant une réactivité optimale de l'interface lors de la récupération des idées et des tags depuis les endpoints RESTful du backend.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Initialiser le projet avec 'npm create vite@latest' en sélectionnant le template 'react-ts' et installer les dépendances 'tailwindcss', 'postcss', 'autoprefixer', 'react-router-dom', '@tanstack/react-query', 'axios', 'react-hook-form', 'zod', 'lucide-react' et '@headlessui/react'.",
+        "Configurer le fichier 'tailwind.config.js' pour définir les couleurs de marque, les polices et les breakpoints responsive, puis intégrer les directives '@tailwind base', '@tailwind components' et '@tailwind utilities' dans le fichier CSS global 'index.css'.",
+        "Créer un wrapper Axios dans le dossier 'src/lib/api.ts' qui intercepte les requêtes pour ajouter le token JWT depuis le localStorage et gère les erreurs 401 en redirigeant l'utilisateur vers la page de login si la session est expirée.",
+        "Initialiser le 'QueryClientProvider' dans le fichier 'main.tsx' avec des options de cache personnalisées (staleTime: 5000ms) et configurer le 'BrowserRouter' de React Router DOM pour gérer les routes de l'application."
+      ]
+    },
+    {
+      "id": "FF-102",
+      "title": "Développement des Composants UI Réutilisables (IdeaCard, TagBadge, VoteButton)",
+      "description": "L'objectif de cette tâche est de créer une bibliothèque de composants UI atomiques et réutilisables qui constituent le cœur visuel de l'application FeedbackFlow. Le composant 'IdeaCard' doit afficher le titre, la description, les tags associés et le compteur de votes, avec un design propre utilisant les classes utilitaires TailwindCSS pour les ombres, les arrondis et les espacements. Le composant 'TagBadge' doit permettre de visualiser les statuts ('En cours', 'Fait', 'À faire') avec des couleurs distinctes et des icônes Lucide React correspondantes. Enfin, le 'VoteButton' doit gérer l'interaction utilisateur pour voter ou annuler un vote, en déclenchant les mutations React Query et en mettant à jour l'état local de manière optimiste pour une réactivité immédiate du compteur.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Développer le composant 'IdeaCard' dans 'src/components/IdeaCard.tsx' qui reçoit les props 'idea' (contenant 'id', 'title', 'description', 'tags', 'voteCount') et affiche une carte responsive avec un fond blanc, une bordure subtile et une ombre au survol, en utilisant les classes 'bg-white', 'rounded-lg', 'shadow-sm', 'hover:shadow-md', 'p-6'.",
+        "Créer le composant 'TagBadge' dans 'src/components/TagBadge.tsx' qui mappe les noms de tags ('En cours', 'Fait', 'À faire') vers des classes de couleur spécifiques (ex: 'bg-blue-100 text-blue-800' pour 'En cours') et intègre les icônes 'Clock', 'CheckCircle', 'ListTodo' de la bibliothèque 'lucide-react' pour une identification visuelle rapide.",
+        "Implémenter le composant 'VoteButton' dans 'src/components/VoteButton.tsx' qui utilise la mutation 'useMutation' de React Query pour appeler les routes 'POST /api/ideas/:id/vote' et 'DELETE /api/ideas/:id/vote', avec une logique d'optimistic update qui incrémente ou décrémente le compteur de votes dans le cache local avant la confirmation du serveur.",
+        "Ajouter des états de chargement et de désactivation (disabled) au 'VoteButton' pour prévenir les double-cliqués pendant le traitement de la requête HTTP, en utilisant les classes 'opacity-50', 'cursor-not-allowed' et l'icône 'Loader2' en rotation pour indiquer le statut de traitement."
+      ]
+    },
+    {
+      "id": "FF-103",
+      "title": "Création des Pages Principales (Accueil, Formulaire) et Intégration API",
+      "description": "Cette tâche couvre le développement des vues principales de l'application : la page d'accueil qui liste les idées triées par nombre de votes et la page de soumission d'idées. La page d'accueil doit utiliser la requête 'useQuery' pour récupérer les données de la route 'GET /api/ideas' avec le paramètre de tri 'sort=votes_desc' et afficher une grille responsive de 'IdeaCard'. Le formulaire doit être construit avec 'React Hook Form' et validé par 'Zod' pour s'assurer que le titre est obligatoire et que les tags sélectionnés sont valides, avant d'envoyer les données via la route 'POST /api/ideas'. L'intégration doit inclure la gestion des états de succès et d'erreur, ainsi que la redirection automatique vers la page d'accueil après la soumission réussie d'une nouvelle idée.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Développer la page 'HomePage' dans 'src/pages/HomePage.tsx' qui utilise 'useQuery' pour appeler 'GET /api/ideas?sort=votes_desc', affiche un état de chargement (skeleton loaders) pendant la récupération, et rend une grille 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' de composants 'IdeaCard' avec les données des idées et leurs tags associés.",
+        "Créer la page 'NewIdeaPage' dans 'src/pages/NewIdeaPage.tsx' qui intègre 'React Hook Form' avec un schéma de validation 'Zod' exigeant un 'title' (min 5 caractères), une 'description' (optionnelle) et un tableau 'tagIds' (au moins un tag sélectionné), en liant les champs au formulaire via 'useForm' et 'register'.",
+        "Implémenter la logique de soumission du formulaire qui appelle la mutation 'useMutation' sur la route 'POST /api/ideas' avec le body contenant 'title', 'description' et 'tagIds', et gère le succès en invalidant la requête de la liste des idées ('queryClient.invalidateQueries') pour rafraîchir la page d'accueil et en redirigeant l'utilisateur via 'useNavigate'.",
+        "Ajouter des composants de feedback utilisateur (toasts ou alertes) pour afficher les messages d'erreur de validation Zod (ex: 'Le titre est trop court') et les erreurs serveur (ex: 'Erreur lors de la création de l'idée'), en utilisant des classes TailwindCSS distinctes pour les erreurs ('bg-red-100 text-red-800') et les succès ('bg-green-100 text-green-800')."
+      ]
+    }
+  ]
+}

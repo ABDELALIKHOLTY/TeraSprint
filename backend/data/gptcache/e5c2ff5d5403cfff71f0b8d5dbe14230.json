@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Modélisation des tables users, candidate_profiles et recruiter_profiles (PostgreSQL)",
+      "description": "Définir la table principale 'users' contenant l'identifiant UUID, l'email unique, le hash du mot de passe, le rôle ENUM (candidate, recruiter) et le timestamp de création. Créer les tables 'candidate_profiles' et 'recruiter_profiles' en tant qu'extensions 1‑to‑1 de 'users', avec les champs spécifiques tels que le nom complet, le téléphone, la localisation pour les candidats et le nom de l'entreprise, le site web pour les recruteurs, ainsi que des colonnes 'updated_at' pour suivre les modifications. Ajouter les contraintes de clé étrangère nécessaires pour garantir l'intégrité référentielle entre ces tables et la table 'users', et créer des index uniques sur l'email et sur les clés étrangères pour optimiser les recherches. Enfin, rédiger la documentation SQL décrivant chaque colonne, son type, ses contraintes et son rôle dans le domaine métier afin de faciliter la maintenance future par l'équipe de développement.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Écrire le script SQL de création de la table 'users' avec les colonnes 'id' UUID PRIMARY KEY, 'email' VARCHAR(255) UNIQUE NOT NULL, 'password_hash' TEXT NOT NULL, 'role' ENUM('candidate','recruiter') NOT NULL, 'created_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
+        "Créer la table 'candidate_profiles' possédant une clé primaire 'user_id' UUID qui référence 'users.id', ainsi que les colonnes 'full_name' VARCHAR(100), 'phone' VARCHAR(20), 'location' VARCHAR(100), 'updated_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW() ON UPDATE NOW()",
+        "Créer la table 'recruiter_profiles' avec une clé primaire 'user_id' UUID référençant 'users.id', les colonnes 'company_name' VARCHAR(150), 'company_website' VARCHAR(200), 'updated_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW() ON UPDATE NOW()",
+        "Ajouter les contraintes de clé étrangère FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE sur les deux tables de profil, puis créer des index uniques sur 'users.email' et des index simples sur les colonnes 'user_id' des tables de profil pour accélérer les jointures"
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Modélisation des tables jobs, cv_files, skills, candidate_skills, job_skills, matches, applications et dashboard_stats (PostgreSQL)",
+      "description": "Concevoir la table 'jobs' pour stocker les offres d'emploi publiées par les recruteurs, incluant les références au recruteur, le titre, la description, la localisation, le type de contrat et les timestamps de création et de mise à jour. Définir la table 'cv_files' liée aux candidats pour conserver le chemin du fichier PDF, le texte extrait et la date d'upload. Créer la table de référence 'skills' avec un nom unique, puis les tables d'association 'candidate_skills' et 'job_skills' comportant des clés primaires composites et des scores ou poids flottants pour représenter la maîtrise et l'importance. Élaborer les tables 'matches' et 'applications' pour enregistrer les résultats de matching IA et les candidatures, avec les contraintes de clé étrangère appropriées, les statuts ENUM et les timestamps. Finalement, modéliser la table 'dashboard_stats' qui agrège les indicateurs de performance par recruteur et période, en veillant à ce que chaque colonne soit correctement typée et indexée pour les requêtes analytiques.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Écrire le DDL de la table 'jobs' avec les colonnes 'id' SERIAL PRIMARY KEY, 'recruiter_id' UUID NOT NULL REFERENCES users(id), 'title' VARCHAR(200), 'description' TEXT, 'location' VARCHAR(100), 'employment_type' VARCHAR(50), 'created_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW(), 'updated_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW() ON UPDATE NOW()",
+        "Définir la table 'cv_files' comportant 'id' SERIAL PRIMARY KEY, 'candidate_id' UUID NOT NULL REFERENCES users(id), 'file_path' VARCHAR(255), 'uploaded_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW(), 'parsed_text' TEXT, et créer un index sur 'candidate_id' pour accélérer la recherche des CV d'un candidat",
+        "Créer la table de référence 'skills' avec 'id' SERIAL PRIMARY KEY, 'name' VARCHAR(100) UNIQUE NOT NULL, puis les tables d'association 'candidate_skills' (candidate_id UUID REFERENCES users(id), skill_id INTEGER REFERENCES skills(id), score FLOAT, PRIMARY KEY (candidate_id, skill_id)) et 'job_skills' (job_id INTEGER REFERENCES jobs(id), skill_id INTEGER REFERENCES skills(id), weight FLOAT, PRIMARY KEY (job_id, skill_id))",
+        "Implémenter les tables 'matches' (id SERIAL PRIMARY KEY, candidate_id UUID REFERENCES users(id), job_id INTEGER REFERENCES jobs(id), match_score FLOAT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()) et 'applications' (id SERIAL PRIMARY KEY, candidate_id UUID REFERENCES users(id), job_id INTEGER REFERENCES jobs(id), status ENUM('applied','reviewed','interviewed','hired','rejected') NOT NULL, applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() ON UPDATE NOW()), ainsi que la table 'dashboard_stats' (id SERIAL PRIMARY KEY, recruiter_id UUID REFERENCES users(id), period_start DATE, period_end DATE, total_applications INTEGER, hired_count INTEGER, avg_match_score FLOAT, updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() ON UPDATE NOW())"
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Génération des scripts de migration, création des contraintes d'intégrité, ajout de l'extension pgvector et index de performance (TypeORM migrations)",
+      "description": "Utiliser le CLI de TypeORM pour générer un fichier de migration initial qui reproduit le schéma défini dans les tâches précédentes, en s'assurant que chaque colonne possède le bon type de données (UUID, SERIAL, TEXT, ENUM, FLOAT, TIMESTAMP). Ajouter l'extension PostgreSQL pgvector via la commande CREATE EXTENSION IF NOT EXISTS pgvector afin de permettre le stockage et la recherche de vecteurs d'embedding générés par les services IA. Créer des contraintes de vérification (CHECK) pour garantir que les scores de matching et les poids de compétences restent dans l'intervalle [0,1], et que les statuts d'application appartiennent à la liste définie. Construire des index composés sur les colonnes fréquemment utilisées dans les jointures, telles que (candidate_id, skill_id) dans candidate_skills et (job_id, skill_id) dans job_skills, ainsi que des index sur les colonnes de recherche comme jobs.title, cv_files.parsed_text (en utilisant GIN avec pg_trgm) et matches.match_score pour accélérer le tri et le filtrage. Enfin, insérer un jeu de compétences de référence dans la table 'skills' (ex: 'JavaScript', 'Python', 'Machine Learning', 'Project Management') afin que le système ait un référentiel dès le démarrage.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Exécuter la commande 'typeorm migration:generate --name InitSchema' pour produire un fichier de migration contenant les instructions CREATE TABLE pour toutes les tables définies, en veillant à ce que les types de données correspondent exactement aux spécifications (UUID pour les identifiants utilisateurs, SERIAL pour les clés auto-incrémentées, TEXT pour les descriptions longues, etc.)",
+        "Ajouter au début du fichier de migration le bloc 'CREATE EXTENSION IF NOT EXISTS pgvector;' afin d'activer l'extension nécessaire au stockage des vecteurs d'embedding utilisés par le service IA de matching",
+        "Insérer des contraintes CHECK sur les colonnes 'score' de candidate_skills et 'weight' de job_skills pour imposer la condition 'score >= 0 AND score <= 1', ainsi qu'une contrainte CHECK sur la colonne 'match_score' de la table 'matches' avec la même condition, et ajouter une contrainte CHECK sur la colonne 'status' de la table 'applications' pour restreindre les valeurs aux états autorisés",
+        "Créer des index multiples : un index B-tree sur 'users(email)', un index GIN sur 'cv_files(parsed_text)' avec l'opérateur gin_trgm_ops pour la recherche plein texte, un index composé sur 'candidate_skills(candidate_id, skill_id)', un autre sur 'job_skills(job_id, skill_id)', un index sur 'matches(match_score)' pour le tri par pertinence, et un index sur 'dashboard_stats(recruiter_id, period_start, period_end)' pour accélérer les requêtes d'agrégation du tableau de bord"
+      ]
+    }
+  ]
+}

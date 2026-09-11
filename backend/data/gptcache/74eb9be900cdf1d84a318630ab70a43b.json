@@ -1,0 +1,58 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "DEPL-101",
+      "title": "Rédaction de la documentation technique, utilisateur et API (Swagger/OpenAPI)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche vise à produire l'ensemble de la documentation nécessaire à la compréhension, la maintenance et l'utilisation de la plateforme SaaS de télémédecine. Elle couvre trois volets complémentaires : la documentation technique interne (architecture, schéma de base de données, déploiement), la documentation utilisateur (guides patients/médecins pour les fonctionnalités de booking et de consultation WebRTC), et la documentation API (spec OpenAPI 3.0 générée et annotée). L'objectif est de garantir la pérennité du projet, faciliter l'onboarding des nouveaux développeurs et fournir une référence contractuelle pour les consommateurs de l'API REST + WebSocket. Cette documentation sera hébergée sur un espace dédié et versionnée dans le dépôt Git aux côtés du code source pour rester synchrone avec les évolutions.",
+      "subtasks": [
+        "Rédiger un fichier 'ARCHITECTURE.md' détaillant le pattern Modular Monolith (NestJS) avec DDD léger, les couches (Controller → Service → Repository (Prisma)), et la liste exhaustive des modules (AuthModule, UsersModule, AppointmentsModule, ConsultationsModule, MedicalRecordsModule, BillingModule, NotificationsModule) avec leurs responsabilités métier.",
+        "Documenter le schéma relationnel PostgreSQL 15 complet avec Mermaid ou PlantUML, incluant toutes les tables (users, doctor_profiles, patient_profiles, appointments, consultations, medical_records, payments, doctor_availabilities, audit_logs) avec leurs colonnes, types, clés primaires (UUID), clés étrangères et relations (1-1, 1-N, N-N).",
+        "Annoter tous les endpoints REST exposés dans le code NestJS avec les décorateurs @ApiOperation, @ApiResponse et @ApiBearerAuth de @nestjs/swagger afin de générer automatiquement le fichier 'openapi.json' incluant POST /api/auth/login, POST /api/auth/register, GET /api/doctors, POST /api/appointments, GET /api/appointments/me, POST /api/consultations/:id/join, GET /api/medical-records/:patientId et POST /api/payments/webhook.",
+        "Documenter le namespace Socket.io '/signaling' avec tous ses événements (offer, answer, ice-candidate, join-room, leave-room, peer-disconnect), leurs payloads (sdp, candidates, room_id) et les schémas de validation Zod/class-validator associés pour permettre l'intégration de clients tiers.",
+        "Rédiger un guide utilisateur 'USER_GUIDE_PATIENT.md' et 'USER_GUIDE_DOCTOR.md' avec captures d'écran, expliquant le parcours de prise de rendez-vous, l'accès à la room de consultation WebRTC et la gestion du dossier médical, en s'appuyant sur les fonctionnalités Next.js 14 (App Router) et simple-peer/mediasoup-client.",
+        "Mettre en place Storybook ou une page /docs interne Next.js pour centraliser la documentation des composants UI (Shadcn/UI, Radix UI) et générer un site statique via Docusaurus ou Nextra avec barre de recherche, sommaire et déploiement automatique sur Vercel.",
+        "Versionner la documentation dans le même monorepo que le code, protéger la branche 'main' contre les commits qui ne mettraient pas à jour la doc et configurer une GitHub Action qui échoue si les annotations Swagger ne sont pas présentes sur les nouveaux endpoints NestJS ajoutés."
+      ]
+    },
+    {
+      "id": "DEPL-102",
+      "title": "Orchestration du déploiement AWS/Vercel/Render avec Docker et CI/CD GitHub Actions",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 13,
+      "description": "Cette tâche couvre la mise en place complète de la chaîne de déploiement continu (CI/CD) et de l'infrastructure cloud multi-provider (AWS, Vercel, Render) pour la plateforme de télémédecine. Elle inclut la conteneurisation Docker du backend NestJS, la configuration des GitHub Actions pour les pipelines d'intégration et de livraison continues, ainsi que le déploiement orchestré du frontend sur Vercel et du backend sur Render (ou AWS ECS Fargate). L'objectif est de garantir des déploiements reproductibles, sécurisés (TLS via Certbot, secrets dans AWS Secrets Manager/Vault) et réversibles (rollback automatique) en respectant les exigences HIPAA/GDPR pour les données médicales. Cette orchestration inclut également le déploiement du serveur coturn (TURN/STUN) pour le NAT traversal WebRTC et l'éventuel SFU mediasoup pour les consultations de groupe.",
+      "subtasks": [
+        "Créer un Dockerfile multi-stage pour le backend NestJS 10 utilisant une image de base 'node:20-alpine', compilant le TypeScript puis ne conservant que les artefacts de production dans l'image finale pour réduire la surface d'attaque et la taille de l'image.",
+        "Rédiger un fichier 'docker-compose.yml' complet pour l'environnement de développement incluant les services (postgres:15, redis:7, minio, coturn, backend, frontend, mailhog) avec leurs volumes persistants, leurs networks internes et les variables d'environnement externalisées via un fichier .env.example.",
+        "Configurer le pipeline GitHub Actions '.github/workflows/ci.yml' exécutant à chaque Pull Request les jobs 'lint' (ESLint + Prettier), 'type-check' (tsc --noEmit), 'unit-tests' (Jest avec coverage minimum 80%), 'e2e-tests' (Playwright) et 'build' (docker build avec cache layers) pour valider la qualité avant merge.",
+        "Configurer le pipeline GitHub Actions '.github/workflows/deploy.yml' déclenché sur push vers 'main' qui push l'image Docker vers AWS ECR (ou Docker Hub), déploie le backend sur Render via l'API Render ou sur AWS ECS Fargate via aws-actions/amazon-ecs-render-task-definition, et déclenche le déploiement du frontend sur Vercel via le vercel-action officiel.",
+        "Provisionner l'infrastructure AWS via Terraform (ou AWS CDK) en créant les ressources nécessaires : cluster ECS Fargate, ALB (Application Load Balancer) avec HTTPS via ACM, RDS PostgreSQL 15 (chiffré at-rest), ElastiCache Redis 7, bucket S3 pour les fichiers médicaux avec chiffrement KMS et lifecycle policy, et groupe de sécurité restreignant les flux aux seuls ports nécessaires (443, 3478 UDP/TCP pour coturn).",
+        "Déployer le serveur coturn (TURN/STUN) sur une instance EC2 dédiée ou un conteneur ECS avec les credentials rotés, configuré pour écouter sur les ports 3478 (STUN/TURN) et 49152-65535 (relais media), intégré aux variables d'environnement du frontend (NEXT_PUBLIC_ICE_SERVERS) pour permettre le NAT traversal WebRTC.",
+        "Configurer les secrets (JWT_SECRET, DATABASE_URL, STRIPE_SECRET_KEY, AWS_ACCESS_KEY_ID, REDIS_URL, SENTRY_DSN) via AWS Secrets Manager et les injecter au runtime via les task definitions ECS ou les variables d'environnement Render, en s'assurant qu'aucun secret n'est jamais commité dans le dépôt Git (vérification via gitleaks en pre-commit).",
+        "Configurer Nginx en reverse proxy devant le backend NestJS sur AWS EC2 ou en side-car, avec terminaison TLS via Certbot (Let's Encrypt), headers de sécurité (CSP, HSTS, X-Frame-Options, X-Content-Type-Options), rate limiting et redirection automatique HTTP → HTTPS pour respecter les bonnes pratiques de sécurité décrites dans la section 4 du rapport d'architecture."
+      ]
+    },
+    {
+      "id": "DEPL-103",
+      "title": "Mise en place de l'observabilité (Sentry, Prometheus, Grafana) et alerting production",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "description": "Cette tâche consiste à déployer et configurer la stack complète d'observabilité pour la plateforme de télémédecine en production. Elle couvre la collecte d'erreurs applicatives via Sentry (frontend Next.js + backend NestJS), la collecte de métriques techniques via Prometheus (avec exposition par l'API /metrics du backend NestJS via prom-client) et la visualisation via des dashboards Grafana. L'objectif est d'atteindre une observabilité de bout en bout (logs, métriques, traces) permettant de détecter proactivement les incidents, corréler les erreurs WebRTC aux métriques de signalisation Socket.io, et respecter les SLA de la plateforme (disponibilité 99.9%). Cette observabilité inclut également la mise en place d'alertes PagerDuty/Slack critiques pour les erreurs 5xx, la saturation CPU/RAM et les timeouts de base de données PostgreSQL.",
+      "subtasks": [
+        "Intégrer Sentry dans le frontend Next.js 14 via @sentry/nextjs en configurant le DSN (SENTRY_DSN), le source maps upload automatique lors du build Vercel, le tracing des Server Actions et le capture des erreurs WebRTC (RTCPeerConnection.oniceconnectionstatechange) avec contexte enrichi (userId, roomId, consultationId).",
+        "Intégrer Sentry dans le backend NestJS via @sentry/node avec tracing automatique des requêtes HTTP entrantes, capture des exceptions non gérées via un filtre d'exception global, ajout de breadcrumbs pour les événements métier critiques (création de rendez-vous, paiement Stripe) et PII scrubbing pour les données médicales (champ 'diagnosis', 'prescription') conformément au RGPD.",
+        "Instrumenter le backend NestJS avec prom-client en exposant un endpoint GET /metrics sur un port dédié (ex: 9090) retournant les métriques : http_request_duration_seconds (histogram par route), active_websocket_connections (gauge par namespace), webrtc_room_participants (gauge), database_query_duration_seconds (histogram par table Prisma), et process_cpu_usage / process_resident_memory_bytes par défaut.",
+        "Déployer Prometheus dans le cluster ECS ou sur une instance EC2 dédiée avec un fichier 'prometheus.yml' configuré pour scraper le endpoint /metrics du backend toutes les 15s, le endpoint /metrics du serveur coturn (coturn_exporter) et les métriques RDS (via l'exporter CloudWatch) avec retention 30 jours sur le stockage local.",
+        "Provisionner Grafana (via Docker Compose ou service managé Grafana Cloud) connecté à Prometheus comme datasource principale, et créer les dashboards suivants : 'API Overview' (latence P50/P95/P99, error rate 4xx/5xx par endpoint), 'WebRTC Health' (nombre de rooms actives, ICE connection state, TURN bandwidth utilisé), 'Database Performance' (connexions actives, slow queries, lock contention), 'Infrastructure' (CPU/RAM/Network par conteneur ECS) et 'Business KPIs' (rendez-vous créés/heure, paiements Stripe réussis/échoués).",
+        "Configurer des alertes Prometheus (Alertmanager) avec notifications Slack et PagerDuty pour les conditions critiques : error_rate_5xx > 1% pendant 5 minutes (page on-call), database_connections > 80% de la capacité RDS (warning Slack), p95_latency > 2 secondes sur POST /api/appointments pendant 10 minutes (warning Slack), webrtc_active_rooms = 0 pendant les heures ouvrables (incident P3) et disk_space_used > 85% sur le bucket S3 des enregistrements (warning Slack).",
+        "Centraliser les logs applicatifs (backend NestJS, Nginx, coturn) via un driver de logging JSON structuré (pino) envoyé vers CloudWatch Logs ou Loki, en s'assurant que chaque ligne contient les champs traceId, userId, requestId et consultationId pour permettre la corrélation entre logs, traces Sentry et métriques Prometheus lors d'un incident."
+      ]
+    }
+  ]
+}
+```

@@ -1,0 +1,48 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "TERA-INTEG-1",
+      "title": "Configuration Backend des APIs REST & WebSocket STOMP (Spring Boot)",
+      "description": "Cette tâche consiste à configurer le cœur de l'architecture backend de LivePoll pour gérer la réception synchrone des votes et la diffusion asynchrone des résultats en temps réel. L'objectif est d'exposer des endpoints REST robustes pour la gestion des métadonnées et de configurer un broker WebSocket STOMP qui agira comme un nœud de diffusion central. Les données sauvegardées dans la base relationnelle (via Spring Data JPA) doivent être immédiatement poussées vers les clients connectés via des topics dédiés, assurant la synchronisation bidirectionnelle exigée par la user story.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Développer la configuration Spring WebSocket pour enregistrer le broker STOMP en définissant les destinations de topics simples, tels que le Topic ('/topic/polls/{pollId}/results'), pour la diffusion pub/sub des scores.",
+        "Implémenter le contrôleur REST `VoteController` exposant la route ('POST /api/polls/{pollId}/votes') pour recevoir les soumissions des participants et les sauvegarder de manière transactionnelle dans la table ('votes') avec les champs ('voter_id', 'option_id', 'submitted_at').",
+        "Créer le service `VoteService` chargé de valider l'unicité du vote pour un ('voter_id') donné sur une question, d'incrémenter les scores de l'option concernée et d'utiliser le `SimpMessagingTemplate` pour publier les résultats mis à jour sur le topic STOMP.",
+        "Configurer le filtre de sécurité Spring Security pour autoriser les appels REST anonymes sur la route ('POST /api/polls/{pollId}/votes') tout en protégeant les endpoints de création et de modification de polls par un token JWT."
+      ]
+    },
+    {
+      "id": "TERA-INTEG-2",
+      "title": "Développement du Client Frontend React pour Appels REST & WebSockets (Vite/Tailwind)",
+      "description": "Cette tâche consiste à construire la couche de communication client de l'application React, permettant d'interagir de manière synchrone avec les APIs REST et de souscrire de manière asynchrone aux flux de données temps réel. Le client doit gérer l'envoi des votes, la réception des métadonnées du poll, et initialiser une socket WebSocket persistante via le protocole STOMP. Cette couche d'abstraction isolera les appels réseau des composants d'interface, facilitant la maintenance et la structure du code frontend.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Initialiser un service HTTP utilisant Axios pour interagir de manière synchrone avec les endpoints REST du backend, notamment pour récupérer la question active via la route ('GET /api/polls/{pollId}/questions/active') et ses options associées.",
+        "Développer la fonction de soumission de vote qui envoie les données du participant à l'endpoint ('POST /api/polls/{pollId}/votes') et gère les réponses d'erreur ou de succès du serveur.",
+        "Intégrer la bibliothèque de client WebSocket (sockjs-client et stomp.js) pour établir une connexion bidirectionnelle persistante avec le serveur Spring Boot.",
+        "Mettre en place l'abonnement STOMP au topic ('/topic/polls/{pollId}/results') afin de recevoir instantanement les mises à jour de pourcentages sous forme de messages JSON structurés."
+      ]
+    },
+    {
+      "id": "TERA-INTEG-3",
+      "title": "Intégration de la Synchronisation Temps Réel et Visualisation Animée des Résultats",
+      "description": "Cette tâche finalise l'intégration globale en reliant le flux de données temps réel reçu par le client aux composants de visualisation de l'application, assurant une mise à jour instantanée et fluide de l'interface utilisateur. L'objectif est de faire en sorte que les graphiques (pie chart ou bar chart) s'animent automatiquement à chaque nouveau vote reçu via le socket, sans aucun rafraîchissement manuel de la page. Elle implique également la gestion technique de l'identifiant unique du participant ('voter_id') pour assurer la traçabilité et l'unicité des votes sur l'ensemble du système.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Créer les objets de transfert de données (DTOs) Java backend, tels que `PollResultsDTO`, pour structurer le JSON contenant les scores agrégés des options de la table ('options') et les envoyer de manière lightweight au client React.",
+        "Développer des hooks React personnalisés pour gérer l'état des résultats du vote, en liant l'écoute de l'événement WebSocket à la mise à jour de l'état du composant de graphique.",
+        "Intégrer le composant de graphique animé (Recharts ou Chart.js) en configurant ses props pour qu'il réagisse dynamiquement à l'arrivée des nouveaux pourcentages de vote sans rechargement de page.",
+        "Gérer l'identification du participant dans le flux d'intégration en stockant son identifiant ('voter_id') de manière sécurisée (cookie HTTP-only ou localStorage) pour lier son vote à l'appel REST et respecter la contrainte d'unicité côté backend."
+      ]
+    }
+  ]
+}

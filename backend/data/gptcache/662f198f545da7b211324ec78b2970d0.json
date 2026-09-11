@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "SETUP-1",
+      "title": "Analyse fonctionnelle et rédaction du cahier des charges",
+      "description": "Cette tâche consiste à réaliser une étude approfondie des besoins métier afin de définir clairement les exigences fonctionnelles et non fonctionnelles du produit. Elle permet de structurer les cas d’usage, les flux de travail et les contraintes de sécurité, performance et conformité. Le résultat sera un document de spécifications validé par le client, servant de référence pour toutes les équipes de développement. Cette étape est cruciale pour éviter les dérives de scope et garantir que l'architecture technique sera alignée avec les objectifs business.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Organiser un workshop avec les parties prenantes afin de collecter les exigences fonctionnelles détaillées, les scénarios d’utilisation et les contraintes métier spécifiques au domaine de la location de voiture.",
+        "Rédiger le cahier des charges fonctionnel en décrivant chaque cas d’usage, les flux de travail, les règles de gestion et les exigences d’interface utilisateur attendues pour l’application desktop.",
+        "Définir les exigences non fonctionnelles telles que les performances, la sécurité, la scalabilité, la disponibilité et la conformité aux normes GDPR, en les alignant avec la stack technique spécifiée dans le rapport d’architecture.",
+        "Faire valider le document de spécifications par le client et les parties prenantes, recueillir leurs retours, apporter les ajustements nécessaires et obtenir une approbation formelle signée."
+      ]
+    },
+    {
+      "id": "SETUP-2",
+      "title": "Initialisation du dépôt Git et configuration du CI/CD",
+      "description": "Cette tâche met en place l’infrastructure de versionning et d’intégration continue nécessaire au bon déroulement du projet. Elle crée le repository GitHub, configure les protections de branche, et définit un pipeline automatisé qui assure la qualité du code, la compilation et la génération des artefacts desktop. Le workflow CI/CD garantit que chaque commit passe par les étapes de linting, tests, build et packaging, tout en sécurisant les secrets. La documentation associée permettra aux développeurs de reproduire et d’étendre facilement le processus de release.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer un repository privé sur GitHub nommé 'car-rental-desktop', ajouter un fichier .gitignore complet pour Node.js, Electron et les artefacts de build, puis configurer les protections de branche sur la branche main.",
+        "Mettre en place un workflow GitHub Actions nommé 'ci-cd.yml' qui exécute le linting avec ESLint, les tests unitaires Jest, compile le code avec Webpack, puis génère les packages Windows (.exe) et macOS (.dmg) via electron‑builder, en utilisant le cache des dépendances pour accélérer les builds.",
+        "Configurer les secrets du repository (API_URL, JWT_SECRET, DATABASE_URL, STRIPE_KEY) dans les paramètres GitHub, et les référencer dans le workflow afin de garantir que les informations sensibles ne sont jamais exposées dans le code source.",
+        "Rédiger une documentation Markdown détaillée décrivant le processus de release automatisé, incluant la création d’une release GitHub, le téléchargement des artefacts générés, et les étapes de vérification post‑déploiement."
+      ]
+    },
+    {
+      "id": "SETUP-3",
+      "title": "Mise en place de l’infrastructure backend et base de données",
+      "description": "Cette tâche initialise le squelette du serveur backend Node.js/Express, configure Prisma comme ORM et crée la base de données PostgreSQL conformément au schéma relationnel fourni. Elle inclut la génération des migrations, la vérification de la création des tables et la mise en place d’un serveur minimal avec logging et gestion d’erreurs. Cette fondation permettra aux équipes de développer rapidement les API REST tout en assurant la traçabilité et la robustesse du système dès le départ.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Initialiser le projet Node.js avec la commande npm init, installer Express, Prisma, @prisma/client, dotenv, winston, et créer l’arborescence de dossiers src/controllers, src/services, src/middleware, src/routes, src/utils conformément aux bonnes pratiques de clean architecture.",
+        "Écrire le fichier schema.prisma contenant les modèles de tables : modèle 'User' avec champs ('id' UUID @id @default(uuid()), 'email' String @unique, 'password_hash' String, 'name' String, 'driver_license_number' String, 'created_at' DateTime @default(now()), 'updated_at' DateTime @updatedAt), modèle 'Car' avec champs ('id' UUID, 'make' String, 'model' String, 'year' Int, 'license_plate' String, 'daily_rate' Decimal, 'status' String, 'created_at' DateTime, 'updated_at' DateTime), modèle 'Rental', 'Payment', 'Location', 'CarImage' et 'AuditLog' avec leurs relations FK respectives.",
+        "Exécuter la commande npx prisma migrate dev pour générer et appliquer la migration initiale sur une instance PostgreSQL 16 lancée via Docker, vérifier que les tables ('users'), ('cars'), ('rentals'), ('payments'), ('locations'), ('car_images'), ('audit_logs') sont créées avec les contraintes d’unicité et les clés étrangères appropriées.",
+        "Implémenter un serveur Express minimal dans src/index.ts qui charge les variables d’environnement via dotenv, configure le middleware Winston requestLogger, ajoute le middleware global errorHandler, expose la route de santé ('GET /api/health') renvoyant un JSON {\"status\":\"ok\"}, et démarre l’application sur le port configuré (ex: 3000)."
+      ]
+    }
+  ]
+}

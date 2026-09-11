@@ -1,0 +1,30 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Développement du module Authentification et Gestion des Sessions (NestJS)",
+      "description": "Cette tâche vise à mettre en place l’ensemble du système d’authentification sécurisé, incluant l’enregistrement, la connexion, le rafraîchissement de token et la révocation, afin de garantir que chaque utilisateur possède un accès protégé aux ressources du backend. Elle repose sur des JWT signés RS256 avec une durée courte, complétés par des refresh tokens stockés dans une table dédiée, et utilise les meilleures pratiques de chiffrement et de validation. Le module doit être entièrement testé et intégré aux gardes NestJS pour protéger les routes sensibles. L’implémentation suit le schéma relationnel fourni et respecte les exigences de conformité et d’audit.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Définir les modèles Prisma pour la table ('users') avec les champs ('id'), ('email'), ('password_hash'), ('created_at') ainsi que la table ('sessions') avec ('id'), ('user_id'), ('refresh_token_hash'), ('expires_at'), en appliquant les contraintes d’unicité et de clé étrangère appropriées.",
+        "Générer les migrations SQL via Prisma Migrate afin de créer physiquement les tables dans PostgreSQL, puis vérifier la conformité des schémas avec les exigences de sécurité.",
+        "Implémenter le service NestJS 'AuthService' contenant les méthodes 'register', 'validateUser', 'login' et 'logout', en utilisant bcrypt pour le hachage du mot de passe et jsonwebtoken pour la génération du token d’accès (15 min) signé RS256.",
+        "Créer le contrôleur 'AuthController' exposant les routes REST exactes ('POST /api/auth/register'), ('POST /api/auth/login'), ('POST /api/auth/refresh'), ('POST /api/auth/logout'), et intégrer le guard JWT ainsi que le rafraîchissement sécurisé du token via le service 'RefreshTokenService'."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Développement du module BankLink et Importation des Transactions (NestJS + RabbitMQ)",
+      "description": "Cette tâche implémente l’intégration avec l’API Plaid pour permettre aux utilisateurs de lier leurs comptes bancaires, d’échanger les tokens d’accès et de recevoir les webhooks d’événements. Elle crée les entités nécessaires pour stocker les comptes et les transactions, puis met en place un pipeline asynchrone via RabbitMQ afin d’importer les mouvements bancaires de façon fiable et scalable. Le processus inclut la validation des signatures Plaid, la persistance sécurisée des tokens et la mise à jour de l’état d’importation des transactions.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "subtasks": [
+        "Définir les modèles Prisma pour la table ('bank_accounts') avec les champs ('id'), ('user_id'), ('provider'), ('external_id'), ('access_token'), ('created_at') ainsi que la table ('transactions') avec ('id'), ('account_id'), ('date'), ('amount'), ('description'), ('category_id'), ('is_imported'), ('created_at'), en ajoutant les index nécessaires pour les requêtes fréquentes.",
+        "Implémenter le service NestJS 'PlaidService' qui encapsule les appels à l’API Plaid (création de lien, échange de token, récupération des comptes) et stocke de façon sécurisée les tokens dans la colonne ('access_token') de la table ('bank_accounts').",
+        "Créer le contrôleur 'PlaidController' exposant les routes ('POST /api/bank/link'), ('POST /api/bank/exchange-token') et le webhook ('POST /api/bank/webhook'), en validant les signatures Plaid et en déclenchant le job d’import via RabbitMQ.",
+        "Développer le worker NestJS 'ImportJobWorker' qui consomme la file RabbitMQ ('transaction_import_queue'), récupère les transactions brutes, les transforme en entités Prisma, les persiste dans la table ('transactions') et marque le champ ('is_imported') à true."
+      ]
+   

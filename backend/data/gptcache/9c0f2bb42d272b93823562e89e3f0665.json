@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Configuration de l'intercepteur Axios et gestion du cycle de vie JWT (React/TypeScript)",
+      "description": "Cette tâche consiste à mettre en place la couche de communication HTTP robuste entre le frontend React et le backend Express. L'objectif est de centraliser la gestion des requêtes via Axios en configurant des intercepteurs de requête et de réponse pour automatiser l'injection du token JWT dans l'en-tête 'Authorization' et gérer les erreurs d'authentification (401) de manière transparente. Cela garantit que chaque appel API vers les routes ('/api/auth/me', '/api/tasks', '/api/categories') est sécurisé sans avoir à passer le token manuellement dans chaque composant, tout en assurant une redirection fluide vers la page de connexion si le token est expiré ou invalide, améliorant ainsi la sécurité et la maintenabilité du code frontend.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer un module 'apiClient.ts' qui instancie une instance Axios avec l'URL de base du backend et configure les en-têtes par défaut pour le contenu JSON.",
+        "Implémenter un intercepteur de requête qui lit le token JWT depuis le 'localStorage' ou les cookies httpOnly et l'injecte dynamiquement dans l'en-tête 'Authorization: Bearer <token>' avant l'envoi de chaque requête.",
+        "Développer un intercepteur de réponse qui capture les erreurs HTTP, spécifiquement le code 401, pour déclencher la suppression du token obsolète et rediriger l'utilisateur vers la page de login via le routeur React.",
+        "Créer des fonctions utilitaires typées en TypeScript pour les méthodes GET, POST, PUT et DELETE qui encapsulent les appels Axios et retournent des Promesses avec des types de données stricts correspondant aux schémas de l'API."
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Intégration des slices Redux Toolkit pour la persistance des Tâches et Catégories (Redux/TypeScript)",
+      "description": "Cette tâche vise à connecter la logique métier du frontend à l'API backend en créant des slices Redux Toolkit dédiées à la gestion des tâches et des catégories. L'objectif est de définir des actions asynchrones (thunks) qui appellent les endpoints REST ('POST /api/tasks', 'GET /api/categories', etc.) et mettent à jour l'état global de l'application en fonction des réponses du serveur. Cette approche centralise la gestion de l'état, permettant aux composants React de réagir instantanément aux changements de données (ajout, modification, suppression) sans avoir à gérer les états locaux de manière redondante, assurant ainsi une cohérence des données affichées dans l'interface utilisateur.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer un slice 'tasksSlice' avec des reducers pour les états 'loading', 'success' et 'error', et des actions asynchrones pour la récupération ('GET /api/tasks'), la création ('POST /api/tasks') et la mise à jour ('PUT /api/tasks/:id').",
+        "Créer un slice 'categoriesSlice' qui gère la liste des catégories de l'utilisateur en appelant la route ('GET /api/categories') et en gérant les opérations CRUD associées via les endpoints ('POST /api/categories', 'DELETE /api/categories/:id').",
+        "Définir des types TypeScript stricts pour les entités 'Task' et 'Category' qui reflètent exactement la structure des tables ('tasks' et 'categories') du backend, y compris les champs ('id', 'title', 'status', 'category_id', 'color_code').",
+        "Intégrer les thunks dans les composants React via le hook 'useAppDispatch' pour déclencher les actions API et s'assurer que l'état Redux est synchronisé avec les données persistées dans la base PostgreSQL."
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Connexion du tableau de bord statistique à l'endpoint d'agrégation (Recharts/Express)",
+      "description": "Cette tâche se concentre sur l'intégration de la fonctionnalité de visualisation des données en connectant le composant de statistiques du frontend à l'endpoint backend dédié. L'objectif est de récupérer les données agrégées (nombre total de tâches, taux de complétion par catégorie) via la route ('GET /api/stats/summary') et de les transformer pour alimenter les graphiques Recharts. Cela permet à l'utilisateur de voir un résumé visuel de sa productivité, reliant directement les données brutes de la base de données (via les requêtes SQL d'agrégation du 'StatsService') à une interface utilisateur interactive et informative, validant ainsi la boucle complète de la persistance et de l'analyse des données.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 3,
+      "subtasks": [
+        "Développer un composant React 'StatsDashboard' qui utilise le hook 'useEffect' pour appeler l'API ('GET /api/stats/summary') lors du montage du composant et gère l'état de chargement des données.",
+        "Créer un thunk ou une action asynchrone dans le store Redux pour récupérer les statistiques et stocker les résultats (totaux par statut, répartition par catégorie) dans l'état global.",
+        "Mapper les données brutes reçues de l'API (objets contenant 'category_name', 'total_tasks', 'completed_tasks') vers le format de données attendu par les composants de graphique Recharts (BarChart ou PieChart).",
+        "Implémenter la logique de calcul du taux de complétion côté frontend si nécessaire, ou vérifier que le backend retourne les pourcentages pré-calculés, et afficher les résultats dans des cartes de statistiques stylisées avec Tailwind CSS."
+      ]
+    }
+  ]
+}

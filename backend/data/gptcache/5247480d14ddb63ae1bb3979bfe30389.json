@@ -1,0 +1,74 @@
+{
+  "tasks": [
+    {
+      "id": "INTG-501",
+      "title": "Configuration Axios avec intercepteurs et refresh automatique JWT (Front)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche couvre la mise en place de l'instance Axios centralisée du frontend (React 18 + Vite + TypeScript) ainsi que ses intercepteurs request/response. Le but est d'assurer une communication HTTP sécurisée et résiliente avec l'API REST NestJS (versionnée '/api/v1'). L'intercepteur request injectera systématiquement le JWT Access Token (stocké en mémoire dans le store Redux) via le header 'Authorization: Bearer <token>'. L'intercepteur response détectera les codes HTTP 401, déclenchera un appel silencieux vers 'POST /api/v1/auth/refresh' (en utilisant le refresh token HttpOnly Secure SameSite=Strict), mettra à jour le store Redux Toolkit via un dispatch du slice 'authSlice' (action 'setCredentials') et rejouera la requête initiale. En cas d'échec du refresh, l'utilisateur sera déconnecté (purge du store) et redirigé vers '/login'. Cette implémentation est critique pour l'expérience utilisateur (pas de déconnexions visibles) et pour la sécurité (rotation de tokens sans exposition côté JS).",
+      "subtasks": [
+        "Créer un fichier 'src/services/api/axiosInstance.ts' qui instancie Axios avec 'baseURL' pointant sur la variable d'environnement 'VITE_API_BASE_URL' (ex: '/api/v1'), 'withCredentials: true' pour envoyer le cookie refresh token HttpOnly, et un 'timeout' de 15000ms pour éviter les requêtes bloquées.",
+        "Implémenter l'intercepteur 'request.use()' qui lit l'access token depuis le store Redux Toolkit via 'store.getState().auth.accessToken' et l'injecte dans le header 'Authorization: Bearer <token>' uniquement si celui-ci est présent et non vide, en excluant les routes publiques comme 'POST /api/v1/auth/login' et 'POST /api/v1/auth/refresh'.",
+        "Implémenter l'intercepteur 'response.use()' qui intercepte spécifiquement les erreurs avec 'error.response?.status === 401' et un flag 'error.config.__isRetryRequest === false' pour éviter les boucles infinies lors du retry de la requête initiale.",
+        "Créer une fonction asynchrone 'refreshAccessToken()' qui appelle 'POST /api/v1/auth/refresh' via une instance Axios séparée (sans intercepteur) pour éviter la récursion, parse la réponse JSON contenant le nouveau 'accessToken', et dispatch l'action 'setCredentials' du 'authSlice' Redux Toolkit avec le nouveau token.",
+        "Gérer la file d'attente des requêtes en échec via une variable 'isRefreshing: boolean' et un tableau 'failedQueue: Array<{resolve, reject}>' afin que toutes les requêtes 401 soient mises en attente pendant le refresh, puis rejouées avec le nouveau token via 'originalRequest.headers.Authorization = Bearer <newToken>'.",
+        "Ajouter un handler d'expiration définitive : si 'refreshAccessToken()' échoue (401 sur le endpoint refresh lui-même), purger entièrement le store Redux Toolkit ('store.dispatch(logout())'), rediriger vers la route '/login' via 'window.location.href' et rejeter toutes les requêtes en attente avec une erreur 'SessionExpired'.",
+        "Typer严格ement TypeScript les interfaces 'AxiosError', 'InternalAxiosRequestConfig' avec un module d'augmentation 'declare module 'axios' { interface InternalAxiosRequestConfig { __isRetryRequest?: boolean } }' pour garantir la sûreté du typage du flag anti-boucle."
+      ]
+    },
+    {
+      "id": "INTG-502",
+      "title": "Implémentation des guards de routes React (RequireAuth, RequireRole)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3,
+      "description": "Cette tâche implémente la couche de protection des routes côté frontend en utilisant React Router v6 (data routers / loaders si possible, sinon wrapper components). L'objectif est d'appliquer la matrice RBAC issue du backend NestJS (rôles stockés dans la table 'roles' et joints via 'role_id' sur 'users') pour empêcher l'accès non autorisé à des sections sensibles de l'ERP (ex: '/admin/users', '/fleet', '/reports/financial'). Le composant '<RequireAuth>' vérifiera la présence d'un utilisateur authentifié dans le store Redux Toolkit ('authSlice'), redirigera vers '/login' si absent (en conservant l'URL demandée dans le state 'location.from' pour redirection post-login). Le composant '<RequireRole roles={['ADMIN', 'MANAGER']}>' effectuera une vérification granulaire sur le tableau 'user.roles' retourné par le backend lors du login (endpoint 'POST /api/v1/auth/login'). Cette garde est essentielle pour la défense en profondeur (le backend applique déjà 'RolesGuard' mais le frontend doit masquer l'UI).",
+      "subtasks": [
+        "Créer le composant 'src/features/auth/guards/RequireAuth.tsx' qui utilise le hook 'useSelector((state: RootState) => state.auth)' pour lire 'user' et 'accessToken' depuis le 'authSlice' Redux Toolkit, et retourne '<Navigate to=\"/login\" state={{ from: location }} replace />' si l'utilisateur n'est pas authentifié.",
+        "Implémenter la logique de redirection post-login dans la page de Login : lire 'location.state?.from' au montage du composant, et après succès du 'POST /api/v1/auth/login' via RTK Query mutation, naviguer via 'useNavigate()' vers l'URL d'origine ou '/dashboard' par défaut.",
+        "Créer le composant générique 'src/features/auth/guards/RequireRole.tsx' acceptant une prop 'roles: string[]' (liste de rôles autorisés) et effectuant 'allowedRoles.includes(user.role)' ou intersection sur le tableau 'user.roles' pour supporter les utilisateurs multi-rôles.",
+        "Ajouter un rendu de fallback pour les utilisateurs authentifiés mais sans les rôles requis : afficher un composant '<ForbiddenPage />' avec code HTTP visuel 403 plutôt qu'une redirection silencieuse, et logger l'événement côté frontend via 'console.warn' et un service de tracking (Sentry/Datadog RUM).",
+        "Enregistrer les guards dans la configuration du routeur 'src/app/router.tsx' en enveloppant les 'Route' concernés : par exemple '<Route path=\"/admin/*\" element={<RequireAuth><RequireRole roles={['ADMIN']}><AdminLayout /></RequireRole></RequireAuth>} />' pour protéger le module 'users'.",
+        "Gérer le cas du rafraîchissement de page (F5) : créer un effect 'useEffect' au montage de l'application ('App.tsx') qui dispatch 'getMe()' (RTK Query vers 'GET /api/v1/auth/me') si un refresh token est présent dans les cookies HttpOnly, afin de reconstituer la session avant l'évaluation des guards.",
+        "Écrire les tests unitaires Vitest + React Testing Library pour 'RequireAuth' (utilisateur non authentifié → redirect, authentifié → render children) et 'RequireRole' (rôle insuffisant → 403, rôle valide → render)."
+      ]
+    },
+    {
+      "id": "INTG-503",
+      "title": "Intégration WebSockets Socket.IO pour le tracking GPS temps réel (Back+Front)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "description": "Cette tâche établit le canal de communication bidirectionnel temps réel entre les boîtiers GPS IoT / applications mobiles chauffeurs et l'interface web de l'ERP. Côté backend NestJS, un 'TrackingGateway' utilisant '@nestjs/websockets' et Socket.IO sera créé dans le module 'tracking/', exposant le namespace '/tracking'. Il exposera les événements 'joinShipment' (rejoindre la room d'une 'shipments.id'), 'joinFleet' (room globale chauffeurs) et 'positionUpdate' (broadcast). Côté frontend, un client Socket.IO singleton sera instancié dans 'src/services/realtime/trackingSocket.ts', authentifié via le JWT access token, et fournira un hook React 'useShipmentTracking(shipmentId)' qui consomme les positions et les expose au store Redux pour mise à jour des marqueurs Leaflet/Mapbox. L'architecture doit supporter la montée en charge via Redis adapter (Socket.IO Redis Adapter) pour permettre le scale horizontal du backend.",
+      "subtasks": [
+        "Créer le Gateway NestJS 'src/modules/tracking/tracking.gateway.ts' avec le décorateur '@WebSocketGateway({ namespace: '/tracking', cors: { origin: env.FRONTEND_URL, credentials: true } })' et injecter 'TrackingService' ainsi qu'un 'JwtService' pour valider le token envoyé dans le handshake 'socket.handshake.auth.token'.",
+        "Implémenter la souscription aux rooms : méthode '@SubscribeMessage(\"joinShipment\")' qui valide que l'utilisateur (extrait du JWT) a accès à la 'shipments.id' (via vérification RBAC 'driver', 'admin', ou 'customer' propriétaire) puis fait 'socket.join(`shipment:${shipmentId}`)' et retourne un ack de confirmation.",
+        "Implémenter l'événement serveur 'positionUpdate' émis par 'TrackingService' après ingestion via 'POST /api/v1/tracking/positions' (endpoint REST appelé par les devices), qui fait 'this.server.to(`shipment:${id}`).emit(\"positionUpdate\", { coords: [lng, lat], timestamp, speed, heading })' à tous les clients abonnés.",
+        "Configurer le Redis Adapter dans 'src/modules/tracking/tracking.module.ts' via 'IoAdapter' personnalisé pour permettre le scale-out multi-instances : 'import { RedisIoAdapter } from './adapters/redis-io.adapter' et enregistrer via 'app.useWebSocketAdapter(new RedisIoAdapter(app))' dans 'main.ts'.",
+        "Créer le client Socket.IO frontend 'src/services/realtime/trackingSocket.ts' qui wrap 'io(import.meta.env.VITE_WS_URL, { transports: ['websocket'], auth: { token: () => store.getState().auth.accessToken }, autoConnect: false })' pour gérer le refresh token sans reconnect.",
+        "Implémenter le hook React 'src/features/tracking/hooks/useShipmentTracking.ts' qui au mount fait 'socket.emitWithAck(\"joinShipment\", shipmentId)' puis écoute 'socket.on(\"positionUpdate\", payload => dispatch(addPosition({shipmentId, position})))' pour intégrer les positions dans le slice Redux 'trackingSlice'.",
+        "Gérer la résilience de connexion : implémenter 'socket.on(\"disconnect\")' avec backoff exponentiel (1s, 2s, 4s, 8s max 30s) et un état Redux 'trackingConnectionStatus: 'connected' | 'reconnecting' | 'offline'' affiché dans l'UI, plus une stratégie de fallback REST polling via RTK Query 'pollingInterval: 30000' si la WebSocket est down plus de 60 secondes.",
+        "Persister les positions dans la table 'gps_positions' (champs: 'id', 'shipment_id' FK, 'coords' GEOGRAPHY(POINT), 'recorded_at' TIMESTAMPTZ, 'speed', 'heading') via partitionnement PostgreSQL par mois (Partition by RANGE on recorded_at) et index GIST sur 'coords' pour optimiser les requêtes géospatiales."
+      ]
+    },
+    {
+      "id": "INTG-504",
+      "title": "Connexion RTK Query avec l'API REST NestJS et configuration du store Redux Toolkit",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "description": "Cette tâche finalise l'intégration frontend en configurant RTK Query (intégré à Redux Toolkit) comme couche d'abstraction sur l'instance Axios précédemment créée. L'objectif est de typer fortement les endpoints backend, gérer le cache automatique (avec invalidation par tags), implémenter l'authentification (prepareHeaders injectant le JWT), et orchestrer l'ensemble via le 'configureStore' Redux Toolkit. Chaque module métier ('inventory', 'orders', 'shipments', 'fleet', 'users') disposera de son propre fichier 'xxxApi.ts' exportant les hooks générés (useGetProductsQuery, useCreateOrderMutation, etc.). Cette approche remplace les appels Axios manuels et fournit un typage bout-en-bout depuis le DTO NestJS jusqu'au composant React via TypeScript inference.",
+      "subtasks": [
+        "Configurer le store Redux Toolkit dans 'src/app/store.ts' via 'configureStore({ reducer: { auth: authReducer, [authApi.reducerPath]: authApi.reducer, ... }, middleware: getDefault => getDefault().concat(authApi.middleware, inventoryApi.middleware, ordersApi.middleware, shipmentsApi.middleware) })' et exporter les types 'RootState' et 'AppDispatch' pour les hooks typés.",
+        "Créer le 'authApi' dans 'src/features/auth/api/authApi.ts' utilisant 'createApi' avec 'baseQuery: fetchBaseQuery({ baseUrl: '/api/v1/', prepareHeaders: (headers, { getState }) => { const token = (getState() as RootState).auth.accessToken; if (token) headers.set('authorization', `Bearer ${token}`); return headers; } })' pour auto-injecter le JWT.",
+        "Implémenter les endpoints 'authApi.endpoints.login.initiate', 'authApi.endpoints.refresh.initiate', 'authApi.endpoints.logout.initiate' mappant respectivement sur 'POST /api/v1/auth/login', 'POST /api/v1/auth/refresh', 'POST /api/v1/auth/logout', et utiliser 'transformResponse' pour mapper la réponse backend vers le format attendu par le 'authSlice'.",
+        "Créer les APIs métier 'inventoryApi.ts' (endpoints: 'getStock' → 'GET /api/v1/inventory/stock', 'createMovement' → 'POST /api/v1/inventory/movements', 'getWarehouses' → 'GET /api/v1/warehouses'), 'ordersApi.ts', 'shipmentsApi.ts' en définissant 'providesTags' et 'invalidatesTags' pour la synchronisation du cache (ex: 'providesTags: ['Product']', 'invalidatesTags: [{ type: 'Product', id: 'LIST' }]').",
+        "Configurer 'tagTypes' dans chaque 'createApi' ('Product', 'Order', 'Shipment', 'Warehouse', 'InventoryMovement', 'User', 'GpsPosition') et définir une stratégie d'invalidation cohérente : toute mutation (POST/PATCH/DELETE) doit invalider les tags correspondants pour forcer le re-fetch automatique des listes affectées.",
+        "Implémenter la gestion centralisée des erreurs API dans 'src/services/api/baseQueryWithReauth.ts' qui wrap 'fetchBaseQuery' et intercepte les 401 pour déclencher le refresh token (réutilisation de la logique d'INTG-501) puis retry la requête, avec un 'extraOptions.skipReauth' pour éviter la boucle sur l'endpoint 'refresh' lui-même.",
+        "Exporter les hooks générés par RTK Query ('useLoginMutation', 'useGetStockQuery', etc.) et les consommer dans les composants via les custom hooks du feature ('useAuth.ts', 'useInventory.ts') qui ajoutent la logique de sélection (useSelector sur le state RTKQ pour récupérer isLoading, isError, data) et dispatchent les actions Redux nécessaires.",
+        "Écrire les tests d'intégration Vitest avec MSW (Mock Service Worker) afin de mocker les endpoints REST et vérifier le comportement du store Redux Toolkit (state updates après mutation, invalidation de cache, gestion d'erreur 401 avec refresh)."
+      ]
+    }
+  ]
+}

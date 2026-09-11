@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Initialisation du projet Frontend avec Vite, React 18, TypeScript, Tailwind CSS et Zustand",
+      "description": "Cette tâche consiste à créer la structure de base du projet frontend en utilisant Vite comme bundler, React 18 et TypeScript pour la typage statique, Tailwind CSS pour le styling utilitaire, Headless UI pour les composants accessibles, et Zustand pour la gestion d’état globale. L’objectif est d’installer et de configurer les dépendances, de mettre en place les conventions de dossier, de créer un thème Tailwind personnalisé, d’intégrer les plugins nécessaires (autoprefixer, forms, aspect-ratio), et de préparer un store Zustand partagé pour les données de panier et d’utilisateur. De plus, la configuration de React Query (ou SWR) sera ajoutée pour la récupération asynchrone des données du catalogue et du panier, ainsi que la mise en place d’Apollo Client pour les requêtes GraphQL de recherche et de filtrage. Enfin, un fichier d’initialisation de l’authentification (JWT dans cookie HttpOnly) sera créé pour sécuriser les appels API.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Installer Vite, React 18, TypeScript, Tailwind CSS, Headless UI, Zustand, React Query et Apollo Client via npm, puis configurer le fichier vite.config.ts pour supporter les extensions TS et les alias de chemins afin d’améliorer la lisibilité du code.",
+        "Créer un dossier ‘src’ structuré en ‘components’, ‘pages’, ‘hooks’, ‘store’, ‘assets’ et ‘utils’, et y placer un fichier ‘index.tsx’ qui initialise l’application avec le provider Zustand, le provider React Query, le provider Apollo Client et le router React Router v6, en s’assurant que le thème Tailwind est chargé via le fichier ‘index.css’.",
+        "Définir un fichier ‘theme.ts’ dans le dossier ‘src’ qui exporte un objet de configuration Tailwind personnalisée (couleurs, polices, breakpoints) et l’intégrer dans le fichier tailwind.config.js en utilisant la fonction ‘extend’ pour ajouter des variantes spécifiques aux composants de la plateforme.",
+        "Écrire un hook personnalisé ‘useAuth’ qui lit le JWT stocké dans un cookie HttpOnly, vérifie sa validité via un endpoint ‘GET /api/auth/me’, et expose l’état d’authentification ainsi que les fonctions de login/logout en utilisant Axios pour les appels REST, tout en configurant les en-têtes CSRF et CSP appropriés."
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Construction de la page Catalogue avec filtrage, pagination et intégration GraphQL",
+      "description": "Cette tâche vise à développer la page de catalogue produit qui affiche les éléments de la table ('products') avec leurs variantes, images et tags. Elle doit permettre aux utilisateurs de filtrer par catégorie, tag, prix et disponibilité, de paginer les résultats et d’afficher les données de manière responsive. L’intégration GraphQL via Apollo Client sera utilisée pour les requêtes de recherche et de filtrage, tandis que React Query sera employé pour la mise en cache et la gestion des états de chargement. Les composants Tailwind et Headless UI seront utilisés pour créer une interface accessible et moderne, incluant des menus déroulants, des boutons et des cartes produit. La page devra également gérer l’ajout d’un produit à la variable d’état du panier via Zustand.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 13,
+      "subtasks": [
+        "Créer un composant ‘ProductCard’ qui accepte les props d’un objet produit provenant de la table ('products') et affiche le nom, le prix, la première image de la table ('product_images') et un bouton ‘Ajouter au panier’, en utilisant Tailwind pour le style et Headless UI pour le focus management.",
+        "Mettre en place un hook ‘useProducts’ qui exécute une requête GraphQL ‘query GetProducts($filters: ProductFilterInput, $page: Int, $limit: Int)’ pour récupérer les produits filtrés, en utilisant les champs de la table ('product_variants') pour les variantes et la table ('product_tags') pour les tags, et en gérant la pagination via les paramètres ‘page’ et ‘limit’.",
+        "Développer un composant ‘FilterSidebar’ qui utilise Headless UI ‘Disclosure’ et ‘Listbox’ pour permettre aux utilisateurs de sélectionner des catégories (table ('categories')), tags (table ('tags')), et de définir une plage de prix, en mettant à jour les variables d’état de la requête GraphQL via le hook ‘useProducts’.",
+        "Intégrer le store Zustand pour le panier en créant une action ‘addToCart’ qui ajoute un objet de la table ('cart_items') avec le champ ‘product_variant_id’ et la quantité, et en affichant le nombre d’articles dans le header via un composant ‘CartIcon’."
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Page Détail Produit avec rendu 3D, variantes, panier et checkout",
+      "description": "Cette tâche consiste à concevoir la page de détail produit qui affiche les informations détaillées de la table ('products'), les variantes disponibles, les images, et un aperçu 3D interactif via React Three Fiber. Le rendu 3D doit charger le modèle GLTF de la table ('product_3d_models') en utilisant GLTFLoader, permettre la rotation, le zoom et l’éclairage, et être responsive. La page doit également intégrer un formulaire de sélection de variante, un bouton d’ajout au panier, et un lien vers la page de checkout. Le checkout doit afficher les éléments du panier (table ('cart_items') et ('orders')), calculer le total, et appeler le backend via REST (POST /api/orders) pour créer une commande. Les notifications en temps réel via Socket.io-client seront affichées pour les mises à jour d’inventaire.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 21,
+      "subtasks": [
+        "Créer un composant ‘ProductDetail’ qui récupère les données d’un produit via une requête GraphQL ‘query GetProductById($id: ID!)’ en utilisant l’ID de la route, et qui affiche les champs de la table ('products') tels que ‘name’, ‘description’, ‘price’, ainsi que les images de la table ('product_images') et les variantes de la table ('product_variants') avec un sélecteur de couleur/tailles.",
+        "Intégrer React Three Fiber dans le composant ‘ThreePreview’ en chargeant le fichier GLTF de la table ('product_3d_models') avec GLTFLoader, en ajoutant un contrôleur OrbitControls pour la rotation, un éclairage DirectionalLight et un environnement HDRI, tout en assurant que le canvas s’adapte aux dimensions de l’écran et que le modèle se redimensionne correctement.",
+        "Développer un hook ‘useCart’ basé sur Zustand qui expose les fonctions ‘addToCart’ et ‘removeFromCart’, et qui met à jour le store global avec les objets de la table ('cart_items') en incluant le champ ‘product_variant_id’ et la quantité, en synchronisant l’état avec le backend via le endpoint REST ‘POST /api/cart/items’.",
+        "Construire la page ‘Checkout’ qui lit le contenu du panier depuis Zustand, calcule le total en multipliant le prix de chaque variante (table ('product_variants')) par la quantité, affiche un formulaire d’adresse de livraison (table ('shipping_addresses')), et envoie les données via Axios au endpoint REST ‘POST /api/orders’ pour créer une nouvelle commande dans la table ('orders') et les éléments correspondants dans la table ('order_items')."
+      ]
+    }
+  ]
+}

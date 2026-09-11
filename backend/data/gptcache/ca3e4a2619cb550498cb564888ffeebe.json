@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-101",
+      "title": "Développement des endpoints d'authentification JWT (login, refresh, logout) avec NestJS",
+      "description": "Cette tâche consiste à implémenter les points d'entrée d'authentification sécurisés permettant aux utilisateurs de se connecter, de rafraîchir leur token et de se déconnecter, en utilisant le module AuthController de NestJS, le service JwtService pour signer les tokens, bcrypt pour la vérification des mots de passe, et des guards ainsi que des interceptors pour appliquer la validation des données, la limitation de taux et le stockage des tokens dans des cookies HttpOnly afin de prévenir les attaques XSS et CSRF.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Implémenter le DTO LoginDto avec les decorateurs de validation (IsEmail, IsNotEmpty, MinLength) et créer la méthode POST /api/auth/login dans AuthController qui récupère l'utilisateur depuis la table ('users') avec les champs ('email') et ('password_hash') via le repository TypeORM, puis compare le hash fourni avec bcrypt.compare pour valider les identifiants.",
+        "Générer un access token signé contenant le payload { sub: user.id, role: user.role } grâce à JwtService.signAsync, créer un refresh token stocké dans un cookie HttpOnly, sécurisé et SameSite=Strict, puis retourner une réponse JSON incluant l'access token et définir le cookie via res.cookie('refreshToken', token, { httpOnly: true, secure: true, sameSite: 'strict' }).",
+        "Créer l'endpoint POST /api/auth/refresh qui lit le cookie refreshToken, le vérifie avec JwtService.verify, génère un nouveau access token et un nouveau refresh token, met à jour le cookie HttpOnly, applique le guard JwtAuthGuard et le rate limiter défini à 5 requêtes par minute pour prévenir les abus.",
+        "Implémenter le endpoint POST /api/auth/logout qui efface le cookie HttpOnly en appelant res.clearCookie('refreshToken', { httpOnly: true, secure: true, sameSite: 'strict' }), éventuellement ajoute le token jti à une blacklist Redis pour invalider le refresh token côté serveur, et retourne un statut 200 avec un message de déconnexion réussie, tout en étant protégé par le guard JwtAuthGuard."
+      ]
+    },
+    {
+      "id": "TERA-102",
+      "title": "Développement des API CRUD pour les entités Users, Jobs et Applications avec NestJS et TypeORM",
+      "description": "Cette tâche couvre la création des contrôleurs REST permettant la gestion complète des profils utilisateurs, des offres d'emploi et des candidatures, en exploitant les repositories TypeORM pour interagir avec les tables ('users'), ('candidate_profiles'), ('recruiter_profiles'), ('jobs'), ('applications') et en appliquant des guards basés sur les rôles (candidat/recruteur) ainsi des pipes de validation pour garantir l'intégrité des données reçues et renvoyer des réponses conformes aux spécifications API.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer UsersController avec les méthodes GET /api/users/me (récupération du profil en joignant la table ('users') avec soit ('candidate_profiles') soit ('recruiter_profiles') selon le champ ('role')), PATCH /api/users/me pour mettre à jour les colonnes ('full_name'), ('phone'), ('location') ou ('company_name'), ('company_website') après validation via UpdateUserDto, et DELETE /api/users/me pour définir un flag d'inactivité (ou supprimer logiquement) en utilisant le guard RolesGuard(Role.Candidate, Role.Recruiter) et le pipe ValidationPipe.",
+        "Implémenter JobsController comprenant POST /api/jobs (création d'une offre avec CreateJobDto contenant les champs ('title'), ('description'), ('location'), ('employment_type') et liaison automatique du champ ('recruiter_id') à l'utilisateur authentifié), GET /api/jobs (liste paginée avec filtres optionnels sur ('location') et ('employment_type')), GET /api/jobs/:id (récupération détaillée), PATCH /api/jobs/:id (mise à jour partielle via UpdateJobDto), DELETE /api/jobs/:id (suppression conditionnelle si l'utilisateur est le recruteur propriétaire), le tout en utilisant le repository TypeORM pour persister les colonnes ('created_at') et ('updated_at') automatiquement via les décorateurs @CreateDateColumn et @UpdateDateColumn.",
+        "Développer ApplicationsController avec POST /api/applications où le DTO ApplyDto contient uniquement ('jobId'), le contrôleur vérifie l'absence d'une ligne existante dans la table ('applications') avec les mêmes ('candidate_id') (extrait du token JWT) et ('job_id') afin d'éviter les doublons, puis enregistre la nouvelle candidature avec le statut par défaut 'applied' et le timestamp ('applied_at'), GET /api/applications/me pour récupérer les candidatures du candidat en joignant les tables ('applications'), ('jobs') et éventuellement ('matches') pour afficher le statut et le score de matching, et PATCH /api/applications/:id/status qui accepte UpdateApplicationStatusDto avec un champ ('status') appartenant à l'enum ['applied','reviewed','interviewed','hired','rejected'] et met à jour la colonne ('updated_at') après vérification que l'utilisateur est soit le candidat soit le recruteur lié à l'offre.",
+        "Définir les DTOs spécifiques (CreateJobDto, UpdateJobDto, ApplyDto, UpdateApplicationStatusDto) en utilisant les decorateurs de validation de class-validator (IsString, IsNotEmpty, IsEnum, IsOptional) et les intégrer dans les contrôleurs via le pipe ValidationPipe global, tout en configurant les interceptors de serialization (ClassSerializerInterceptor) pour exclure les champs sensibles tels que ('password_hash') des réponses JSON, et en ajoutant des tests unitaires avec Jest pour valider chaque scénario de création, lecture, mise à jour et suppression."
+      ]
+    },
+    {
+      "id": "TERA-103",
+      "title": "Développement des endpoints de matching et de statistiques du dashboard avec NestJS, intégration gRPC aux services IA et calcul de scores",
+      "description": "Cette tâche consiste à mettre en place les contrôleurs permettant d'obtenir les matchs entre candidats et offres, de déclencher le calcul de similarité via les services gRPC FastAPI (ParseCVService et MatchService), de persister les résultats dans les tables ('matches') et ('dashboard_stats'), et d'exposer des agrégations statistiques pour le tableau de bord recruteur, en assurant la séparation des préoccupations entre le API REST NestJS et les microservices d'IA, tout en gérant les erreurs de communication et en appliquant les gardes d'authentification et de rôle appropriés.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Créer MatchesController avec la méthode GET /api/matches qui, en utilisant le payload du JWT pour extraire le candidatId, effectue une jointure TypeORM entre les tables ('matches'), ('jobs') et ('job_skills') ainsi que entre ('candidate_skills') pour retourner la liste des objets contenant les champs ('job.id'), ('job.title'), ('match_score') et ('matches.created_at'), en appliquant le guard JwtAuthGuard et en sélectionnant uniquement les colonnes nécessaires via le query builder pour éviter le sur‑fetch.",
+        "Implémenter l'endpoint GET /api/matches/:jobId qui récupère le match spécifique pour le candidat authentifié en filtrant la table ('matches') où ('candidate_id') = candidatId et ('job_id') = :jobId, puis retourne le DTO MatchDto contenant le score, la date de création et les détails de l'offre (title, description) après avoir effectué une jointure avec la table ('jobs'), tout en levant une exception NotFoundException si aucun enregistrement n'est trouvé.",
+        "Développer le endpoint POST /api/jobs/:jobId/match qui, après validation du rôle candidat via le guard JwtAuthGuard, récupère le texte brut du CV depuis la table ('cv_files') champ ('parsed_text') lié au candidat, appelle le service gRPC ParseCVService (FastAPI) pour obtenir l'embedding du CV, puis appelle le service gRPC MatchService avec cet embedding et l'embedding pré‑calculé de l'offre (stocké éventuellement dans une colonne dédiée ou calculé à la volée) afin d'obtenir le score de similarité cosinus, enfin enregistre une nouvelle ligne dans la table ('matches') avec les colonnes ('candidate_id'), ('job_id'), ('match_score') et ('created_at') via le repository TypeORM, en retournant le score calculé dans la réponse.",
+        "Créer StatsController comportant la méthode GET /api/stats/dashboard qui, pour le recruteur authentifié, agrège les données : compte le total des lignes dans la table ('applications') où le ('job_id') appartient à une offre dont le ('recruiter_id') correspond à l'utilisateur connecté, compte celles ayant le statut 'hired', calcule la moyenne du champ ('match_score') dans la table ('matches') pour les mêmes offres, puis soit insère soit met à jour une ligne dans la table ('dashboard_stats') avec les colonnes ('recruiter_id'), ('period_start') (début du mois courant), ('period_end') (fin du mois courant), ('total_applications'), ('hired_count'), ('avg_match_score') et ('updated_at') = NOW(), enfin retourne un objet StatsDto contenant ces valeurs, le tout protégé par le guard RolesGuard(Role.Recruiter)."
+      ]
+    }
+  ]
+}

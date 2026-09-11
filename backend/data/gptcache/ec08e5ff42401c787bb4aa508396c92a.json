@@ -1,0 +1,48 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Configuration de l'intercepteur Axios et transport du JWT (Frontend/Backend)",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche consiste à configurer le client HTTP Axios du frontend React pour qu'il communique de manière sécurisée avec le backend Spring Boot. L'objectif est d'injecter automatiquement le token JWT dans les en-têtes de chaque requête REST, de gérer les erreurs d'authentification (expiration de token) et de définir l'URL de base de l'API. Une configuration robuste de l'intercepteur Axios garantit que les appels aux routes protégées, telles que la création de salons ou la récupération des profils, sont exécutés dans un contexte sécurisé et sans interruption.",
+      "subtasks": [
+        "Initialize the Axios client instance with a base URL pointing to the Spring Boot backend API root (`/api/v1`) and configure default HTTP headers to accept and send JSON payloads.",
+        "Implement a request interceptor function to fetch the active session token from the client-side storage (like `localStorage`) and automatically inject it into the HTTP header (`Authorization: Bearer {token}`) before any request is sent to the route `POST /api/v1/auth/login` or other protected endpoints.",
+        "Create a response interceptor to catch unauthorized errors (HTTP 401/403), trigger a clean logout action, and redirect the user to the route `/login` when the token provided to the table `users` column `status` validation fails or expires.",
+        "Configure global error handling within Axios to intercept network failures, parse backend error structures, and programmatically trigger visual feedback components styled with TailwindCSS to notify the user of connection issues."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Configuration du client STOMP avec @stomp/stompjs pour WebSockets en temps réel",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "description": "Cette tâche technique porte sur la configuration du client STOMP `@stomp/stompjs` pour établir une connexion WebSocket persistante avec le backend Spring Messaging. Il s'agit d'initialiser la socket avec un fallback SockJS, de gérer l'authentification de la connexion via les en-têtes, et de configurer les souscriptions aux topics de diffusion des messages et de présence. Cette communication en temps réel est essentielle pour l'affichage instantané des messages de la table `messages` sans rechargement de page.",
+      "subtasks": [
+        "Install the `@stomp/stompjs` package and instantiate a client configuration pointing to the WebSocket endpoint `ws://[backend-host]/ws` with SockJS fallback enabled for network compatibility.",
+        "Configure the STOMP client `connectHeaders` to securely pass the user's JWT token during the connection handshake to authenticate the WebSocket session on the backend side.",
+        "Set up dynamic subscription hooks to listen to the destination `/topic/rooms/{roomId}` to receive new messages stored in table `messages` with fields (`id`, `content`, `sent_at`) and update the UI in real time.",
+        "Implement the publishing logic to send message payloads from the client interface directly to the backend destination `/app/chat.send`, mapping fields to the schema of table `messages` (`content`, `sender_id`, `room_id`) for persistent storage."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Synchronisation de l'état global de l'application et indicateurs de présence",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "description": "Cette tâche finalise l'intégration globale en synchronisant l'état global de l'application React (via Context API ou Redux Toolkit) avec les événements temps réel reçus via STOMP. L'objectif est de faire le lien entre les données WebSocket reçues (nouveaux messages, changements de statut des utilisateurs) et les composants UI stylisés avec TailwindCSS. Cette synchronisation permet de maintenir une liste de membres en ligne/hors ligne à jour et d'afficher les messages de manière fluide dans l'interface globale de l'application LiveText.",
+      "subtasks": [
+        "Create a global state slice (using Redux Toolkit or Context API) to store the current list of chat rooms from table `rooms` (`id`, `name`) and the real-time message history fetched via route `GET /api/v1/messages/room/{roomId}/messages`.",
+        "Develop a central real-time listener that parses incoming STOMP messages from the topic `/topic/users.status` and updates the global state store reflecting changes in the table `users` column `status` (`ONLINE` or `OFFLINE`).",
+        "Bind the visual online/offline indicators of user avatars in the TailwindCSS-styled sidebar directly to the global state variables updated by the WebSocket events.",
+        "Implement cleanup routines to unsubscribe from STOMP topics when navigation route changes occur (e.g., moving from `/rooms/:roomId` to `/rooms`), preventing memory leaks and optimizing application performance."
+      ]
+    }
+  ]
+}
