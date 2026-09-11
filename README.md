@@ -57,20 +57,93 @@ graph TD
     Graph_Agent -- API --> Services_LLM
 ```
 
-## ⚙️ De quoi avez-vous besoin ? (Configuration `.env`)
+## 🗄️ Schéma de Base de Données (Database Schema)
 
-L'application repose sur un fichier `.env` situé dans le dossier `backend/`. Voici ce qu'il doit contenir (vous devez y mettre vos propres clés pour la sécurité) :
+TeraSprint utilise une base de données **PostgreSQL** relationnelle, optimisée avec l'extension `pgvector` pour d'éventuelles futures fonctionnalités de recherche sémantique. Voici le schéma Entité-Relation simplifié :
+
+```mermaid
+erDiagram
+    USER ||--o{ PROJECT : "crée"
+    USER ||--o{ WORKSPACE_SESSION : "participe à"
+    
+    PROJECT ||--o{ EPIC : "contient"
+    EPIC ||--o{ USER_STORY : "se divise en"
+    USER_STORY ||--o{ TASK : "est composée de"
+    
+    TASK ||--o{ WORKSPACE_FILE : "génère (Code)"
+    TASK ||--o{ WORKSPACE_MESSAGE : "historique chat IA"
+
+    USER {
+        uuid id PK
+        string email
+        string password_hash
+        boolean mfa_enabled
+    }
+    
+    PROJECT {
+        uuid id PK
+        uuid user_id FK
+        string title
+        text architecture_report
+    }
+    
+    EPIC {
+        string id PK
+        uuid project_id FK
+        string title
+        string description
+    }
+    
+    USER_STORY {
+        string id PK
+        string epic_id FK
+        string role
+        string action
+        string result
+    }
+    
+    TASK {
+        string id PK
+        string user_story_id FK
+        string title
+        string description
+        string type
+        int estimated_hours
+    }
+```
+
+## 🐳 Déploiement et Conteneurs (Docker)
+
+Le projet est entièrement "Dockerisé" pour faciliter son déploiement via `docker-compose.yml`. Voici les conteneurs utilisés dans notre infrastructure :
+
+1. **`db` (PostgreSQL / pgvector)** : Le moteur de base de données relationnelle.
+2. **`backend` (FastAPI)** : Le cœur logique, tournant sous Python.
+3. **`frontend` (React/Vite)** : L'interface utilisateur, servie par un serveur Node.js léger.
+4. **`phoenix` (Arize Phoenix)** : Une plateforme d'observabilité LLM (sur les ports `6006`, `4317`) pour tracer, déboguer et surveiller les requêtes faites aux Intelligences Artificielles (LangChain).
+
+## 📋 Prérequis et Exigences (Requirements)
+
+Avant de lancer le projet (en mode développeur ou production), vous devez vous assurer de disposer des éléments suivants :
+
+### 1. Outils Locaux (Local Stack)
+- **Git** : Pour cloner et gérer le code source.
+- **Docker Desktop** (ou Docker Engine + Docker Compose) : Fortement recommandé pour lancer la BDD et Phoenix d'un seul clic.
+- **Python 3.10 ou supérieur** (si exécution du backend hors Docker).
+- **Node.js 18 ou supérieur** (si exécution du frontend hors Docker).
+
+### 2. Clés d'API & Environnement (`.env`)
+L'application repose sur un fichier `.env` situé dans le dossier `backend/`. Voici ce qu'il doit impérativement contenir :
 
 - **Configuration Base de Données :**
-  - `DATABASE_URL` : L'URL de connexion à la base de données PostgreSQL (ex: `postgresql://admin:password@localhost:5432/terasprint`).
+  - `DATABASE_URL` : (ex: `postgresql://admin:password@localhost:5432/terasprint`).
 - **Sécurité et Authentification :**
   - `JWT_SECRET` / `JWT_ALGORITHM` : Clés pour la sécurisation des sessions.
-  - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` : Pour la connexion SSO Google (OAuth).
-  - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` : Pour la connexion SSO GitHub et les commits automatiques.
-- **Clés API (Intelligence Artificielle et Exécution) :**
-  - `GROQ_API_KEY` : Pour utiliser les modèles ultra-rapides de Groq (ex: Llama 3).
-  - `E2B_API_KEY` : Indispensable pour exécuter le code généré dans un environnement Sandbox sécurisé dans le cloud.
-  - `HF_TOKEN` : Token HuggingFace (si vous utilisez des modèles spécifiques).
+  - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` : (Optionnel) Pour le SSO Google.
+  - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` : (Optionnel) Pour le SSO GitHub.
+- **Intelligence Artificielle (Le Cœur du Système) :**
+  - `GROQ_API_KEY` : (Requis) Pour utiliser les modèles ultra-rapides de Groq (Llama 3).
+  - `E2B_API_KEY` : (Requis) Pour exécuter le code généré dans le Sandbox sécurisé cloud.
+  - `HF_TOKEN` : (Optionnel) Token HuggingFace.
 
 ## 🚀 Démarrer le Projet
 
@@ -80,11 +153,16 @@ L'application repose sur un fichier `.env` situé dans le dossier `backend/`. Vo
    cd TeraSprint
    ```
 
-2. **Backend** : Allez dans le dossier `backend/`, installez les dépendances (`pip install -r requirements.txt`) et lancez avec `fastapi dev main.py`. (Voir le `README.md` du backend pour les détails).
+2. **Démarrage Ultra-Rapide (Docker)** :
+   ```bash
+   docker-compose up --build
+   ```
+   *Cela lancera le Frontend, le Backend, PostgreSQL, et Arize Phoenix en un coup.*
 
-3. **Frontend** : Allez dans le dossier `frontend/`, installez les dépendances (`npm install`) et lancez avec `npm run dev`. (Voir le `README.md` du frontend pour les détails).
-
-4. **Docker** : Vous pouvez aussi lancer la base de données via le fichier `docker-compose.yml` présent à la racine.
+3. **Démarrage Manuel (Mode Développement)** :
+   - Lancez uniquement les services externes : `docker-compose up db phoenix -d`
+   - **Backend** : `cd backend && pip install -r requirements.txt && fastapi dev main.py`
+   - **Frontend** : `cd frontend && npm install && npm run dev`
 
 ---
 
