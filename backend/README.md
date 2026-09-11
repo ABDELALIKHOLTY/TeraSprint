@@ -68,6 +68,63 @@ stateDiagram-v2
 
 ---
 
+## 🗄️ Schéma de Base de Données (Database Schema)
+
+Le backend gère une base de données **PostgreSQL** relationnelle. Voici le schéma Entité-Relation :
+
+```mermaid
+erDiagram
+    USER ||--o{ PROJECT : "crée"
+    USER ||--o{ WORKSPACE_SESSION : "participe à"
+    
+    PROJECT ||--o{ EPIC : "contient"
+    EPIC ||--o{ USER_STORY : "se divise en"
+    USER_STORY ||--o{ TASK : "est composée de"
+    
+    TASK ||--o{ WORKSPACE_FILE : "génère (Code)"
+    TASK ||--o{ WORKSPACE_MESSAGE : "historique chat IA"
+
+    USER {
+        uuid id PK
+        string email
+        string password_hash
+        boolean mfa_enabled
+    }
+    
+    PROJECT {
+        uuid id PK
+        uuid user_id FK
+        string title
+        text architecture_report
+    }
+    
+    EPIC {
+        string id PK
+        uuid project_id FK
+        string title
+        string description
+    }
+    
+    USER_STORY {
+        string id PK
+        string epic_id FK
+        string role
+        string action
+        string result
+    }
+    
+    TASK {
+        string id PK
+        string user_story_id FK
+        string title
+        string description
+        string type
+        int estimated_hours
+    }
+```
+
+---
+
 ## 📁 Structure Détaillée des Dossiers
 
 - **`api/routes/`** : Les points d'entrée de l'API.

@@ -57,61 +57,6 @@ graph TD
     Graph_Agent -- API --> Services_LLM
 ```
 
-## 🗄️ Schéma de Base de Données (Database Schema)
-
-TeraSprint utilise une base de données **PostgreSQL** relationnelle, optimisée avec l'extension `pgvector` pour d'éventuelles futures fonctionnalités de recherche sémantique. Voici le schéma Entité-Relation simplifié :
-
-```mermaid
-erDiagram
-    USER ||--o{ PROJECT : "crée"
-    USER ||--o{ WORKSPACE_SESSION : "participe à"
-    
-    PROJECT ||--o{ EPIC : "contient"
-    EPIC ||--o{ USER_STORY : "se divise en"
-    USER_STORY ||--o{ TASK : "est composée de"
-    
-    TASK ||--o{ WORKSPACE_FILE : "génère (Code)"
-    TASK ||--o{ WORKSPACE_MESSAGE : "historique chat IA"
-
-    USER {
-        uuid id PK
-        string email
-        string password_hash
-        boolean mfa_enabled
-    }
-    
-    PROJECT {
-        uuid id PK
-        uuid user_id FK
-        string title
-        text architecture_report
-    }
-    
-    EPIC {
-        string id PK
-        uuid project_id FK
-        string title
-        string description
-    }
-    
-    USER_STORY {
-        string id PK
-        string epic_id FK
-        string role
-        string action
-        string result
-    }
-    
-    TASK {
-        string id PK
-        string user_story_id FK
-        string title
-        string description
-        string type
-        int estimated_hours
-    }
-```
-
 ## 🐳 Déploiement et Conteneurs (Docker)
 
 Le projet est entièrement "Dockerisé" pour faciliter son déploiement via `docker-compose.yml`. Voici les conteneurs utilisés dans notre infrastructure :
