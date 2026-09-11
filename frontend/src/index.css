@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@variant dark (&:is(.dark *));
+
+html {
+  font-size: 80%;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.custom-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
