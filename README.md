@@ -2,6 +2,10 @@
 
 **TeraSprint** est une plateforme innovante propulsée par l'Intelligence Artificielle pour la gestion de projets Agile et la génération automatisée de code. Elle permet de passer d'une simple idée à un backlog complet et à du code exécutable via des agents autonomes et un environnement de bac à sable (sandbox) sécurisé.
 
+## 🚧 Phase en cours (Current Phase)
+
+Actuellement, le projet se concentre principalement sur le **Backlog et les Sprints**. Nous développons la génération et l'optimisation des Epics, User Stories et Tâches de manière intelligente via les agents IA.
+
 ## 🏗️ Architecture Globale
 
 TeraSprint est divisé en deux parties principales :
@@ -84,4 +88,6 @@ L'application repose sur un fichier `.env` situé dans le dossier `backend/`. Vo
 
 ---
 
-📖 Pour plus de détails spécifiques, veuillez consulter les fichiers **`README.md`** situés dans les sous-dossiers `frontend/` et `backend/`.
+📖 Pour plus de détails spécifiques, veuillez consulter les documentations dédiées :
+- 🔗 **[Documentation Backend (FastAPI, IA & Base de données)](./backend/README.md)**
+- 🔗 **[Documentation Frontend (React, Vite & Tailwind)](./frontend/README.md)**
