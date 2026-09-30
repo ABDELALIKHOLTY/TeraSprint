@@ -1,0 +1,30 @@
+```json
+{
+  "tasks": [
+    {
+      "id": "TASK-1011",
+      "title": "Création des API REST ou Endpoints",
+      "description": "Créer les API REST ou endpoints nécessaires pour le système ERP complet de gestion d'entrepôt et de logistique avec suivi GPS. Cette tâche implique la création de routes pour les endpoints GET, POST, PUT, DELETE, ainsi que la définition des méthodes HTTP appropriées. La tâche doit également inclure la création des contrôlesurs et services backend nécessaires pour gérer les requêtes d'administration, les contrôles de droits et les données de base. Les tâches détaillées implémentent les endpoints REST et GraphQL, utilisent les contrôlesurs et services backend, et implémentent les contrôles de sécurité JWT, HTTPS, CORS, et monitoring Prometheus et Grafana.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 3
+    },
+    {
+      "id": "TASK-1012",
+      "title": "Développement de la Base de Données",
+      "description": "Développer la base de données PostgreSQL, MySQL, ou MongoDB pour stocker les données de l'ERP. Cette tâche implique la création des tables 'users', 'roles', 'departments', 'employees', 'suppliers', 'products', 'orders', 'order_items', 'inventory', et 'gps_tracking'. Elle doit également implémenter les relations entre les tables, les contrôlesurs et services backend nécessaires pour gérer les données de base. Les tâches détaillées implémentent les relations entre les tables, les contrôlesurs et services backend, et implémentent les contrôles de sécurité JWT, HTTPS, CORS, et monitoring Prometheus et Grafana.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 4
+    },
+    {
+      "id": "TASK-1013",
+      "title": "Développement de l'Interface utilisateur (UI)",
+      "description": "Développer l'interface utilisateur (UI) utilisant React, Tailwind CSS, Redux, et Context API. Cette tâche implique la création des routes pour les endpoints REST et GraphQL, la définition des contrôlesurs et services backend nécessaires pour gérer les requêtes d'administration, les contrôles de droits et les données de base, et la création des contrôles de sécurité JWT, HTTPS, CORS, et monitoring Prometheus et Grafana. Les tâches détaillées implémentent les contrôles de sécurité JWT, HTTPS, CORS, et monitoring Prometheus et Grafana.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 4
+    }
+  ]
+}
+```

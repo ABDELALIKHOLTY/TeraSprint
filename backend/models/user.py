@@ -15,8 +15,12 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=False)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    avatar_url = Column(String, nullable=True)
+    saas_email = Column(String, unique=True, nullable=True)
     password_hash = Column(String, nullable=False)
     mfa_enabled = Column(Boolean, default=False)
     mfa_secret = Column(String, nullable=True)

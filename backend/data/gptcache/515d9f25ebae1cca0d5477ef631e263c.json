@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "NEXUS-101",
+      "title": "Tests unitaires FastAPI (Pytest) pour les services métier",
+      "description": "Cette tâche vise à garantir la fiabilité du code métier du module Nexus en écrivant des tests unitaires exhaustifs avec Pytest. Chaque service du backend, notamment `ChatService`, `SQLGenService`, `RateLimitService` et `SecurityService`, sera testé isolément afin de valider la logique de génération de prompts, la conversion texte‑to‑SQL, la limitation de débit et l'exécution sécurisée des requêtes. Les tests devront simuler les dépendances externes (OpenAI, Redis, PostgreSQL) à l'aide de mocks afin d'assurer une exécution rapide et déterministe, tout en vérifiant que les exceptions sont correctement propagées. Cette couverture unitaires permettra de détecter précocement les régressions lors de futures évolutions du pipeline IA.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Implémenter un fixture Pytest qui crée un mock du client OpenAI (`openai.ChatCompletion.create`) et qui renvoie une réponse JSON pré‑définie contenant le champ ('choices')[0]['message']['content'] pour simuler la génération de SQL sans appel réseau réel.",
+        "Écrire un test unitaire pour la méthode `ChatService.process_message` en injectant le mock OpenAI, en vérifiant que le texte retourné est découpé token par token et que la session IA est correctement enregistrée dans la table ('ai_sessions') avec les champs ('id'), ('user_id'), ('started_at').",
+        "Développer un test unitaire pour `SQLGenService.generate_sql` qui fournit un prompt d'exemple, utilise un mock du LLM et s'assure que le SQL retourné respecte le schéma en lecture seule et ne dépasse pas le timeout de 5 seconds, en validant la présence du champ ('sql_generated') dans la table ('ai_queries').",
+        "Construire un test unitaire pour `RateLimitService.check_limit` qui simule le compteur Redis pour un utilisateur donné, vérifie que le token bucket autorise jusqu'à 50 requêtes par heure et que toute requête supplémentaire renvoie une exception `RateLimitExceeded` avec le champ ('user_id') correctement renseigné."
+      ]
+    },
+    {
+      "id": "NEXUS-102",
+      "title": "Tests d'intégration API FastAPI (HTTPX) pour les endpoints critiques",
+      "description": "Cette tâche porte sur la validation du comportement complet des points d'entrée REST et WebSocket du module Nexus en utilisant HTTPX et le client WebSocket de Starlette. Les tests d'intégration vérifieront que les routes exposées respectent les contrats contractuels, que les réponses contiennent les structures JSON attendues et que les contraintes de sécurité (SQL en lecture‑seule, timeout, rate‑limit) sont appliquées. Chaque scénario devra inclure le lancement d'une instance de l'application FastAPI en mode test, l'injection d'une base de données PostgreSQL en mémoire (via `asyncpg`), ainsi que la configuration d'un serveur Redis factice pour la limitation de débit. L'objectif est d'assurer que l'ensemble du flux, depuis la réception du prompt jusqu'à la génération du widget, fonctionne sans erreur et respecte les exigences de performance.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Écrire un test d'intégration qui envoie une requête HTTP POST vers la route ('POST /api/sql/generate') avec un payload JSON contenant le champ ('prompt'), puis vérifier que la réponse JSON inclut les champs ('sql_generated') et ('response_json') et que le temps d'exécution ne dépasse pas 5 seconds.",
+        "Implémenter un test d'intégration WebSocket qui se connecte à l'endpoint ('ws://localhost:8000/chat/ws'), envoie un message de chat, puis consomme le flux token‑by‑token jusqu'à la fin, en s'assurant que le serveur renvoie le statut de session IA correct et que la table ('ai_sessions') possède bien une entrée associée au ('user_id') fourni.",
+        "Créer un test d'intégration qui appelle la route ('GET /api/widgets/{widget_id}') avec un identifiant valide, puis valider que le corps de la réponse contient le champ ('config_json') correspondant à la configuration du widget Recharts et que le code HTTP retourné est 200, sinon 404 si le widget n'existe pas.",
+        "Développer un test d'intégration qui simule 51 requêtes consécutives vers la route ('POST /api/sql/generate') pour le même ('user_id') en utilisant le client Redis factice, afin de confirmer que la 51ᵉ requête renvoie une erreur HTTP 429 et que le compteur Redis reflète correctement la fenêtre de 1 heure."
+      ]
+    },
+    {
+      "id": "NEXUS-103",
+      "title": "Scénarios E2E Playwright (Chatbot → Génération de widget → Sauvegarde)",
+      "description": "Cette tâche consiste à automatiser le parcours complet de l'utilisateur final depuis la saisie d'une requête dans le chatbot jusqu'à l'épinglage du widget généré sur son tableau de bord, en utilisant Playwright. Les scénarios couvriront le rendu du composant de chat en glassmorphism, le streaming en temps réel des réponses IA, la création dynamique du composant Recharts à partir du JSON reçu, ainsi que la persistance du widget via l'API backend. Chaque test E2E devra être exécuté contre une instance déployée du stack complet (Next.js, FastAPI, PostgreSQL, Redis) afin de valider l'intégration inter‑services, la conformité aux exigences de performance et la conformité aux règles de sécurité (pas de PII dans le prompt).",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Configurer le projet Playwright avec le navigateur Chromium en mode headless, créer un fixture qui démarre le serveur Next.js (`npm run dev`) et le serveur FastAPI (`uvicorn app.main:app`) en parallèle, puis nettoyer les containers Docker après chaque exécution de test.",
+        "Écrire un scénario qui ouvre la page d'accueil, clique sur le bouton d'ouverture du panneau chatbot (identifié par le sélecteur CSS `[data-test-id=\"open-chat\"]`), saisit la phrase « Montre‑moi les ventes par région pour Q3 2026 comparées à Q3 2025 », puis attend que le texte streaming apparaisse caractère par caractère, en validant que chaque token contient au moins un mot du vocabulaire attendu.",
+        "Implémenter une vérification qui, après la fin du streaming, intercepte la requête réseau vers l'endpoint ('POST /api/sql/generate') et extrait le JSON de réponse contenant le champ ('response_json'), puis s'assure que le composant React Recharts est présent dans le DOM avec le sélecteur `[data-test-id=\"recharts-canvas\"]` et que les données affichées correspondent aux valeurs du JSON.",
+        "Ajouter un dernier pas qui clique sur le bouton « Épingler au tableau de bord » (sélecteur `[data-test-id=\"pin-widget\"]`), attend la réponse HTTP 201 de l'endpoint ('POST /api/widgets'), puis effectue une requête GET vers ('GET /api/dashboards/{dashboard_id}/widgets') pour confirmer que le widget apparaît dans la liste avec le champ ('type') égal à « bar » et que le champ ('config_json') correspond exactement à celui reçu précédemment."
+      ]
+    }
+  ]
+}

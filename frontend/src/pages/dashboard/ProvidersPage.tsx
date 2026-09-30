@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { updateApiKeys, fetchModels } from '../../services/api';
 import { Bot, Key, Search, ToggleLeft, ToggleRight, CheckCircle2, ChevronRight, Save, LayoutGrid } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const ProvidersPage: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   
   // API Keys State
   const [groqKeyInput, setGroqKeyInput] = useState('');
@@ -66,14 +69,11 @@ export const ProvidersPage: React.FC = () => {
       setGroqKeyInput('');
       setOpenRouterKeyInput('');
       setGeminiKeyInput('');
-      
-      // Dispatch event to refresh models if keys changed globally
       window.dispatchEvent(new Event('apiKeysChanged'));
-      
-      // Reload models locally to reflect the newly unlocked provider
       await loadModelsData();
+      toast.success("Clés sauvegardées avec succès !");
     } catch (err) {
-      alert("Erreur lors de la sauvegarde des clés.");
+      toast.error("Erreur lors de la sauvegarde des clés.");
     } finally {
       setSavingKey(false);
     }
@@ -158,10 +158,10 @@ export const ProvidersPage: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
             <LayoutGrid className="w-8 h-8 mr-3 text-cyan-500" />
-            Providers & Modèles IA
+            {t('providers.title')}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-3xl">
-            Gérez vos fournisseurs d'intelligence artificielle. Ajoutez vos clés API pour débloquer l'accès aux modèles, puis filtrez finement les modèles que vous souhaitez utiliser dans vos espaces de travail.
+            {t('providers.desc')}
           </p>
         </div>
 
@@ -170,7 +170,7 @@ export const ProvidersPage: React.FC = () => {
           <div className="flex items-center justify-between mb-6 border-b border-gray-200 dark:border-[#27272a] pb-3">
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
               <Key className="w-5 h-5 mr-2 text-cyan-500" />
-              Configuration des Providers (Clés API)
+              {t('providers.config_title')}
             </h2>
             <button
               onClick={handleSaveKeys}
@@ -178,7 +178,7 @@ export const ProvidersPage: React.FC = () => {
               className="bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               <Save className="w-4 h-4 mr-2" />
-              {savingKey ? 'Sauvegarde...' : 'Enregistrer les clés'}
+              {savingKey ? t('providers.saving') : t('providers.save_keys')}
             </button>
           </div>
 
@@ -189,13 +189,18 @@ export const ProvidersPage: React.FC = () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white text-lg">OpenRouter</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Recommandé pour le code (Claude, GPT-4)</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('providers.or_desc')}</p>
                 </div>
-                {hasOpenRouterKey && (
-                  <span className="flex items-center text-[10px] uppercase tracking-wider font-bold text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full border border-green-200 dark:border-green-800/50">
-                    <CheckCircle2 className="w-3 h-3 mr-1" /> Configuré
-                  </span>
-                )}
+                <div className="flex items-center space-x-2">
+                  <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" className="text-[10px] uppercase font-bold tracking-wider bg-gray-100 hover:bg-gray-200 dark:bg-[#1a1a1f] dark:hover:bg-[#27272a] text-gray-600 dark:text-gray-400 px-2 py-1 rounded border border-gray-200 dark:border-[#3f3f46] transition-colors">
+                    {t('providers.get_key')}
+                  </a>
+                  {hasOpenRouterKey && (
+                    <span className="flex items-center text-[10px] uppercase tracking-wider font-bold text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full border border-green-200 dark:border-green-800/50">
+                      <CheckCircle2 className="w-3 h-3 mr-1" /> {t('providers.configured')}
+                    </span>
+                  )}
+                </div>
               </div>
               <input
                 type="password"
@@ -205,10 +210,10 @@ export const ProvidersPage: React.FC = () => {
                 className="w-full bg-white dark:bg-[#1a1a1f] border border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-colors shadow-sm"
               />
               <div className="mt-4 flex items-center justify-between border-t border-gray-200 dark:border-[#27272a] pt-3">
-                <span className="text-xs font-semibold text-gray-500">Filtrage Rapide</span>
+                <span className="text-xs font-semibold text-gray-500">{t('providers.fast_filter')}</span>
                 <div className="flex space-x-2">
-                  <button onClick={() => toggleProviderFilter('orFree', showOrFree)} className={`text-xs px-2 py-1 rounded border ${showOrFree ? 'bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-800 dark:text-cyan-400' : 'bg-transparent border-gray-300 text-gray-500 dark:border-gray-700 dark:text-gray-400'}`}>Gratuits</button>
-                  <button onClick={() => toggleProviderFilter('orPremium', showOrPremium)} className={`text-xs px-2 py-1 rounded border ${showOrPremium ? 'bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-800 dark:text-cyan-400' : 'bg-transparent border-gray-300 text-gray-500 dark:border-gray-700 dark:text-gray-400'}`}>Premium</button>
+                  <button onClick={() => toggleProviderFilter('orFree', showOrFree)} className={`text-xs px-2 py-1 rounded border ${showOrFree ? 'bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-800 dark:text-cyan-400' : 'bg-transparent border-gray-300 text-gray-500 dark:border-gray-700 dark:text-gray-400'}`}>{t('providers.free')}</button>
+                  <button onClick={() => toggleProviderFilter('orPremium', showOrPremium)} className={`text-xs px-2 py-1 rounded border ${showOrPremium ? 'bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-800 dark:text-cyan-400' : 'bg-transparent border-gray-300 text-gray-500 dark:border-gray-700 dark:text-gray-400'}`}>{t('providers.premium')}</button>
                 </div>
               </div>
             </div>
@@ -218,13 +223,18 @@ export const ProvidersPage: React.FC = () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white text-lg">Groq</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Génération ultra-rapide (Llama 3)</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('providers.groq_desc')}</p>
                 </div>
-                {hasGroqKey && (
-                  <span className="flex items-center text-[10px] uppercase tracking-wider font-bold text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full border border-green-200 dark:border-green-800/50">
-                    <CheckCircle2 className="w-3 h-3 mr-1" /> Configuré
-                  </span>
-                )}
+                <div className="flex items-center space-x-2">
+                  <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="text-[10px] uppercase font-bold tracking-wider bg-gray-100 hover:bg-gray-200 dark:bg-[#1a1a1f] dark:hover:bg-[#27272a] text-gray-600 dark:text-gray-400 px-2 py-1 rounded border border-gray-200 dark:border-[#3f3f46] transition-colors">
+                    {t('providers.get_key')}
+                  </a>
+                  {hasGroqKey && (
+                    <span className="flex items-center text-[10px] uppercase tracking-wider font-bold text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full border border-green-200 dark:border-green-800/50">
+                      <CheckCircle2 className="w-3 h-3 mr-1" /> {t('providers.configured')}
+                    </span>
+                  )}
+                </div>
               </div>
               <input
                 type="password"
@@ -234,8 +244,8 @@ export const ProvidersPage: React.FC = () => {
                 className="w-full bg-white dark:bg-[#1a1a1f] border border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-colors shadow-sm"
               />
               <div className="mt-4 flex items-center justify-between border-t border-gray-200 dark:border-[#27272a] pt-3">
-                <span className="text-xs font-semibold text-gray-500">Filtrage Rapide</span>
-                <button onClick={() => toggleProviderFilter('groq', showGroq)} className={`text-xs px-2 py-1 rounded border ${showGroq ? 'bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-800 dark:text-cyan-400' : 'bg-transparent border-gray-300 text-gray-500 dark:border-gray-700 dark:text-gray-400'}`}>Activer tout Groq</button>
+                <span className="text-xs font-semibold text-gray-500">{t('providers.fast_filter')}</span>
+                <button onClick={() => toggleProviderFilter('groq', showGroq)} className={`text-xs px-2 py-1 rounded border ${showGroq ? 'bg-cyan-50 border-cyan-200 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-800 dark:text-cyan-400' : 'bg-transparent border-gray-300 text-gray-500 dark:border-gray-700 dark:text-gray-400'}`}>{t('providers.enable_groq')}</button>
               </div>
             </div>
 
@@ -244,13 +254,18 @@ export const ProvidersPage: React.FC = () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white text-lg">Google AI Studio</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Modèles natifs (Gemini 1.5 Pro)</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('providers.gemini_desc')}</p>
                 </div>
-                {hasGeminiKey && (
-                  <span className="flex items-center text-[10px] uppercase tracking-wider font-bold text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full border border-green-200 dark:border-green-800/50">
-                    <CheckCircle2 className="w-3 h-3 mr-1" /> Configuré
-                  </span>
-                )}
+                <div className="flex items-center space-x-2">
+                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[10px] uppercase font-bold tracking-wider bg-gray-100 hover:bg-gray-200 dark:bg-[#1a1a1f] dark:hover:bg-[#27272a] text-gray-600 dark:text-gray-400 px-2 py-1 rounded border border-gray-200 dark:border-[#3f3f46] transition-colors">
+                    {t('providers.get_key')}
+                  </a>
+                  {hasGeminiKey && (
+                    <span className="flex items-center text-[10px] uppercase tracking-wider font-bold text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full border border-green-200 dark:border-green-800/50">
+                      <CheckCircle2 className="w-3 h-3 mr-1" /> {t('providers.configured')}
+                    </span>
+                  )}
+                </div>
               </div>
               <input
                 type="password"
@@ -260,8 +275,8 @@ export const ProvidersPage: React.FC = () => {
                 className="w-full bg-white dark:bg-[#1a1a1f] border border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors shadow-sm"
               />
               <div className="mt-4 flex items-center justify-between border-t border-gray-200 dark:border-[#27272a] pt-3">
-                <span className="text-xs font-semibold text-gray-500">Filtrage Rapide</span>
-                <button onClick={() => toggleProviderFilter('gemini', showGemini)} className={`text-xs px-2 py-1 rounded border ${showGemini ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' : 'bg-transparent border-gray-300 text-gray-500 dark:border-gray-700 dark:text-gray-400'}`}>Activer tout Google</button>
+                <span className="text-xs font-semibold text-gray-500">{t('providers.fast_filter')}</span>
+                <button onClick={() => toggleProviderFilter('gemini', showGemini)} className={`text-xs px-2 py-1 rounded border ${showGemini ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400' : 'bg-transparent border-gray-300 text-gray-500 dark:border-gray-700 dark:text-gray-400'}`}>{t('providers.enable_google')}</button>
               </div>
             </div>
 
@@ -273,26 +288,26 @@ export const ProvidersPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b border-gray-200 dark:border-[#27272a] pb-3">
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
               <Bot className="w-5 h-5 mr-2 text-cyan-500" />
-              Sélection Détaillée des Modèles
+              {t('providers.models_title')}
             </h2>
             <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-3 mt-4 sm:mt-0 w-full sm:w-auto">
               <button 
                 onClick={handleShowAll}
                 className="px-3 py-1.5 text-xs font-medium bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800 rounded-lg hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition-colors shrink-0"
               >
-                Tout sélectionner
+                {t('providers.select_all')}
               </button>
               <button 
                 onClick={handleHideAll}
                 className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-[#1a1a1f] dark:text-gray-300 border border-gray-200 dark:border-[#3f3f46] rounded-lg hover:bg-gray-200 dark:hover:bg-[#27272a] transition-colors shrink-0"
               >
-                Tout désélectionner
+                {t('providers.deselect_all')}
               </button>
               <div className="relative w-full sm:w-72">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input 
                   type="text"
-                  placeholder="Rechercher par nom ou ID..."
+                  placeholder={t('providers.search')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-white dark:bg-[#121214] border border-gray-200 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 pl-10 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:border-cyan-500 transition-colors shadow-sm"

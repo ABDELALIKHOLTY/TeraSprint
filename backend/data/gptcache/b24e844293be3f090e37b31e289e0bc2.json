@@ -1,0 +1,211 @@
+# Rapport d'Architecture : Système ERP Logistique & Suivi GPS
+
+## 1. Setup & Stack Technique
+
+**Frontend**
+*   Framework : React.js (TypeScript)
+*   State Management : Redux Toolkit
+*   UI Library : Material-UI (MUI)
+*   Cartographie : Leaflet.js / Mapbox GL JS
+*   Build Tool : Vite
+
+**Backend**
+*   Runtime : Node.js (LTS)
+*   Framework : NestJS (TypeScript)
+*   ORM : Prisma
+*   Validation : Zod
+*   Auth : Passport.js
+
+**Base de Données**
+*   Relationnelle : PostgreSQL 15
+*   NoSQL (Logs/Télémétrie) : MongoDB (Atlas)
+*   Cache : Redis 7
+
+**Déploiement / DevOps**
+*   Conteneurisation : Docker / Docker Compose
+*   Orchestration : Kubernetes (EKS)
+*   CI/CD : GitHub Actions
+*   Monitoring : Prometheus / Grafana
+*   Message Broker : Apache Kafka
+
+---
+
+## 2. Schéma Relationnel de la Base de Données
+
+**Entités Principales**
+
+*   **Users**
+    *   `id` (PK, UUID)
+    *   `email` (Unique)
+    *   `password_hash`
+    *   `role` (Enum: ADMIN, MANAGER, OPERATOR)
+    *   `created_at`
+
+*   **Warehouses**
+    *   `id` (PK, UUID)
+    *   `name`
+    *   `address`
+    *   `capacity`
+    *   `manager_id` (FK -> Users.id)
+
+*   **Zones**
+    *   `id` (PK, UUID)
+    *   `warehouse_id` (FK -> Warehouses.id)
+    *   `code`
+    *   `type` (Enum: STORAGE, PICKING, SHIPPING)
+
+*   **Locations**
+    *   `id` (PK, UUID)
+    *   `zone_id` (FK -> Zones.id)
+    *   `aisle`
+    *   `rack`
+    *   `level`
+    *   `bin`
+
+*   **Products**
+    *   `id` (PK, UUID)
+    *   `sku` (Unique)
+    *   `name`
+    *   `barcode`
+    *   `weight`
+    *   `dimensions` (JSONB)
+
+*   **Inventory**
+    *   `id` (PK, UUID)
+    *   `product_id` (FK -> Products.id)
+    *   `location_id` (FK -> Locations.id)
+    *   `quantity`
+    *   `batch_number`
+    *   `expiry_date`
+    *   *Relation : 1-N (Product to Inventory), 1-N (Location to Inventory)*
+
+*   **Vehicles**
+    *   `id` (PK, UUID)
+    *   `plate_number` (Unique)
+    *   `type` (Enum: TRUCK, VAN, FORKLIFT)
+    *   `capacity`
+    *   `status` (Enum: ACTIVE, MAINTENANCE, INACTIVE)
+
+*   **Drivers**
+    *   `id` (PK, UUID)
+    *   `user_id` (FK -> Users.id)
+    *   `license_number`
+    *   `vehicle_id` (FK -> Vehicles.id)
+    *   *Relation : 1-1 (User to Driver), 1-N (Vehicle to Drivers)*
+
+*   **Orders**
+    *   `id` (PK, UUID)
+    *   `order_number` (Unique)
+    *   `customer_id` (FK -> Customers.id)
+    *   `status` (Enum: PENDING, PROCESSING, SHIPPED, DELIVERED)
+    *   `created_at`
+    *   `shipped_at`
+
+*   **OrderItems**
+    *   `id` (PK, UUID)
+    *   `order_id` (FK -> Orders.id)
+    *   `product_id` (FK -> Products.id)
+    *   `quantity`
+    *   `unit_price`
+    *   *Relation : 1-N (Order to OrderItems)*
+
+*   **Shipments**
+    *   `id` (PK, UUID)
+    *   `order_id` (FK -> Orders.id)
+    *   `vehicle_id` (FK -> Vehicles.id)
+    *   `driver_id` (FK -> Drivers.id)
+    *   `origin_warehouse_id` (FK -> Warehouses.id)
+    *   `destination_address`
+    *   `status` (Enum: IN_TRANSIT, DELIVERED, RETURNED)
+    *   `estimated_arrival`
+    *   `actual_arrival`
+
+*   **GPS_Tracks** (Table partitionnée par date)
+    *   `id` (PK, BigSerial)
+    *   `shipment_id` (FK -> Shipments.id)
+    *   `vehicle_id` (FK -> Vehicles.id)
+    *   `latitude` (Decimal)
+    *   `longitude` (Decimal)
+    *   `speed` (Decimal)
+    *   `heading` (Decimal)
+    *   `timestamp` (Timestamptz)
+    *   *Relation : 1-N (Shipment to GPS_Tracks)*
+
+*   **Customers**
+    *   `id` (PK, UUID)
+    *   `name`
+    *   `email`
+    *   `address`
+
+---
+
+## 3. Architecture Backend & APIs
+
+**Type d'API**
+*   RESTful API (JSON)
+*   WebSocket (WSS) pour le temps réel
+
+**Modules / Contrôleurs**
+
+*   **Auth Module**
+    *   `POST /auth/login`
+    *   `POST /auth/refresh`
+    *   `GET /auth/profile`
+
+*   **Inventory Module**
+    *   `GET /inventory`
+    *   `POST /inventory/adjust`
+    *   `GET /inventory/low-stock`
+    *   `POST /inventory/transfer`
+
+*   **Warehouse Module**
+    *   `CRUD /warehouses`
+    *   `CRUD /zones`
+    *   `CRUD /locations`
+
+*   **Order Module**
+    *   `CRUD /orders`
+    *   `POST /orders/{id}/pick`
+    *   `POST /orders/{id}/pack`
+
+*   **Logistics Module**
+    *   `CRUD /vehicles`
+    *   `CRUD /drivers`
+    *   `POST /shipments`
+    *   `GET /shipments/active`
+
+*   **Telemetry Module**
+    *   `POST /telemetry/gps` (Endpoint haute fréquence, écriture directe vers Kafka)
+    *   `GET /telemetry/track/{shipment_id}`
+
+**Services Internes**
+
+*   `InventoryService` : Gestion des quantités, verrous optimistes.
+*   `OrderProcessingService` : Workflow de statut des commandes.
+*   `GeofencingService` : Détection d'entrée/sortie de zones (consommateur Kafka).
+*   `NotificationService` : Envoi d'emails/SMS via queue (BullMQ).
+
+---
+
+## 4. Architecture Frontend et Intégration
+
+**Outils UI**
+*   Layout : MUI Grid / Layout
+*   Tableaux de données : AG Grid (pour inventaire et commandes)
+*   Cartes : Mapbox GL JS (intégré via React-Map-GL)
+*   Formulaires : React Hook Form + Zod Resolver
+
+**Sécurité**
+*   Authentification : JWT (Access Token 15min, Refresh Token 7j)
+*   Stockage : HttpOnly Cookies (Refresh), Memory (Access)
+*   Autorisation : Guards basés sur les rôles (RBAC)
+
+**Mécanismes de Communication**
+*   **REST** : Fetch API / Axios pour les CRUD et requêtes standard.
+*   **WebSocket** :
+    *   Connexion persistante via `Socket.IO` ou `Native WebSocket`.
+    *   Canal `gps-stream` : Reçoit les coordonnées en temps réel pour la mise à jour de la carte.
+    *   Canal `inventory-alerts` : Notifications push pour ruptures de stock ou anomalies.
+*   **Optimisation** :
+    *   Caching HTTP (ETag) pour les données statiques (produits, entrepôts).
+    *   Polling léger (5s) pour les statuts de livraison si WebSocket indisponible.

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Logo } from '../../components/ui/Logo';
 
 export const RegisterPage: React.FC = () => {
@@ -13,6 +14,7 @@ export const RegisterPage: React.FC = () => {
   
   const navigate = useNavigate();
   const { register, isAuthenticated } = useAuth();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -41,8 +43,8 @@ export const RegisterPage: React.FC = () => {
     try {
       await register(name, email, password);
       navigate('/');
-    } catch (err) {
-      setError('Registration failed. Try a different email.');
+    } catch (err: any) {
+      setError(err.message || 'Échec de la création du compte.');
     } finally {
       setIsLoading(false);
     }
@@ -78,24 +80,31 @@ export const RegisterPage: React.FC = () => {
       </div>
 
       {/* Right Column (Auth Form) */}
-      <div className="w-full lg:w-2/5 flex flex-col justify-center px-8 sm:px-16 lg:px-24 bg-white/80 dark:bg-[#121214]/80 backdrop-blur-3xl border-l border-gray-200 dark:border-[#27272a] shadow-2xl dark:shadow-[-20px_0_40px_rgba(0,0,0,0.5)] z-10 relative transition-colors duration-300">
+      <div className="w-full lg:w-2/5 flex flex-col justify-center px-8 sm:px-16 lg:px-24 py-12 lg:py-0 overflow-y-auto bg-white/80 dark:bg-[#121214]/80 backdrop-blur-3xl border-l border-gray-200 dark:border-[#27272a] shadow-2xl dark:shadow-[-20px_0_40px_rgba(0,0,0,0.5)] z-10 relative transition-colors duration-300">
         <div className="hidden dark:block absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-50 pointer-events-none"></div>
 
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Rejoindre TeraSprint</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Créez votre compte pour commencer à générer des projets.</p>
+        {/* Mobile Logo */}
+        <div className="lg:hidden flex justify-center mb-8">
+          <Logo scale={1.2} />
         </div>
 
-        {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm text-center transition-colors duration-300">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t('auth.join')}</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">{t('auth.join_desc')}</p>
+        </div>
+
+        {error ? (
+          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm text-center transition-colors duration-300 animate-in fade-in slide-in-from-top-2">
             {error}
           </div>
+        ) : (
+          <div className="mb-6 h-[46px]"></div> // Placeholder to prevent layout shift
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5 relative">
+        <form onSubmit={handleSubmit} className="space-y-4 relative">
           
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Full Name</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('auth.fullname')}</label>
             <input
               type="text"
               required
@@ -107,7 +116,7 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email Address</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('auth.email')}</label>
             <input
               type="email"
               required
@@ -119,7 +128,7 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Password</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('auth.password')}</label>
             <input
               type="password"
               required
@@ -131,7 +140,7 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Confirm Password</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('auth.confirm_password')}</label>
             <input
               type="password"
               required
@@ -148,7 +157,7 @@ export const RegisterPage: React.FC = () => {
               disabled={isLoading}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 transition-colors disabled:opacity-50"
             >
-              {isLoading ? 'Création en cours...' : 'Créer un compte'}
+              {isLoading ? t('common.loading') : t('auth.register_btn')}
             </button>
           </div>
         </form>
@@ -160,7 +169,7 @@ export const RegisterPage: React.FC = () => {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-white dark:bg-[#121214] text-gray-500 dark:text-gray-400">
-                Ou continuer avec
+                {t('auth.or_continue')}
               </span>
             </div>
           </div>
@@ -193,12 +202,12 @@ export const RegisterPage: React.FC = () => {
         </div>
 
         <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          Déjà un compte ?{' '}
+          {t('auth.has_account')}{' '}
           <button 
             onClick={() => navigate('/login')}
             className="font-medium text-cyan-600 hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300"
           >
-            Se connecter
+            {t('auth.login_btn')}
           </button>
         </p>
       </div>

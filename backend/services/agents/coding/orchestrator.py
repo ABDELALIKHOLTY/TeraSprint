@@ -8,33 +8,38 @@ from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from mem0 import Memory
 
-try:
-    mem0_config = {
-        "llm": {
-            "provider": "ollama",
-            "config": {
-                "model": "llama3.2:1b",
-                "temperature": 0
+global_semantic_memory = None
+
+def get_semantic_memory():
+    global global_semantic_memory
+    if global_semantic_memory is None:
+        try:
+            mem0_config = {
+                "llm": {
+                    "provider": "ollama",
+                    "config": {
+                        "model": "llama3.2:1b",
+                        "temperature": 0
+                    }
+                },
+                "embedder": {
+                    "provider": "huggingface",
+                    "config": {
+                        "model": "sentence-transformers/all-MiniLM-L6-v2"
+                    }
+                },
+                "vector_store": {
+                    "provider": "qdrant",
+                    "config": {
+                        "collection_name": "terasprint_mem0",
+                        "embedding_model_dims": 384
+                    }
+                }
             }
-        },
-        "embedder": {
-            "provider": "huggingface",
-            "config": {
-                "model": "sentence-transformers/all-MiniLM-L6-v2"
-            }
-        },
-        "vector_store": {
-            "provider": "qdrant",
-            "config": {
-                "collection_name": "terasprint_mem0",
-                "embedding_model_dims": 384
-            }
-        }
-    }
-    global_semantic_memory = Memory.from_config(mem0_config)
-except Exception as e:
-    print(f"[DEBUG] Impossible d'initialiser Mem0 globalement : {e}")
-    global_semantic_memory = None
+            global_semantic_memory = Memory.from_config(mem0_config)
+        except Exception as e:
+            print(f"[DEBUG] Impossible d'initialiser Mem0 : {e}")
+    return global_semantic_memory
 
 from services.agents.coding.sandbox import execute_in_sandbox
 from core.config import settings
@@ -89,7 +94,7 @@ class DevOrchestrator:
         self._init_observability()
         self.workflow = StateGraph(AgentState)
         self.memory_saver = MemorySaver()
-        self.semantic_memory = global_semantic_memory
+        self.semantic_memory = get_semantic_memory()
         self._build_graph()
         self.app = self.workflow.compile(
             checkpointer=self.memory_saver

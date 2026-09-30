@@ -5,18 +5,23 @@ import { Board } from '../../components/kanban/Board';
 import type { Backlog } from '../../types/backlog';
 import { apiCall } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Bot, FileText, ChevronDown, ChevronUp, ArrowLeft, X, Play } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { ProjectFilesModal } from '../../components/files/ProjectFilesModal';
+import { TopActions } from '../../components/navigation/TopActions';
 
 export const ProjectDashboardPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { token } = useAuth();
+  const { t } = useLanguage();
   
   const [backlog, setBacklog] = useState<Backlog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
+  const [showFiles, setShowFiles] = useState(false);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -77,23 +82,26 @@ export const ProjectDashboardPage: React.FC = () => {
               title="Lancer l'IA sur tout le projet"
             >
               <Play className="w-3.5 h-3.5" />
-              <span>START DEV</span>
+              <span>{t('board.start_dev')}</span>
             </button>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('kanban:add-column'))}
-              className="bg-white/50 dark:bg-[#1a1a1f]/50 border border-dashed border-gray-300 dark:border-[#27272a] hover:border-cyan-500/50 hover:text-cyan-600 dark:hover:text-cyan-400 px-3 py-2 text-xs font-bold text-gray-500 flex items-center space-x-1 rounded-xl transition-all"
-              title="Ajouter une colonne"
+              onClick={() => setShowFiles(true)}
+              className="bg-gray-50 dark:bg-[#1a1a1f] border border-gray-200 dark:border-[#27272a] hover:border-cyan-500/50 px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center space-x-2 rounded-xl transition-all"
             >
-              <span>+ COLONNE</span>
+              <FileText className="w-4 h-4 text-cyan-600 dark:text-cyan-500" />
+              <span>{t('board.files')}</span>
             </button>
             <button
               onClick={() => setShowReport(!showReport)}
               className="bg-gray-50 dark:bg-[#1a1a1f] border border-gray-200 dark:border-[#27272a] hover:border-cyan-500/50 px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center space-x-2 rounded-xl transition-all"
             >
               <FileText className="w-4 h-4 text-cyan-600 dark:text-cyan-500" />
-              <span>REPORT</span>
+              <span>{t('board.report')}</span>
               {showReport ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
+            <div className="pl-4 border-l border-gray-200 dark:border-gray-800 ml-2">
+              <TopActions />
+            </div>
             
             {showReport && createPortal(
               <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6">
@@ -119,6 +127,12 @@ export const ProjectDashboardPage: React.FC = () => {
               </div>,
               document.body
             )}
+            
+            <ProjectFilesModal
+              projectId={id || ''}
+              isOpen={showFiles}
+              onClose={() => setShowFiles(false)}
+            />
           </div>
         )}
       </section>

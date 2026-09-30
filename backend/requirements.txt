@@ -33,3 +33,4 @@ sentence-transformers
 ollama
 spacy
 qdrant-client
+boto3

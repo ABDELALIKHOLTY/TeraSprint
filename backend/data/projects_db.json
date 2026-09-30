@@ -30278,6 +30278,1275 @@
         "created_at": "2026-09-07T08:46:00.104446",
         "original_idea": "Un système ERP complet de gestion d'entrepôt et de logistique avec suivi GPS."
       }
+    },
+    {
+      "project_title": "ERP Logistique & Suivi GPS",
+      "architecture_report": "# Rapport d'Architecture : Système ERP Logistique & Suivi GPS\n\n## 1. Setup & Stack Technique\n\n**Frontend**\n*   Framework : React.js (TypeScript)\n*   State Management : Redux Toolkit\n*   UI Library : Material-UI (MUI)\n*   Cartographie : Leaflet.js / Mapbox GL JS\n*   Build Tool : Vite\n\n**Backend**\n*   Runtime : Node.js (LTS)\n*   Framework : NestJS (TypeScript)\n*   ORM : Prisma\n*   Validation : Zod\n*   Auth : Passport.js\n\n**Base de Données**\n*   Relationnelle : PostgreSQL 15\n*   NoSQL (Logs/Télémétrie) : MongoDB (Atlas)\n*   Cache : Redis 7\n\n**Déploiement / DevOps**\n*   Conteneurisation : Docker / Docker Compose\n*   Orchestration : Kubernetes (EKS)\n*   CI/CD : GitHub Actions\n*   Monitoring : Prometheus / Grafana\n*   Message Broker : Apache Kafka\n\n---\n\n## 2. Schéma Relationnel de la Base de Données\n\n**Entités Principales**\n\n*   **Users**\n    *   `id` (PK, UUID)\n    *   `email` (Unique)\n    *   `password_hash`\n    *   `role` (Enum: ADMIN, MANAGER, OPERATOR)\n    *   `created_at`\n\n*   **Warehouses**\n    *   `id` (PK, UUID)\n    *   `name`\n    *   `address`\n    *   `capacity`\n    *   `manager_id` (FK -> Users.id)\n\n*   **Zones**\n    *   `id` (PK, UUID)\n    *   `warehouse_id` (FK -> Warehouses.id)\n    *   `code`\n    *   `type` (Enum: STORAGE, PICKING, SHIPPING)\n\n*   **Locations**\n    *   `id` (PK, UUID)\n    *   `zone_id` (FK -> Zones.id)\n    *   `aisle`\n    *   `rack`\n    *   `level`\n    *   `bin`\n\n*   **Products**\n    *   `id` (PK, UUID)\n    *   `sku` (Unique)\n    *   `name`\n    *   `barcode`\n    *   `weight`\n    *   `dimensions` (JSONB)\n\n*   **Inventory**\n    *   `id` (PK, UUID)\n    *   `product_id` (FK -> Products.id)\n    *   `location_id` (FK -> Locations.id)\n    *   `quantity`\n    *   `batch_number`\n    *   `expiry_date`\n    *   *Relation : 1-N (Product to Inventory), 1-N (Location to Inventory)*\n\n*   **Vehicles**\n    *   `id` (PK, UUID)\n    *   `plate_number` (Unique)\n    *   `type` (Enum: TRUCK, VAN, FORKLIFT)\n    *   `capacity`\n    *   `status` (Enum: ACTIVE, MAINTENANCE, INACTIVE)\n\n*   **Drivers**\n    *   `id` (PK, UUID)\n    *   `user_id` (FK -> Users.id)\n    *   `license_number`\n    *   `vehicle_id` (FK -> Vehicles.id)\n    *   *Relation : 1-1 (User to Driver), 1-N (Vehicle to Drivers)*\n\n*   **Orders**\n    *   `id` (PK, UUID)\n    *   `order_number` (Unique)\n    *   `customer_id` (FK -> Customers.id)\n    *   `status` (Enum: PENDING, PROCESSING, SHIPPED, DELIVERED)\n    *   `created_at`\n    *   `shipped_at`\n\n*   **OrderItems**\n    *   `id` (PK, UUID)\n    *   `order_id` (FK -> Orders.id)\n    *   `product_id` (FK -> Products.id)\n    *   `quantity`\n    *   `unit_price`\n    *   *Relation : 1-N (Order to OrderItems)*\n\n*   **Shipments**\n    *   `id` (PK, UUID)\n    *   `order_id` (FK -> Orders.id)\n    *   `vehicle_id` (FK -> Vehicles.id)\n    *   `driver_id` (FK -> Drivers.id)\n    *   `origin_warehouse_id` (FK -> Warehouses.id)\n    *   `destination_address`\n    *   `status` (Enum: IN_TRANSIT, DELIVERED, RETURNED)\n    *   `estimated_arrival`\n    *   `actual_arrival`\n\n*   **GPS_Tracks** (Table partitionnée par date)\n    *   `id` (PK, BigSerial)\n    *   `shipment_id` (FK -> Shipments.id)\n    *   `vehicle_id` (FK -> Vehicles.id)\n    *   `latitude` (Decimal)\n    *   `longitude` (Decimal)\n    *   `speed` (Decimal)\n    *   `heading` (Decimal)\n    *   `timestamp` (Timestamptz)\n    *   *Relation : 1-N (Shipment to GPS_Tracks)*\n\n*   **Customers**\n    *   `id` (PK, UUID)\n    *   `name`\n    *   `email`\n    *   `address`\n\n---\n\n## 3. Architecture Backend & APIs\n\n**Type d'API**\n*   RESTful API (JSON)\n*   WebSocket (WSS) pour le temps réel\n\n**Modules / Contrôleurs**\n\n*   **Auth Module**\n    *   `POST /auth/login`\n    *   `POST /auth/refresh`\n    *   `GET /auth/profile`\n\n*   **Inventory Module**\n    *   `GET /inventory`\n    *   `POST /inventory/adjust`\n    *   `GET /inventory/low-stock`\n    *   `POST /inventory/transfer`\n\n*   **Warehouse Module**\n    *   `CRUD /warehouses`\n    *   `CRUD /zones`\n    *   `CRUD /locations`\n\n*   **Order Module**\n    *   `CRUD /orders`\n    *   `POST /orders/{id}/pick`\n    *   `POST /orders/{id}/pack`\n\n*   **Logistics Module**\n    *   `CRUD /vehicles`\n    *   `CRUD /drivers`\n    *   `POST /shipments`\n    *   `GET /shipments/active`\n\n*   **Telemetry Module**\n    *   `POST /telemetry/gps` (Endpoint haute fréquence, écriture directe vers Kafka)\n    *   `GET /telemetry/track/{shipment_id}`\n\n**Services Internes**\n\n*   `InventoryService` : Gestion des quantités, verrous optimistes.\n*   `OrderProcessingService` : Workflow de statut des commandes.\n*   `GeofencingService` : Détection d'entrée/sortie de zones (consommateur Kafka).\n*   `NotificationService` : Envoi d'emails/SMS via queue (BullMQ).\n\n---\n\n## 4. Architecture Frontend et Intégration\n\n**Outils UI**\n*   Layout : MUI Grid / Layout\n*   Tableaux de données : AG Grid (pour inventaire et commandes)\n*   Cartes : Mapbox GL JS (intégré via React-Map-GL)\n*   Formulaires : React Hook Form + Zod Resolver\n\n**Sécurité**\n*   Authentification : JWT (Access Token 15min, Refresh Token 7j)\n*   Stockage : HttpOnly Cookies (Refresh), Memory (Access)\n*   Autorisation : Guards basés sur les rôles (RBAC)\n\n**Mécanismes de Communication**\n*   **REST** : Fetch API / Axios pour les CRUD et requêtes standard.\n*   **WebSocket** :\n    *   Connexion persistante via `Socket.IO` ou `Native WebSocket`.\n    *   Canal `gps-stream` : Reçoit les coordonnées en temps réel pour la mise à jour de la carte.\n    *   Canal `inventory-alerts` : Notifications push pour ruptures de stock ou anomalies.\n*   **Optimisation** :\n    *   Caching HTTP (ETag) pour les données statiques (produits, entrepôts).\n    *   Polling léger (5s) pour les statuts de livraison si WebSocket indisponible.",
+      "epics": [
+        {
+          "id": "EPIC-1",
+          "title": "Initiation et Configuration",
+          "user_stories": [
+            {
+              "id": "US-1",
+              "title": "Étude du projet et Setup",
+              "description": "En tant qu'Architecte Logiciel, je souhaite initialiser le projet avec la structure de dossiers, les configurations TypeScript et les conventions de code pour garantir une base saine.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 5,
+              "acceptance_criteria": [
+                "Given un dépôt Git vide, When j'exécute le script d'initialisation, Then la structure de dossiers (src, tests, config) et les fichiers de configuration (tsconfig, eslint, prettier) sont générés.",
+                "Given le projet initialisé, When je lance la compilation TypeScript, Then aucune erreur de configuration n'est remontée."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-2",
+              "title": "Configuration de l'environnement et outils",
+              "description": "En tant que DevOps, je souhaite configurer l'environnement de développement local avec Docker Compose pour PostgreSQL, MongoDB, Redis et Kafka, ainsi que les variables d'environnement.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given un environnement de développement local, When j'exécute 'docker-compose up', Then les services PostgreSQL, MongoDB, Redis et Kafka sont démarrés et accessibles.",
+                "Given les services démarrés, When je vérifie la connectivité via les clients respectifs, Then les connexions sont établies avec succès."
+              ],
+              "tasks": []
+            }
+          ]
+        },
+        {
+          "id": "EPIC-2",
+          "title": "Base de données et Backend",
+          "user_stories": [
+            {
+              "id": "US-3",
+              "title": "Modélisation et création de la Base de Données",
+              "description": "En tant que Développeur Backend, je souhaite définir le schéma Prisma pour toutes les entités (Users, Warehouses, Inventory, Shipments, GPS_Tracks) et générer les migrations PostgreSQL.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Given le fichier schema.prisma défini, When j'exécute 'prisma migrate dev', Then les tables SQL sont créées dans PostgreSQL avec les relations et index appropriés.",
+                "Given les tables créées, When j'insère des données de test via Prisma, Then les contraintes d'intégrité référentielle sont respectées."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-4",
+              "title": "Développement du Backend et Logique Métier",
+              "description": "En tant que Développeur Backend, je souhaite implémenter les services métier (InventoryService, OrderProcessingService, GeofencingService) avec la logique de gestion des stocks et des statuts de commande.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 21,
+              "acceptance_criteria": [
+                "Given un service InventoryService, When j'appelle la méthode d'ajustement de stock, Then la quantité est mise à jour avec un verrou optimiste pour éviter les conflits.",
+                "Given un service GeofencingService, When un point GPS entre dans une zone définie, Then un événement est émis pour déclencher les notifications."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-5",
+              "title": "Création des API REST ou Endpoints",
+              "description": "En tant que Développeur Backend, je souhaite exposer les modules REST (Auth, Inventory, Orders, Logistics, Telemetry) avec validation Zod et gestion des erreurs standardisée.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Given le module Auth, When j'envoie une requête POST /auth/login avec des identifiants valides, Then un JWT Access Token et un Refresh Token sont retournés.",
+                "Given le module Telemetry, When j'envoie une requête POST /telemetry/gps, Then les données sont publiées dans le topic Kafka 'gps-stream' sans bloquer la réponse HTTP."
+              ],
+              "tasks": [
+                {
+                  "id": "TERA-101",
+                  "title": "Développement API REST (NestJS) Module Auth & Validation Globale",
+                  "description": "Cette tâche consiste à implémenter le module d'authentification complet dans le framework NestJS, en s'assurant que la sécurité JWT (Access Token 15min, Refresh Token 7j) est rigoureusement appliquée via Passport.js. L'objectif est de créer des endpoints robustes qui non seulement gèrent le cycle de vie des jetons, mais intègrent également la validation Zod pour garantir l'intégrité des données d'entrée avant toute interaction avec la base de données PostgreSQL. Nous devons également configurer le middleware global de gestion des erreurs pour standardiser les réponses HTTP (400, 401, 403, 500) et assurer une traçabilité complète des tentatives d'accès via les logs structurés.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Créer le contrôleur NestJS ('AuthController') exposant les routes ('POST /auth/login'), ('POST /auth/refresh') et ('GET /auth/profile') avec les décorateurs de garde ('@UseGuards') appropriés pour protéger les accès.",
+                    "Définir les schémas Zod ('loginSchema', 'refreshSchema') pour valider strictement les champs ('email', 'password') et ('refreshToken') avant l'exécution de la logique métier, rejetant toute entrée non conforme avec un code 400.",
+                    "Implémenter le service ('AuthService') qui utilise Passport.js pour vérifier les identifiants contre la table ('users') en comparant le hash de mot de passe et générer les paires de jetons JWT avec les durées de vie spécifiées.",
+                    "Développer le middleware global d'interception d'erreurs ('ExceptionFilter') qui capture les erreurs Zod et les erreurs métier pour renvoyer un format JSON standardisé contenant les codes d'erreur et les messages descriptifs."
+                  ]
+                },
+                {
+                  "id": "TERA-102",
+                  "title": "Développement API REST (NestJS) Modules Inventory, Warehouse & Orders",
+                  "description": "L'objectif de cette tâche est de construire les endpoints CRUD et transactionnels pour la gestion de l'inventaire, des entrepôts et des commandes, en mettant l'accent sur la cohérence des données via des verrous optimistes dans le service 'InventoryService'. Les routes doivent permettre la manipulation fine des quantités, des transferts entre emplacements ('locations') et le suivi du workflow de statut des commandes ('PENDING' à 'DELIVERED'). L'intégration de Zod est cruciale ici pour valider les structures complexes des requêtes (comme les listes d'articles de commande) et s'assurer que les identifiants UUID référencés existent réellement dans les tables liées ('products', 'locations', 'orders').",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Développer le contrôleur ('InventoryController') avec les routes ('GET /inventory'), ('POST /inventory/adjust'), ('GET /inventory/low-stock') et ('POST /inventory/transfer') en utilisant Prisma pour les requêtes SQL optimisées sur la table ('inventory').",
+                    "Créer les schémas Zod complexes pour les ajustements d'inventaire et les transferts, validant les champs ('product_id'), ('location_id'), ('quantity') et ('batch_number') ainsi que les relations FK vers les tables ('products') et ('locations').",
+                    "Implémenter le contrôleur ('OrderController') gérant le CRUD des commandes et les actions spécifiques ('POST /orders/{id}/pick', 'POST /orders/{id}/pack') qui déclenchent les changements de statut dans la table ('orders').",
+                    "Construire le module 'Warehouse' avec les endpoints CRUD pour ('warehouses'), ('zones') et ('locations'), en assurant la validation Zod des hiérarchies (ex: un 'zone' doit avoir un 'warehouse_id' valide) et la gestion des erreurs de contrainte d'unicité."
+                  ]
+                },
+                {
+                  "id": "TERA-103",
+                  "title": "Développement API REST (NestJS) Modules Logistics & Telemetry (Kafka)",
+                  "description": "Cette tâche se concentre sur les modules de logistique et de télémétrie, qui présentent des défis de performance spécifiques. Le module Logistics doit gérer la création de livraisons ('shipments') et l'affectation des véhicules et chauffeurs, tandis que le module Telemetry doit exposer un endpoint haute fréquence ('POST /telemetry/gps') qui ne met pas à jour directement la base relationnelle mais publie les événements dans Apache Kafka pour un traitement asynchrone. La validation Zod doit être légère et rapide pour ne pas introduire de latence sur le flux GPS, et la gestion des erreurs doit distinguer les échecs de publication Kafka des erreurs de validation des données de position.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Créer le contrôleur ('LogisticsController') avec les routes CRUD pour ('vehicles') et ('drivers'), ainsi que ('POST /shipments') et ('GET /shipments/active'), en validant via Zod la disponibilité des véhicules et la validité des chauffeurs assignés.",
+                    "Développer l'endpoint ('POST /telemetry/gps') dans le 'TelemetryController' qui accepte les paquets de coordonnées ('latitude', 'longitude', 'speed', 'heading', 'timestamp') et les publie immédiatement dans le topic Kafka 'gps-events' sans bloquer la réponse HTTP.",
+                    "Implémenter la route ('GET /telemetry/track/{shipment_id}') qui interroge la table partitionnée ('gps_tracks') pour récupérer l'historique des positions d'une livraison spécifique, en appliquant une pagination pour éviter les surcharges mémoire.",
+                    "Configurer les schémas Zod spécifiques pour la télémétrie avec des validations de plage stricte pour les coordonnées géographiques et la vitesse, et mettre en place un gestionnaire d'erreurs Kafka pour logger les échecs de production d'événements."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "EPIC-3",
+          "title": "Frontend et Intégration",
+          "user_stories": [
+            {
+              "id": "US-6",
+              "title": "Développement Frontend et UI",
+              "description": "En tant que Développeur Frontend, je souhaite développer les interfaces React (Dashboard, Gestion d'Inventaire, Suivi GPS) utilisant MUI, AG Grid et Mapbox GL JS.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 21,
+              "acceptance_criteria": [
+                "Given la page Dashboard, When l'utilisateur se connecte, Then les widgets de statistiques (stock, commandes en cours) sont affichés.",
+                "Given la page Suivi GPS, When la carte est chargée, Then les icônes des véhicules actifs sont positionnées correctement sur la carte Mapbox."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-7",
+              "title": "Intégration globale (Front/Back)",
+              "description": "En tant que Développeur Fullstack, je souhaite connecter le Frontend au Backend via REST pour les CRUD et via WebSocket pour le flux GPS temps réel et les alertes.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Given la connexion WebSocket établie, When un nouveau point GPS est reçu sur le canal 'gps-stream', Then la position du véhicule sur la carte est mise à jour en temps réel.",
+                "Given la page Inventaire, When l'utilisateur modifie une quantité et valide, Then la requête REST est envoyée et l'UI est rafraîchie avec la nouvelle valeur."
+              ],
+              "tasks": []
+            }
+          ]
+        },
+        {
+          "id": "EPIC-4",
+          "title": "Tests, Documentation et Déploiement",
+          "user_stories": [
+            {
+              "id": "US-8",
+              "title": "Implémentation des Tests (Unitaires/Intégration)",
+              "description": "En tant que QA, je souhaite écrire des tests unitaires pour les services backend et des tests d'intégration pour les endpoints API et les flux WebSocket.",
+              "status": "TO DO",
+              "priority": "Moyenne",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given le service InventoryService, When j'exécute les tests unitaires, Then les cas de bord (stock nul, stock négatif) sont couverts et passent.",
+                "Given l'endpoint /orders, When j'exécute les tests d'intégration, Then les transitions de statut (PENDING -> PROCESSING) sont validées."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-9",
+              "title": "Documentation technique et Déploiement",
+              "description": "En tant que Product Owner, je souhaite documenter l'API (Swagger) et configurer le pipeline CI/CD GitHub Actions pour le déploiement sur Kubernetes (EKS).",
+              "status": "TO DO",
+              "priority": "Moyenne",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given le pipeline CI/CD, When un push est effectué sur la branche 'main', Then les tests sont exécutés, l'image Docker est construite et déployée sur le cluster EKS.",
+                "Given la documentation Swagger, When un développeur consulte l'API, Then il peut tester les endpoints directement depuis l'interface."
+              ],
+              "tasks": []
+            }
+          ]
+        }
+      ],
+      "_metadata": {
+        "created_at": "2026-09-14T18:49:22.007608",
+        "original_idea": "Un système ERP complet de gestion d'entrepôt et de logistique avec suivi GPS."
+      }
+    },
+    {
+      "project_title": "TalentFlow — Plateforme professionnelle de gestion du recrutement",
+      "architecture_report": "# Rapport d'Architecture – TalentFlow  \n\n## 1. Setup & Stack Technique  \n**Frontend** :  \n- React.js (TypeScript)  \n- React Router v6  \n- Material UI v5  \n- Axios (API client)  \n- JWT (Authentification)  \n- WebSockets (Messagerie temps réel)  \n- Chart.js (Graphiques Analytics)  \n\n**Backend** :  \n- Node.js (v18+)  \n- NestJS (Framework MVC)  \n- PostgreSQL (ORM: TypeORM)  \n- Redis (Cache/Sessions)  \n- JWT (Authentification)  \n- Socket.IO (WebSocket)  \n- BullMQ (File d’attente pour notifications)  \n\n**BDD** :  \n- PostgreSQL 14  \n- Tables principales : `users`, `companies`, `jobs`, `candidates`, `applications`, `interviews`, `evaluations`, `skills`, `notifications`, `activity_logs`  \n\n**Déploiement/DevOps** :  \n- Docker (Conteneurisation)  \n- Kubernetes (Orchestration)  \n- GitHub Actions (CI/CD)  \n- Nginx (Reverse Proxy)  \n- Let’s Encrypt (SSL)  \n- AWS S3 (Stockage fichiers)  \n- AWS RDS (Base de données)  \n\n---\n\n## 2. Schéma Relationnel de la Base de Données  \n**Entités principales** :  \n- **Users** : `user_id` (PK), `email`, `password_hash`, `role_id` (FK → Roles), `created_at`  \n- **Roles** : `role_id` (PK), `name` (Admin, Recruiter, Hiring Manager, Candidate)  \n- **Companies** : `company_id` (PK), `name`, `industry`, `location`, `created_at`  \n- **Jobs** : `job_id` (PK), `title`, `department`, `location`, `work_mode`, `status` (Active/Closed), `company_id` (FK), `created_at`  \n- **Candidates** : `candidate_id` (PK), `user_id` (FK → Users), `resume_url`, `score`, `created_at`  \n- **Applications** : `application_id` (PK), `job_id` (FK → Jobs), `candidate_id` (FK → Candidates), `status` (Applied/Screening/Shortlisted/Interview/Offer/Hired/Rejected), `created_at`  \n- **Interviews** : `interview_id` (PK), `application_id` (FK → Applications), `scheduled_at`, `duration`, `type` (Technical/Phone/Video), `meeting_link`, `created_at`  \n- **Evaluations** : `evaluation_id` (PK), `interview_id` (FK → Interviews), `interviewer_id` (FK → Users), `technical_skills` (1-5), `communication` (1-5), `problem_solving` (1-5), `culture_fit` (1-5), `recommendation` (Strong Hire/Hire/Maybe/No Hire), `comments`, `created_at`  \n- **Skills** : `skill_id` (PK), `name` (ex: Python, React)  \n- **Candidate_Skills** : `candidate_id` (FK → Candidates), `skill_id` (FK → Skills) (Relation N-N)  \n- **Notifications** : `notification_id` (PK), `user_id` (FK → Users), `message`, `is_read`, `created_at`  \n- **Activity_Logs** : `log_id` (PK), `user_id` (FK → Users), `action` (ex: \"Moved candidate to Interview\"), `candidate_id` (FK → Candidates), `timestamp`  \n\n**Relations** :  \n- `Users` → `Roles` (1-N)  \n- `Companies` → `Jobs` (1-N)  \n- `Jobs` → `Applications` (1-N)  \n- `Candidates` → `Applications` (1-N)  \n- `Applications` → `Interviews` (1-N)  \n- `Interviews` → `Evaluations` (1-N)  \n- `Candidates` ↔ `Skills` (N-N via `Candidate_Skills`)  \n- `Users` → `Notifications` (1-N)  \n- `Users` → `Activity_Logs` (1-N)  \n\n---\n\n## 3. Architecture Backend & APIs  \n**API REST principales** :  \n- `/auth` (Login, Register, JWT Refresh)  \n- `/users` (Gestion utilisateurs, rôles)  \n- `/companies` (CRUD entreprises)  \n- `/jobs` (CRUD offres, recherche/filtres)  \n- `/candidates` (Gestion candidats, compétences)  \n- `/applications` (Pipeline candidature, mouvement étapes)  \n- `/interviews` (Planification, modification)  \n- `/evaluations` (Soumission notes, commentaires)  \n- `/notifications` (Lecture, marquage lu)  \n- `/analytics` (Statistiques recrutement)  \n\n**Contrôleurs** :  \n- `AuthController`  \n- `UsersController`  \n- `CompaniesController`  \n- `JobsController`  \n- `CandidatesController`  \n- `ApplicationsController`  \n- `InterviewsController`  \n- `EvaluationsController`  \n- `NotificationsController`  \n- `AnalyticsController`  \n\n**Services** :  \n- `AuthService` (JWT, hashing mots de passe)  \n- `UsersService`  \n- `CompaniesService`  \n- `JobsService`  \n- `CandidatesService`  \n- `ApplicationsService` (Gestion pipeline)  \n- `InterviewsService`  \n- `EvaluationsService`  \n- `NotificationsService`  \n- `AnalyticsService`  \n\n---\n\n## 4. Architecture Frontend et Intégration  \n**Outils UI** :  \n- React Components :  \n  - `Dashboard` (Graphiques, statistiques)  \n  - `JobsList` (Recherche, filtres, création offre)  \n  - `CandidateProfile` (Tabs: Overview, Resume, Interviews, Evaluations, Activity)  \n  - `RecruitmentPipeline` (Kanban : Colonnes Applied → Screening → Shortlisted → Interview → Offer → Hired + Rejected)  \n  - `InterviewScheduler` (Calendrier, liste, création/modif)  \n  - `EvaluationForm` (Grille notes, sélection recommandation)  \n  - `CandidateSearch` (Filtres compétences, statut, expérience)  \n  - `Messaging` (WebSocket pour messagerie)  \n  - `NotificationsCenter` (Liste, marquage lu)  \n\n**Sécurité** :  \n- JWT (Stocké en HttpOnly Cookie)  \n- Refresh Tokens (Renouvellement session)  \n- CORS (Contrôle accès API)  \n- Rate Limiting (Prévention abus)  \n\n**Communication** :  \n- REST API (Axios)  \n- WebSockets (Socket.IO pour messagerie temps réel)  \n- Polling (Mise à jour étapes candidature)  \n\n**Design System** :  \n- Couleurs :  \n  - Primaire : Bleu (#1976D2)  \n  - Success : Vert (#4CAF50)  \n  - Warning : Orange (#FF9800)  \n  - Danger : Rouge (#F44336)  \n- Typographie : Roboto (Titres), Open Sans (Corps)  \n- Composants :  \n  - Cards (Bordures légères)  \n  - Boutons cohérents (Primaire, Secondaire, Danger)  \n  - Badges (Statut candidature)  \n  - Modals (Création offre, édition candidat)  \n  - Tooltips (Infos supplémentaires)  \n  - Tabs (Navigation Candidate Profile)  \n  - Tables (Liste candidats/offres)  \n\n**États UI** :  \n- Loading (Spinners)  \n- Empty (Message \"Aucune donnée\")  \n- Error (Toast notifications)  \n- Success (Confirmation actions)  \n\n---\n\n## 5. Flux Navigation  \n**Recruteur** :  \n`Dashboard` → `Jobs` → `Job Details` → `Candidates` → `Candidate Profile` → `Schedule Interview` → `Evaluation` → `Move Candidate` → `Offer` → `Hired`  \n\n**Candidat** :  \n`Home` → `Jobs` → `Job Details` → `Apply` → `My Applications` → `Application Tracking` → `Interview` → `Final Decision`  \n\n--- \n\n**Remarque** : Architecture conçue pour modularité, scalabilité et conformité RGPD (chiffrement données sensibles).",
+      "epics": [
+        {
+          "id": "EPIC-1",
+          "title": "Initiation et Configuration",
+          "user_stories": [
+            {
+              "id": "US-1",
+              "title": "Étude du projet et Setup",
+              "description": "Analyser les besoins fonctionnels et techniques de la plateforme TalentFlow, définir les rôles utilisateurs (Administrateur, Recruteur, Hiring Manager, Candidat), et configurer l'environnement de développement initial.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 5,
+              "acceptance_criteria": [
+                "Given un cahier des charges complet, When l'équipe analyse les exigences métier, Then les rôles et flux de travail sont documentés",
+                "Given un environnement de développement vide, When les outils de versionnement et CI/CD sont configurés, Then le projet est initialisé avec les dépendances nécessaires"
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-2",
+              "title": "Configuration de l'environnement et outils",
+              "description": "Mettre en place les outils de développement (React, NestJS, PostgreSQL), les environnements de test et production, et les processus de déploiement automatisé.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given un serveur de développement disponible, When les conteneurs Docker sont créés, Then l'application peut être exécutée localement",
+                "Given un dépôt Git configuré, When les pipelines GitHub Actions sont définis, Then les tests et déploiements s'exécutent automatiquement"
+              ],
+              "tasks": []
+            }
+          ]
+        },
+        {
+          "id": "EPIC-2",
+          "title": "Base de données et Backend",
+          "user_stories": [
+            {
+              "id": "US-3",
+              "title": "Modélisation et création de la Base de Données",
+              "description": "Concevoir le schéma relationnel PostgreSQL avec les tables Users, Roles, Companies, Jobs, Candidates, Applications, Interviews, Evaluations, Skills, Notifications et Activity_Logs, puis implémenter les migrations initiales.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Given les entités métier définies, When le modèle de données est généré, Then toutes les relations (FK, N-N) sont correctement implémentées",
+                "Given un script de migration, When il est exécuté sur PostgreSQL, Then la base de données est prête à stocker les données utilisateur"
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-4",
+              "title": "Développement du Backend et Logique Métier",
+              "description": "Implémenter les services NestJS pour la gestion des utilisateurs, offres, candidatures, entretiens et évaluations, avec la logique métier (pipeline de recrutement, scores, notifications).",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 21,
+              "acceptance_criteria": [
+                "Given un recruteur authentifié, When il crée une offre d'emploi, Then les champs requis sont validés et stockés",
+                "Given un candidat postulant, When son statut change (Applied → Screening), Then l'historique est enregistré dans Activity_Logs"
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-5",
+              "title": "Création des API REST ou Endpoints",
+              "description": "Développer les endpoints REST pour l'authentification, la gestion des offres, candidatures, entretiens, évaluations et analytics, avec une documentation OpenAPI/Swagger.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Given un client frontend, When une requête GET est envoyée vers /api/jobs, Then les offres filtrables par statut/département sont retournées",
+                "Given un recruteur, When il soumet une évaluation via POST /api/evaluations, Then les notes (1-5) et recommandation sont sauvegardées"
+              ],
+              "tasks": []
+            }
+          ]
+        },
+        {
+          "id": "EPIC-3",
+          "title": "Frontend et Intégration",
+          "user_stories": [
+            {
+              "id": "US-6",
+              "title": "Développement Frontend et UI",
+              "description": "Construire les composants React (Dashboard, JobsList, CandidateProfile, RecruitmentPipeline, InterviewScheduler, EvaluationForm) avec Material UI et un Design System professionnel (couleurs, typographie, états UI).",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 34,
+              "acceptance_criteria": [
+                "Given un recruteur connecté, When il accède au Dashboard, Then les statistiques (offres actives, candidatures) sont affichées avec des graphiques Chart.js",
+                "Given un candidat, When il consulte son profil, Then les onglets Overview/Resume/Interviews/Evaluations/Activity sont accessibles et affichent les données correctes"
+              ],
+              "tasks": [
+                {
+                  "id": "TERA-1",
+                  "title": "Développement du Dashboard Recruteur avec React et Material UI",
+                  "description": "Ce composant constitue l'écran principal du recruteur et doit afficher une vue globale du recrutement avec des statistiques dynamiques (nombre d'offres actives, candidatures, entretiens, embauches) et un pipeline visuel Kanban. L'implémentation nécessite l'intégration des données via l'API ('GET /api/analytics/recruiter-dashboard') et la création de graphiques avec Chart.js pour visualiser les métriques. Le pipeline Kanban doit permettre le glisser-déposer des candidats entre les colonnes ('Applied', 'Screening', 'Shortlisted', 'Interview', 'Offer', 'Hired', 'Rejected') avec une mise à jour en temps réel via WebSocket. Le composant doit respecter le Design System TalentFlow avec la couleur principale bleue (#1976D2) et des états UI (Loading, Error, Empty) pour une expérience utilisateur fluide.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Créer le layout principal du Dashboard avec Material UI Grid et Box pour organiser les statistiques et le pipeline Kanban, en utilisant des Card avec bordures légères et une hiérarchie visuelle cohérente.",
+                    "Implémenter la récupération des données statistiques via Axios en consommant l'endpoint ('GET /api/analytics/recruiter-dashboard') et afficher les résultats dans des graphiques Bar et Pie avec Chart.js, en gérant l'état Loading avec un Spinner Material UI.",
+                    "Développer le composant Kanban (RecruitmentPipeline) avec react-beautiful-dnd pour le glisser-déposer, en créant des colonnes pour chaque étape ('Applied', 'Screening', etc.) et des Cartes pour chaque candidat (nom, score, étape actuelle) provenant de la table ('applications') avec ('id'), ('candidate_id'), ('status').",
+                    "Intégrer les états UI (Loading, Error, Empty) pour gérer les scénarios de données manquantes ou d'erreur API, en affichant un message vierge ('Aucune candidature à afficher') et un Toast Material UI pour les erreurs, tout en appliquant les couleurs d'alerte (Warning: Orange #FF9800, Danger: Rouge #F44336)."
+                  ]
+                },
+                {
+                  "id": "TERA-2",
+                  "title": "Développement de la page JobsList avec Recherche, Filtres et Formulaire Multi-Étapes",
+                  "description": "Cette page permet au recruteur de consulter, filtrer et créer des offres d'emploi. Elle doit intégrer une barre de recherche avec autocomplétion, des filtres par statut ('Active/Closed'), département et type de contrat, ainsi qu'un bouton 'Créer une offre' déclenchant un formulaire en 7 étapes. L'implémentation nécessite la consommation des endpoints ('GET /api/jobs', 'POST /api/jobs') et la gestion d'états complexes pour les champs dynamiques (compétences, responsabilités). Le formulaire doit utiliser React Hook Form avec validation Zod et Material UI Dialog pour une expérience utilisateur professionnelle.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Construire la liste des offres avec Material UI Table, incluant les colonnes ('Titre', 'Département', 'Localisation', 'Mode de travail', 'Statut', 'Candidatures'), en intégrant un système de pagination serveur et des filtres dynamiques (Dropdown Material UI pour le statut, département, type de contrat) connectés à l'API ('GET /api/jobs?status=Active&department=IT').",
+                    "Implémenter la barre de recherche avec autocomplétion via Material UI Autocomplete, en consommant l'endpoint ('GET /api/jobs/search?q=python') et en affichant les résultats dans une liste déroulante avec les champs ('title', 'department', 'location') de la table ('jobs').",
+                    "Développer le formulaire de création d'offre en 7 étapes (Informations générales, Description du poste, Responsabilités, Compétences requises, Expérience, Processus de recrutement, Publication) avec React Hook Form, Zod pour la validation, et Material UI Stepper pour la navigation entre les étapes, en stockant les données dans un état local avant l'envoi final.",
+                    "Gérer les états UI (Loading, Error, Empty) pour les listes et formulaires, en utilisant un Spinner Material UI pendant le chargement, un message 'Aucune offre trouvée' pour les résultats vides, et des Toasts pour les erreurs API, tout en appliquant les styles du Design System (boutons primaires bleus, badges de statut)."
+                  ]
+                },
+                {
+                  "id": "TERA-3",
+                  "title": "Développement du composant CandidateProfile avec Tabs et Vue Détails",
+                  "description": "Ce composant affiche le profil complet d'un candidat avec un header interactif (avatar, nom, poste, score) et des onglets pour naviguer entre Overview, Resume, Interviews, Evaluations et Activity. L'implémentation nécessite la consommation des endpoints ('GET /api/candidates/{id}', 'GET /api/applications/candidate/{id}') et l'intégration de fichiers PDF pour le CV. Les onglets doivent utiliser Material UI Tabs avec un comportement responsive, et chaque section doit afficher des données structurées (expérience, compétences, entretiens passés/futurs) avec des badges et listes Material UI.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Créer le header du profil avec Material UI Avatar, Typography et Button, en affichant les champs ('name', 'position', 'location', 'email', 'score') de la table ('candidates') et un bouton 'Move to Interview' déclenchant une Modal Material UI avec sélection d'étape via un Dropdown.",
+                    "Développer l'onglet Overview avec des sections pour le résumé professionnel, l'expérience (liste des postes avec dates), les compétences (tags Material UI Chip) et la formation, en récupérant les données depuis ('candidates', 'candidate_skills', 'skills') via ('GET /api/candidates/{id}/overview').",
+                    "Implémenter l'onglet Resume avec un aperçu PDF intégré via react-pdf, un bouton de téléchargement ('GET /api/candidates/{id}/resume') et un état Loading pour gérer le chargement du fichier, tout en appliquant un style responsive.",
+                    "Construire les onglets Interviews, Evaluations et Activity avec des listes Material UI List et Table, en affichant les données de ('interviews', 'evaluations', 'activity_logs') via ('GET /api/candidates/{id}/interviews', 'GET /api/candidates/{id}/evaluations', 'GET /api/candidates/{id}/activity'), et en utilisant des Badges pour les statuts (Interview, Hired, etc.) avec les couleurs du Design System."
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-7",
+              "title": "Intégration globale (Front/Back)",
+              "description": "Connecter l'interface React aux API REST via Axios, implémenter l'authentification JWT, les WebSockets pour la messagerie temps réel, et les fonctionnalités de notification.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 21,
+              "acceptance_criteria": [
+                "Given un utilisateur, When il se connecte, Then un token JWT est stocké en HttpOnly Cookie et les routes protégées sont accessibles",
+                "Given un recruteur, When il planifie un entretien, Then une notification est envoyée au candidat via WebSocket et affichée dans son espace"
+              ],
+              "tasks": [
+                {
+                  "id": "TERA-1",
+                  "title": "Intégration Axios et JWT dans l'interface React (Frontend)",
+                  "description": "Cette tâche vise à configurer Axios comme client HTTP dans l'application React pour consommer les API REST du backend, tout en implémentant une gestion sécurisée des tokens JWT. L'objectif est de permettre aux utilisateurs de s'authentifier et de maintenir leur session via des tokens HttpOnly stockés dans des cookies, avec un mécanisme de rafraîchissement automatique. Les intercepteurs Axios serviront à ajouter automatiquement le token d'accès dans les en-têtes Authorization des requêtes, et à gérer les erreurs 401 en déclenchant le rafraîchissement du token. Cette intégration est cruciale pour garantir la sécurité et la fluidité de l'authentification dans l'interface utilisateur.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Configurer Axios avec un intercepteur de requête pour ajouter le header Authorization ('Bearer <token>') dans toutes les requêtes vers les routes API comme ('POST /api/auth/login') et ('GET /api/jobs')",
+                    "Implémenter un mécanisme de stockage sécurisé du refresh token dans un cookie HttpOnly et du token d'accès dans le localStorage avec expiration gérée via ('expires_in')",
+                    "Créer un service React ('useAuth') pour gérer le rafraîchissement automatique du token JWT via ('POST /api/auth/refresh') lorsqu'une requête échoue avec un statut 401",
+                    "Intégrer les composants de connexion ('Login') et d'inscription ('Register') avec validation des champs ('email', 'password') et appel aux endpoints backend correspondants"
+                  ]
+                },
+                {
+                  "id": "TERA-2",
+                  "title": "Développement des API REST (NestJS) pour l'authentification et les opérations métiers",
+                  "description": "Cette tâche consiste à créer les contrôleurs et services NestJS nécessaires pour gérer l'authentification (connexion, inscription, rafraîchissement de token) ainsi que les opérations métiers critiques comme la gestion des offres d'emploi ('jobs'), des candidats ('candidates') et des candidatures ('applications'). Les API doivent respecter les routes définies dans le schéma de la base de données, avec des validations des données d'entrée via DTOs et une gestion des erreurs cohérente. L'implémentation doit inclure des middlewares JWT pour protéger les routes sensibles et des responses standardisées avec des codes HTTP appropriés.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Créer le ('AuthController') avec les routes ('POST /api/auth/login'), ('POST /api/auth/register') et ('POST /api/auth/refresh') associées au ('AuthService') pour la génération et la validation des tokens JWT",
+                    "Développer le ('JobsController') avec les routes ('GET /api/jobs'), ('POST /api/jobs'), ('PUT /api/jobs/:id') et ('DELETE /api/jobs/:id') pour gérer les opérations CRUD sur la table ('jobs') avec filtres par ('status', 'department', 'location')",
+                    "Implémenter le ('CandidatesController') avec les routes ('GET /api/candidates'), ('GET /api/candidates/:id') et ('PUT /api/candidates/:id') pour gérer les candidats via la table ('candidates') et leurs compétences dans ('candidate_skills')",
+                    "Développer le ('ApplicationsController') avec les routes ('POST /api/applications'), ('GET /api/applications/job/:jobId') et ('PATCH /api/applications/:id/steps') pour gérer le pipeline de candidature via la table ('applications') avec les statuts ('Applied', 'Screening', 'Shortlisted', 'Interview', 'Offer', 'Hired', 'Rejected')"
+                  ]
+                },
+                {
+                  "id": "TERA-3",
+                  "title": "Mise en place des WebSockets (Socket.IO) et du système de notifications en temps réel",
+                  "description": "Cette tâche vise à implémenter une couche de communication temps réel via Socket.IO pour notifier les utilisateurs des événements critiques comme les nouvelles candidatures, les mouvements dans le pipeline, ou les modifications d'entretiens. Le backend doit émettre des événements via Socket.IO vers les clients connectés, tandis que le frontend doit écouter ces événements pour afficher des notifications via une interface adaptée. Le système de notifications doit être persistant dans la base de données via la table ('notifications') et intégré à une file d'attente BullMQ pour garantir la fiabilité des envois.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Configurer le module Socket.IO dans le backend NestJS avec un espace d'événement ('notification') et une méthode ('emitNotification') pour envoyer des messages aux utilisateurs via leur ('socket_id') stocké dans Redis",
+                    "Développer le ('NotificationsService') avec des méthodes pour créer des notifications dans la table ('notifications') avec des champs ('user_id', 'message', 'is_read') et les envoyer via BullMQ vers un worker de traitement",
+                    "Implémenter le composant React ('NotificationsCenter') avec un bouton déroulant affichant la liste des notifications depuis ('GET /api/notifications') et un indicateur de nouvelles notifications non lues",
+                    "Connecter le frontend au serveur Socket.IO pour écouter les événements ('new_application', 'candidate_moved', 'interview_scheduled') et mettre à jour dynamiquement l'interface sans rechargement"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "EPIC-4",
+          "title": "Tests, Documentation et Déploiement",
+          "user_stories": [
+            {
+              "id": "US-8",
+              "title": "Implémentation des Tests (Unitaires/Intégration)",
+              "description": "Écrire des tests unitaires pour les services Backend et des tests d'intégration pour les API, avec un coverage minimum de 80%.",
+              "status": "TO DO",
+              "priority": "Moyenne",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Given un service ApplicationsService, When une candidature est créée, Then un test vérifie que le statut est initialisé à 'Applied'",
+                "Given l'API /api/jobs, When un test envoie une requête POST avec des données invalides, Then une erreur 400 est retournée"
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-9",
+              "title": "Documentation technique et Déploiement",
+              "description": "Rédiger la documentation technique (API, architecture, README), configurer le déploiement sur Kubernetes via GitHub Actions, et sécuriser l'application avec Nginx et Let's Encrypt.",
+              "status": "TO DO",
+              "priority": "Moyenne",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given un développeur externe, When il consulte le README, Then les instructions d'installation et d'exécution sont claires",
+                "Given un environnement de production, When le déploiement Kubernetes est déclenché, Then l'application est accessible via HTTPS avec un certificat Let's Encrypt valide"
+              ],
+              "tasks": [
+                {
+                  "id": "TERA-1",
+                  "title": "Documentation Technique API (Swagger/OpenAPI)",
+                  "description": "La rédaction de la documentation technique API est cruciale pour faciliter l'intégration des clients et des équipes internes. Cette tâche implique la création d'un schéma OpenAPI 3.0 complet couvrant toutes les routes backend, avec des exemples de requêtes et réponses, des schémas de données détaillés, et des descriptions des erreurs. La documentation doit être générée automatiquement via Swagger UI intégré au projet NestJS, en utilisant les décorateurs @ApiOperation, @ApiResponse, et @ApiProperty pour chaque endpoint. Les routes critiques comme ('POST /api/auth/login'), ('GET /api/jobs'), ('PUT /api/applications/{id}/status') seront documentées avec leurs paramètres, réponses attendues et exemples concrets.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Configurer le module Swagger dans le fichier principal du backend (main.ts) avec les décorateurs nécessaires pour activer l'interface Swagger UI accessible via ('/api/docs')",
+                    "Documenter toutes les routes d'authentification ('POST /api/auth/login', 'POST /api/auth/refresh') avec les champs requis ('email', 'password') et les réponses JWT incluant ('accessToken', 'refreshToken')",
+                    "Rédiger les schémas OpenAPI pour les entités principales ('Job', 'Candidate', 'Application') en détaillant leurs champs (ex: 'job_id', 'title', 'department', 'status') et leurs relations (FK vers 'companies', 'users')",
+                    "Ajouter des exemples de requêtes et réponses pour les endpoints critiques comme ('GET /api/analytics/recruitment-stats') avec des données mockées illustrant les statistiques (taux de conversion, candidatures, embauches)"
+                  ]
+                },
+                {
+                  "id": "TERA-2",
+                  "title": "Architecture Technique (Diagrammes UML et DFD)",
+                  "description": "La documentation architecturale doit fournir une vision globale du système TalentFlow, incluant les diagrammes de composants, de séquence, et les flux de données. Cette tâche implique la création de diagrammes UML (component, sequence, class) illustrant l'architecture backend (NestJS, PostgreSQL, Redis, BullMQ) et frontend (React, Socket.IO). Les flux de données critiques (ex: création d'une offre, mouvement d'un candidat dans le pipeline) seront modélisés via des DFD (Data Flow Diagrams) pour montrer les interactions entre les microservices et les bases de données. Les table et champs comme ('users', 'applications', 'interviews') seront explicitement liés aux diagrammes pour une traçabilité complète.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Créer un diagramme de composants UML montrant les modules NestJS ('AuthModule', 'JobsModule', 'ApplicationsModule') et leurs dépendances externes (PostgreSQL, Redis, AWS S3)",
+                    "Dessiner un diagramme de séquence pour le scénario 'Création d'une offre d'emploi' depuis le dashboard recruteur, incluant les appels API ('POST /api/jobs'), la validation par le service ('JobsService'), et la persistance dans la table ('jobs')",
+                    "Modéliser un DFD niveau 1 pour le processus de recrutement, illustrant les flux entre ('Recruiter Dashboard'), ('Candidate Application'), ('Interview Scheduler') et les systèmes externes (AWS S3 pour les CV, SendGrid pour les notifications)",
+                    "Documenter les séquences critiques comme 'Mouvement d'un candidat dans le pipeline' avec les tables ('applications', 'activity_logs') impliquées et les événements déclenchés (notifications, historique)"
+                  ]
+                },
+                {
+                  "id": "TERA-3",
+                  "title": "Déploiement Kubernetes (YAML et GitHub Actions)",
+                  "description": "La configuration du déploiement sur Kubernetes via GitHub Actions est essentielle pour automatiser le CI/CD et garantir une mise en production fiable. Cette tâche implique la création de fichiers YAML Kubernetes pour les déploiements ('deployment.yaml'), services ('service.yaml'), et ingress ('ingress.yaml'), en intégrant les variables d'environnement (DB_HOST, JWT_SECRET). Le workflow GitHub Actions ('ci-cd.yml') doit automatiser la construction des images Docker, le déploiement sur un cluster EKS, et les tests de santé. Les étapes incluent la génération d'images multi-arch (amd64/arm64), la gestion des secrets AWS, et la validation des manifests Kubernetes avant déploiement.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 13,
+                  "subtasks": [
+                    "Écrire les fichiers Kubernetes ('deployment.yaml', 'service.yaml', 'ingress.yaml') avec les ressources nécessaires (CPU/memory limits, liveness/readiness probes) et les variables d'environnement ('DB_HOST', 'JWT_SECRET', 'AWS_ACCESS_KEY_ID')",
+                    "Configurer le workflow GitHub Actions ('ci-cd.yml') avec les jobs 'build', 'test', et 'deploy' incluant les étapes de build Docker multi-arch, push vers AWS ECR, et déploiement sur EKS via 'kubectl apply'",
+                    "Intégrer les secrets GitHub ('AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'JWT_SECRET') dans le workflow pour les utiliser lors du déploiement sans les exposer dans le code",
+                    "Ajouter des étapes de validation post-déploiement dans le workflow pour vérifier la disponibilité des services ('kubectl get pods', 'kubectl get svc') et tester les endpoints critiques ('curl -f http://talentflow.local/api/health')",
+                    "Créer un fichier 'kustomize' pour gérer les environnements ('base', 'overlays/dev', 'overlays/prod') avec des modifications ciblées (replicas, image tags, resources)"
+                  ]
+                },
+                {
+                  "id": "TERA-4",
+                  "title": "Sécurisation Nginx et Let's Encrypt",
+                  "description": "La sécurisation de l'application avec Nginx en tant que reverse proxy et Let's Encrypt pour les certificats SSL est cruciale pour la conformité et la protection des données. Cette tâche implique la configuration de Nginx avec les règles de redirection HTTP vers HTTPS, la gestion des certificats via Certbot, et l'implémentation des headers de sécurité (CSP, HSTS, X-Frame-Options). Le fichier de configuration Nginx ('nginx.conf') doit rediriger les requêtes vers le backend NestJS ('localhost:3000') et servir les fichiers statiques React. Les certificats seront automatiquement renouvelés via un cron job intégré au conteneur Nginx.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Configurer Nginx en tant que reverse proxy avec les règles de redirection HTTP vers HTTPS, les headers de sécurité (Strict-Transport-Security, X-Content-Type-Options, X-Frame-Options) et le proxy_pass vers le backend ('localhost:3000')",
+                    "Installer Certbot dans le conteneur Nginx pour générer et gérer les certificats SSL Let's Encrypt avec les commandes ('certbot certonly --standalone -d talentflow.local')",
+                    "Mettre en place un cron job dans le conteneur Nginx pour renouveler automatiquement les certificats SSL avant expiration ('0 0 * * * certbot renew --quiet')",
+                    "Configurer les règles de sécurité CORS dans Nginx pour autoriser les requêtes depuis les domaines autorisés ('talentflow.local', 'api.talentflow.local') et bloquer les requêtes non autorisées"
+                  ]
+                },
+                {
+                  "id": "TERA-5",
+                  "title": "README et Guide de Démarrage Rapide",
+                  "description": "Le fichier README doit servir de guide d'onboarding pour les développeurs et les administrateurs, expliquant comment cloner le projet, configurer les environnements, et démarrer l'application localement. Cette tâche inclut la rédaction des instructions détaillées pour l'installation des dépendances (npm install, pip install), la configuration des variables d'environnement ('DB_HOST', 'JWT_SECRET', 'AWS_ACCESS_KEY_ID'), et le lancement des services (Docker Compose, Kubernetes). Les sections 'Architecture', 'API Endpoints', et 'Déploiement' seront intégrées pour fournir une vue d'ensemble du système. Les étapes pour accéder à l'interface Swagger UI ('/api/docs') et aux logs Kubernetes seront également documentées.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Rédiger la section 'Prérequis' avec les versions requises (Node.js 18+, Docker 20.10+, Kubernetes 1.22+) et les commandes d'installation",
+                    "Documenter les étapes pour configurer les variables d'environnement dans un fichier '.env' avec les clés ('DB_HOST', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET', 'AWS_ACCESS_KEY_ID')",
+                    "Expliquer comment lancer l'application localement avec Docker Compose ('docker-compose up -d') et accéder aux services (Frontend sur 'http://localhost:3000', Backend sur 'http://localhost:8080')",
+                    "Inclure des captures d'écran des écrans clés (Dashboard recruteur, Pipeline Kanban) et des liens vers les documents API Swagger et les diagrammes d'architecture"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "_metadata": {
+        "created_at": "2026-09-14T19:04:38.902802",
+        "original_idea": "TalentFlow — Plateforme professionnelle de gestion du recrutement\n\nTalentFlow est une plateforme web SaaS destinée à centraliser l’ensemble du processus de recrutement d’une entreprise, depuis la création d’une offre d’emploi jusqu’à la décision finale d’embauche. La plateforme doit proposer une interface moderne, professionnelle et cohérente, inspirée des logiciels RH d’entreprise, avec une navigation claire et une expérience adaptée aux recruteurs, managers, administrateurs et candidats.\n\nLe système est organisé autour de quatre rôles principaux : Administrateur, Recruteur, Hiring Manager et Candidat. L’administrateur gère les utilisateurs, les rôles, les entreprises, les paramètres et les activités du système. Le recruteur gère les offres d’emploi, les candidatures, les candidats, les entretiens et les évaluations. Le Hiring Manager intervient dans la sélection et l’évaluation des candidats. Le candidat possède son propre espace pour rechercher des offres, consulter leurs détails, déposer une candidature et suivre son évolution.\n\nLe Recruiter Dashboard constitue l’écran principal du recruteur. Il doit afficher une vue globale du recrutement avec des statistiques telles que le nombre d’offres actives, le nombre total de candidatures, les entretiens planifiés et les recrutements réalisés. Il doit également présenter un pipeline visuel permettant de voir les candidats selon leurs étapes : Applied → Screening → Shortlisted → Interview → Offer → Hired, avec la possibilité d’accéder rapidement aux candidats, aux offres et aux entretiens.\n\nLa page Jobs permet au recruteur de consulter et gérer toutes les offres d’emploi. Elle doit comporter une recherche, des filtres par statut, département et type de contrat, ainsi qu’un bouton permettant de créer une nouvelle offre. Chaque offre doit afficher son titre, son département, sa localisation, son mode de travail, son statut et le nombre de candidatures associées. La création d’une offre doit être organisée en plusieurs étapes : informations générales, description du poste, responsabilités, compétences requises, expérience, processus de recrutement et publication finale.\n\nLa page Candidates constitue le centre de gestion des candidats. Elle doit permettre de rechercher, filtrer et trier les candidats selon l’offre, le statut, les compétences, l’expérience ou la date de candidature. Chaque candidat doit être présenté avec son nom, son poste, sa localisation, ses compétences principales, son score et son étape actuelle dans le processus de recrutement. Le recruteur doit pouvoir ouvrir directement le profil détaillé du candidat.\n\nLe Candidate Profile doit être une page complète et professionnelle. Le header doit afficher l’avatar, le nom du candidat, son poste, sa localisation, son adresse email, son score global et une action principale comme Move to Interview. Sous le header, des onglets doivent permettre de naviguer entre Overview, Resume, Interviews, Evaluations et Activity. L’onglet Overview doit présenter le résumé professionnel, l’expérience, les compétences, la formation et les langues. L’onglet Resume doit permettre de consulter le CV. L’onglet Interviews doit afficher les entretiens passés et futurs. L’onglet Evaluations doit présenter les notes et commentaires des interviewers. L’onglet Activity doit afficher l’historique des actions réalisées sur le candidat.\n\nLe Recruitment Pipeline doit proposer une véritable vue Kanban avec plusieurs colonnes : Applied, Screening, Shortlisted, Interview, Offer et Hired, ainsi qu’une colonne Rejected séparée. Les candidats doivent être représentés par des cartes contenant les informations essentielles. Le recruteur doit pouvoir déplacer un candidat d’une étape à une autre et le système doit conserver l’historique de ces changements.\n\nLe module Interviews doit permettre de consulter les entretiens sous forme de calendrier et de liste. Chaque entretien doit contenir le candidat, le poste concerné, le type d’entretien, la date, l’heure, la durée, les interviewers et le lien de réunion. Le recruteur doit pouvoir programmer un entretien, modifier sa date, ajouter des participants et envoyer une notification au candidat.\n\nLe module Evaluation doit fournir une grille standardisée permettant à l’interviewer d’évaluer le candidat selon plusieurs critères comme Technical Skills, Communication, Problem Solving et Culture Fit. Chaque critère doit être noté sur cinq étoiles. L’interviewer doit également sélectionner une recommandation parmi Strong Hire, Hire, Maybe ou No Hire et pouvoir ajouter un commentaire détaillé justifiant sa décision.\n\nL’espace Candidate doit proposer une interface différente de celle du recruteur. Le candidat doit disposer d’une page d’accueil, d’un espace de recherche d’offres, d’une page de détail d’une offre, d’un formulaire de candidature, d’un espace My Applications, d’un espace My Interviews, d’une messagerie, d’un profil personnel et d’un centre de notifications. Lorsqu’il postule, le candidat doit suivre un processus structuré avec les informations personnelles, le CV, les questions éventuelles et une page finale de vérification avant l’envoi.\n\nLa page My Applications doit permettre au candidat de suivre chaque candidature grâce à un pipeline visuel similaire à Applied → Screening → Interview → Offer → Hired, avec l’étape actuelle clairement mise en évidence. Le candidat doit également pouvoir consulter les informations de l’offre, les entretiens programmés et les éventuelles notifications liées à sa candidature.\n\nLe module Analytics doit fournir aux recruteurs une vision statistique du processus. Il doit présenter le nombre de candidatures, le taux de présélection, le nombre d’entretiens, le taux de conversion, le nombre d’embauches, le temps moyen de recrutement et les principales sources de candidatures. Les données doivent être présentées avec des graphiques simples et professionnels.\n\nLe système doit également posséder un centre de notifications permettant d'informer les utilisateurs lorsqu’une nouvelle candidature est reçue, lorsqu’un candidat change d’étape, lorsqu’un entretien est programmé ou modifié, lorsqu’une évaluation est disponible ou lorsqu’une décision importante est prise.\n\nL’interface doit suivre un Design System professionnel avec une couleur principale bleue, des couleurs spécifiques pour les états success, warning et danger, une typographie moderne, des cartes avec des bordures légères, des boutons cohérents, des badges, des tableaux, des onglets, des modales, des dropdowns, des tooltips et des notifications. Chaque écran doit également prévoir les états Loading, Empty, Error et Success afin que l’application soit réaliste et prête à être développée.\n\nLa navigation doit être cohérente entre toutes les pages. Le parcours principal du recruteur doit être : Dashboard → Jobs → Job Details → Candidates → Candidate Profile → Schedule Interview → Evaluation → Move Candidate → Offer → Hired. Le parcours principal du candidat doit être : Home → Jobs → Job Details → Apply → My Applications → Application Tracking → Interview → Final Decision.\n\nEnfin, le design doit être pensé comme un véritable produit SaaS professionnel, et non comme une collection de simples écrans. Toutes les pages doivent partager le même Design System, les mêmes composants, les mêmes règles d’espacement et la même hiérarchie visuelle. L’objectif final est d’obtenir une plateforme moderne, crédible, responsive et suffisamment détaillée pour permettre ensuite son développement réel."
+      }
+    },
+    {
+      "project_title": "Module Nexus – Tableaux de Bord Dynamiques par IA",
+      "architecture_report": "# Rapport d'Architecture – Module **Nexus**  \n\n---  \n\n## 1. Setup & Stack Technique  \n\n| Côté | Technologie | Version / Détails |\n|------|--------------|-------------------|\n| **Frontend** | Next.js | 14 (App Router) |\n|  | TailwindCSS | 3.x |\n|  | Zustand | 4.x (state store) |\n|  | Recharts | 2.x (graphes) |\n|  | D3.js | 7.x (fallback) |\n| **Backend** | FastAPI | 0.115 (Python 3.11) |\n|  | Uvicorn | 0.30 (ASGI) |\n|  | WebSockets (Starlette) | native |\n| **IA / LLM** | OpenAI API (GPT‑4o) | Tool‑calling, Text‑to‑SQL |\n| **Base de données** | PostgreSQL | 15 (read‑only role `nexus_reader`) |\n|  | Pinecone | Vector DB (RAG) |\n| **Cache / Rate‑limit** | Redis | 7.x (TTL, token bucket) |\n| **Infrastructure** | Docker | multi‑stage images |\n|  | Kubernetes | 1.30 (EKS) |\n|  | Helm charts | custom (frontend, backend, redis, postgres, pinecone) |\n|  | Terraform | IaC (VPC, RDS, EKS, IAM) |\n|  | CI/CD | GitHub Actions (lint, test, build, push, helm upgrade) |\n|  | Monitoring | Prometheus + Grafana (metrics) |\n|  | Logging | Loki + Grafana (log aggregation) |\n|  | Secrets | AWS Secrets Manager (DB creds, OpenAI key) |\n|  | TLS | ACM (HTTPS) |\n|  | Auth | JWT (HS256) + OAuth2 password flow |\n\n---  \n\n## 2. Schéma Relationnel de la Base de Données  \n\n| Table | PK | FK | Colonnes principales | Relation |\n|-------|----|----|----------------------|----------|\n| `users` | `id` (UUID) | – | `email`, `hashed_pwd`, `created_at` | 1‑N → `dashboards` |\n| `dashboards` | `id` (UUID) | `user_id` → `users.id` | `name`, `layout`, `created_at` | 1‑N → `widgets` |\n| `widgets` | `id` (UUID) | `dashboard_id` → `dashboards.id` | `type`, `config_json`, `position`, `created_at` | 1‑N → `widget_history` |\n| `widget_history` | `id` (UUID) | `widget_id` → `widgets.id` | `snapshot_json`, `timestamp` | – |\n| `saved_widgets` | `id` (UUID) | `user_id` → `users.id` | `type`, `config_json`, `created_at` | – |\n| `ai_sessions` | `id` (UUID) | `user_id` → `users.id` | `started_at`, `ended_at` | 1‑N → `ai_queries` |\n| `ai_queries` | `id` (UUID) | `session_id` → `ai_sessions.id` | `prompt`, `sql_generated`, `response_json`, `duration_ms` | – |\n| `rate_limits` | `user_id` (UUID) | – | `window_start`, `counter` | – |\n| `pines_vectors` *(Pinecone collection, non‑relational)* | – | – | `vector_id`, `metadata_json` | – |\n\n**Relations clés**  \n- `users.id` 1‑N `dashboards.user_id`  \n- `dashboards.id` 1‑N `widgets.dashboard_id`  \n- `widgets.id` 1‑N `widget_history.widget_id`  \n- `users.id` 1‑N `saved_widgets.user_id`  \n- `users.id` 1‑N `ai_sessions.user_id`  \n- `ai_sessions.id` 1‑N `ai_queries.session_id`  \n\n---  \n\n## 3. Architecture Backend & APIs  \n\n### API Families  \n- **REST** – CRUD sur `users`, `dashboards`, `widgets`, `saved_widgets`.  \n- **WebSocket** – Canal `ws://…/chat` pour streaming IA (token‑by‑token).  \n- **SSE (option)** – Endpoint `/stream/sql` (fallback).  \n\n### Routers / Contrôleurs (FastAPI)  \n| Router | Endpoint(s) | Contrôleur | Service(s) appelés |\n|--------|-------------|------------|--------------------|\n| `auth_router` | `/auth/login`, `/auth/refresh` | `AuthController` | `AuthService`, `JWTService` |\n| `user_router` | `/users/*` | `UserController` | `UserService` |\n| `dashboard_router` | `/dashboards/*` | `DashboardController` | `DashboardService` |\n| `widget_router` | `/widgets/*` | `WidgetController` | `WidgetService`, `ExportService` |\n| `saved_widget_router` | `/saved-widgets/*` | `SavedWidgetController` | `SavedWidgetService` |\n| `chat_router` | `/chat/ws` (WebSocket) | `ChatController` | `ChatService`, `LLMService`, `SQLGenService`, `RateLimitService` |\n| `sql_router` | `/sql/generate` (POST) | `SQLController` | `SQLGenService`, `SecurityService` |\n| `rate_limit_router` | `/rate-limit/*` | `RateLimitController` | `RateLimitService` |\n| `monitor_router` | `/metrics` | – | Prometheus exporter |\n\n### Services (Business Logic)  \n- `AuthService` – vérification credentials, création JWT.  \n- `UserService` – gestion profil, récupération.  \n- `DashboardService` – création, mise à jour, suppression.  \n- `WidgetService` – persistance, génération dynamique, validation JSON.  \n- `SavedWidgetService` – épinglage, liste personnelle.  \n- `ChatService` – orchestration du dialogue, gestion session IA.  \n- `LLMService` – appel OpenAI, tool‑calling, filtrage PII.  \n- `SQLGenService` – conversion LLM → SQL, validation syntaxe, timeout (5 s).  \n- `SecurityService` – exécution SQL via rôle `nexus_reader`, sandbox.  \n- `RateLimitService` – token bucket dans Redis (50 req/h/user).  \n- `ExportService` – sérialisation widget, téléchargement CSV/PNG.  \n- `VectorSearchService` – requêtes Pinecone pour RAG.  \n\n---  \n\n## 4. Architecture Frontend et Intégration  \n\n### Outils UI  \n- **Next.js 14** – pages, API routes (proxy minimal).  \n- **TailwindCSS** – utility‑first styling, glassmorphism via `backdrop-blur`.  \n- **Zustand** – store `user`, `dashboard`, `widget`, `chatSession`.  \n- **Recharts** – composants graphiques (Bar, Line, Pie).  \n- **D3.js** – fallback pour visualisations complexes.  \n\n### Sécurité Frontend  \n- **JWT** – stocké en HttpOnly cookie, rafraîchi via `/auth/refresh`.  \n- **CSRF** – SameSite=Lax, double‑submit token sur POST.  \n- **Input sanitisation** – client‑side escape avant envoi au backend.  \n\n### Mécanismes de Communication  \n| Canal | Protocole | Usage |\n|------|-----------|-------|\n| HTTP/REST | HTTPS | CRUD, auth, rate‑limit checks. |\n| WebSocket | wss://…/chat/ws | Streaming IA (token‑by‑token), session keep‑alive. |\n| SSE (fallback) | https://…/stream/sql | Streaming SQL generation si WS indisponible. |\n| GraphQL (non‑utilisé) | – | – |\n\n### Integration Points  \n- **OpenAI SDK** – appelé depuis `LLMService` (backend).  \n- **PostgreSQL driver** – `asyncpg` (async execution, timeout).  \n- **Redis client** – `aioredis` (rate‑limit, session cache).  \n- **Pinecone client** – `pinecone-client` (vector lookup).  \n\n---  \n\n*Fin du rapport.*  ",
+      "epics": [
+        {
+          "id": "EPIC-1",
+          "title": "Initiation et Configuration",
+          "user_stories": [
+            {
+              "id": "US-1",
+              "title": "Étude du projet et Setup",
+              "description": "Analyser les besoins fonctionnels et techniques du module Nexus, définir le périmètre, les parties prenantes et établir le document de spécifications détaillé.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 5,
+              "acceptance_criteria": [
+                "Given le cahier des charges du module Nexus, When l'équipe analyse les besoins fonctionnels et techniques, Then un document de spécifications détaillé est produit."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-2",
+              "title": "Configuration de l'environnement et outils",
+              "description": "Mettre en place les dépôts Git, les pipelines CI/CD, les conteneurs Docker et les environnements de développement pour le frontend Next.js et le backend FastAPI.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 3,
+              "acceptance_criteria": [
+                "Given un dépôt Git vide, When les développeurs configurent les environnements de développement, Then les pipelines CI/CD et les conteneurs Docker sont prêts et fonctionnels."
+              ],
+              "tasks": [
+                {
+                  "id": "NEXUS-101",
+                  "title": "Initialisation des dépôts Git et configuration du monorepo (frontend + backend)",
+                  "description": "Cette tâche consiste à créer les dépôts Git centralisés qui hébergeront le code source du frontend Next.js et du backend FastAPI, afin d'assurer une gestion de version unifiée et une collaboration fluide entre les équipes. Nous établirons un monorepo sur GitHub avec des dossiers distincts '/frontend' et '/backend', appliquerons des règles de protection de branche pour la branche 'main' et configurerons les hooks de commit pour garantir la qualité du code dès le push. Un fichier README détaillé sera ajouté pour décrire les conventions de commit, les procédures de pull‑request et les instructions de démarrage du projet, facilitant ainsi l'onboarding des nouveaux développeurs. Enfin, nous créerons des fichiers .gitignore spécifiques à chaque technologie afin d'exclure les artefacts de build, les dépendances locales et les secrets, garantissant un dépôt propre et sécurisé.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Créer un nouveau repository privé nommé ('nexus-platform') sur GitHub, puis initialiser un monorepo local avec les dossiers ('frontend') et ('backend') et pousser le premier commit contenant le fichier README et les .gitignore respectifs.",
+                    "Configurer les règles de protection de branche sur la branche ('main') du repository afin d'exiger les revues de code, les checks CI réussis et l'interdiction du push direct, garantissant ainsi la qualité et la sécurité du code intégré.",
+                    "Ajouter un fichier (.gitignore) dédié pour le projet Next.js incluant les dossiers ('node_modules'), ('.next'), ('out') et les fichiers de configuration locaux, ainsi qu'un .gitignore pour FastAPI contenant ('__pycache__'), ('*.pyc'), ('venv') et les fichiers de secrets.",
+                    "Rédiger un README complet décrivant la structure du monorepo, les conventions de nommage des branches, le processus de pull‑request, les scripts de démarrage pour le frontend et le backend, ainsi que les liens vers la documentation interne et les bonnes pratiques de contribution."
+                  ]
+                },
+                {
+                  "id": "NEXUS-102",
+                  "title": "Mise en place des pipelines CI/CD GitHub Actions pour le frontend Next.js et le backend FastAPI",
+                  "description": "Cette tâche vise à automatiser les processus de linting, de test, de build et de déploiement pour les deux parties de l'application via GitHub Actions, assurant ainsi une livraison continue fiable et reproductible. Deux workflows distincts seront créés : l'un pour le frontend (frontend.yml) et l'autre pour le backend (backend.yml), chacun incluant les étapes d'installation des dépendances, d'exécution des tests unitaires, de génération d'artefacts Docker et de publication vers le registre d'images. Les secrets nécessaires (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DOCKERHUB_USERNAME, DOCKERHUB_TOKEN, OPENAI_API_KEY) seront stockés de façon sécurisée dans les paramètres du repository et référencés dans les jobs. Enfin, les pipelines déclencheront le déploiement Helm vers l'environnement de staging en utilisant les charts pré‑configurés, garantissant que chaque commit validé passe par le même processus de validation et de mise à jour.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Créer le fichier de workflow ('/.github/workflows/frontend.yml') qui installe Node.js 20, exécute 'npm ci', lance les tests avec 'npm test', effectue le lint avec 'npm run lint', construit l'image Docker multi‑stage et la pousse vers Docker Hub sous le tag ('nexus-frontend:${{ github.sha }}').",
+                    "Créer le fichier de workflow ('/.github/workflows/backend.yml') qui installe Python 3.11, utilise Poetry pour installer les dépendances, exécute les tests PyTest, lance MyPy pour le typage, construit l'image Docker FastAPI et la publie sur Docker Hub avec le tag ('nexus-backend:${{ github.sha }}').",
+                    "Configurer les secrets du repository GitHub pour inclure ('AWS_ACCESS_KEY_ID'), ('AWS_SECRET_ACCESS_KEY'), ('DOCKERHUB_USERNAME'), ('DOCKERHUB_TOKEN'), ('OPENAI_API_KEY') et les référencer dans les étapes de login Docker et de déploiement Helm afin de sécuriser les accès aux services externes.",
+                    "Ajouter une étape de déploiement Helm dans chaque workflow qui applique le chart ('helm/nexus') sur le cluster EKS de staging en utilisant les valeurs ('image.tag=${{ github.sha }}') et en déclenchant un rollback automatique en cas d'échec du health‑check."
+                  ]
+                },
+                {
+                  "id": "NEXUS-103",
+                  "title": "Création des images Docker multi‑stage et configuration des environnements de développement local (Docker Compose)",
+                  "description": "Cette tâche a pour objectif de fournir des images Docker optimisées pour le frontend Next.js et le backend FastAPI, ainsi qu'un fichier Docker‑Compose permettant de lancer l'ensemble de l'écosystème (frontend, backend, Redis, PostgreSQL, Pinecone mock) en local. Les Dockerfiles seront construits en deux étapes : une première phase de build avec toutes les dépendances, suivie d'une phase runtime minimale afin de réduire la taille de l'image et d'améliorer la sécurité. Le docker‑compose.yml définira les réseaux, les volumes persistants et les variables d'environnement nécessaires, incluant les scripts d'initialisation de la base de données et les migrations Alembic. Des scripts npm et make seront ajoutés pour simplifier le démarrage du stack local, garantissant une expérience de développement cohérente pour tous les contributeurs.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Écrire le Dockerfile pour le frontend ('frontend/Dockerfile') en utilisant une image de base Node.js 20, incluant une étape de build qui exécute 'npm run build' puis une étape runtime qui copie uniquement le dossier '.next' et les fichiers statiques dans une image Alpine légère, avec le point d'entrée 'npm start'.",
+                    "Écrire le Dockerfile pour le backend ('backend/Dockerfile') basé sur Python 3.11‑slim, installer Poetry, copier le code source, installer les dépendances en mode production, puis définir le point d'entrée 'uvicorn app.main:app --host 0.0.0.0 --port 8000' pour lancer le serveur FastAPI.",
+                    "Créer le fichier Docker Compose ('docker-compose.yml') qui orchestre les services 'frontend', 'backend', 'redis', 'postgres' (image postgres:15) et un conteneur mock pour Pinecone, en définissant les variables d'environnement comme ('POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB'), les volumes persistants et les dépendances de démarrage entre les services.",
+                    "Ajouter des scripts npm ('npm run dev:docker') et Makefile ('make up') qui exécutent 'docker-compose up --build' avec les options de rechargement automatique, ainsi qu'un script d'initialisation ('scripts/init_db.sh') qui applique les migrations Alembic et charge les données de démonstration dans PostgreSQL."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "EPIC-2",
+          "title": "Base de données et Backend",
+          "user_stories": [
+            {
+              "id": "US-3",
+              "title": "Modélisation et création de la Base de Données",
+              "description": "Concevoir le schéma PostgreSQL incluant les tables utilisateurs, dashboards, widgets, sessions IA et mettre en place les migrations correspondantes.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given le modèle de données du produit existant, When le schéma PostgreSQL est créé avec les nouvelles tables Nexus, Then les migrations s'exécutent sans erreur."
+              ],
+              "tasks": [
+                {
+                  "id": "NEXUS-DB-001",
+                  "title": "Modélisation du schéma de base de données (PostgreSQL) – tables principales",
+                  "description": "Cette tâche consiste à définir le modèle relationnel central du module Nexus, en créant les tables essentielles qui stockeront les utilisateurs, leurs tableaux de bord et les widgets associés. Le but est d'établir des clés primaires UUID, des contraintes d'unicité et des relations de type 1‑N afin de garantir l'intégrité référentielle et la scalabilité du système. Chaque table sera conçue avec des colonnes adaptées aux besoins fonctionnels, incluant des champs JSONB pour la flexibilité des configurations de widgets et de mise en page.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Analyser les exigences fonctionnelles du module Nexus afin d'identifier les entités principales, leurs attributs, les clés primaires UUID et les contraintes d'unicité nécessaires pour garantir la cohérence des données.",
+                    "Rédiger le script SQL DDL pour créer la table ('users') avec les colonnes ('id' UUID PRIMARY KEY), ('email' VARCHAR UNIQUE NOT NULL), ('hashed_pwd' TEXT NOT NULL), ('created_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW()), en ajoutant les index appropriés sur l'email pour optimiser les recherches.",
+                    "Rédiger le script SQL DDL pour créer la table ('dashboards') avec les colonnes ('id' UUID PRIMARY KEY), ('user_id' UUID NOT NULL REFERENCES 'users'('id') ON DELETE CASCADE), ('name' VARCHAR NOT NULL), ('layout' JSONB NOT NULL), ('created_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW()), en définissant les contraintes de clé étrangère et les index sur 'user_id'.",
+                    "Rédiger le script SQL DDL pour créer la table ('widgets') avec les colonnes ('id' UUID PRIMARY KEY), ('dashboard_id' UUID NOT NULL REFERENCES 'dashboards'('id') ON DELETE CASCADE), ('type' VARCHAR NOT NULL), ('config_json' JSONB NOT NULL), ('position' JSONB NOT NULL), ('created_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW()), en veillant à ce que les relations de suppression en cascade préservent l'intégrité des données."
+                  ]
+                },
+                {
+                  "id": "NEXUS-DB-002",
+                  "title": "Extension du schéma avec tables d'historique, IA et contrôle de débit",
+                  "description": "Cette tâche ajoute les tables complémentaires nécessaires au suivi de l'historique des widgets, à la persistance des widgets sauvegardés par les utilisateurs, ainsi qu'aux sessions et requêtes d'IA. Elle inclut également la table de contrôle de débit pour appliquer la limitation de 50 requêtes par heure via Redis. L'objectif est de fournir un modèle complet qui supporte la traçabilité, la réutilisation et la conformité aux exigences de sécurité et de performance.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Concevoir la table ('widget_history') avec les colonnes ('id' UUID PRIMARY KEY), ('widget_id' UUID NOT NULL REFERENCES 'widgets'('id') ON DELETE CASCADE), ('snapshot_json' JSONB NOT NULL), ('timestamp' TIMESTAMP WITH TIME ZONE DEFAULT NOW()), afin de conserver chaque version de configuration d'un widget pour l'historisation.",
+                    "Concevoir la table ('saved_widgets') avec les colonnes ('id' UUID PRIMARY KEY), ('user_id' UUID NOT NULL REFERENCES 'users'('id') ON DELETE CASCADE), ('type' VARCHAR NOT NULL), ('config_json' JSONB NOT NULL), ('created_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW()), permettant aux utilisateurs d'épingler des widgets générés par l'IA dans leur bibliothèque personnelle.",
+                    "Concevoir les tables ('ai_sessions') et ('ai_queries') : ('ai_sessions') contenant ('id' UUID PRIMARY KEY), ('user_id' UUID NOT NULL REFERENCES 'users'('id') ON DELETE CASCADE), ('started_at' TIMESTAMP WITH TIME ZONE DEFAULT NOW()), ('ended_at' TIMESTAMP WITH TIME ZONE); ('ai_queries') contenant ('id' UUID PRIMARY KEY), ('session_id' UUID NOT NULL REFERENCES 'ai_sessions'('id') ON DELETE CASCADE), ('prompt' TEXT NOT NULL), ('sql_generated' TEXT), ('response_json' JSONB), ('duration_ms' INTEGER), afin de tracer chaque interaction avec le LLM.",
+                    "Concevoir la table ('rate_limits') avec les colonnes ('user_id' UUID PRIMARY KEY REFERENCES 'users'('id') ON DELETE CASCADE), ('window_start' TIMESTAMP WITH TIME ZONE NOT NULL), ('counter' INTEGER NOT NULL DEFAULT 0), pour implémenter le token‑bucket dans Redis et garantir la limitation de 50 requêtes par utilisateur et par heure."
+                  ]
+                },
+                {
+                  "id": "NEXUS-DB-003",
+                  "title": "Mise en place des migrations Alembic et automatisation CI/CD",
+                  "description": "Cette tâche met en place le système de migrations versionnées avec Alembic afin de créer et mettre à jour le schéma PostgreSQL de manière fiable. Elle inclut la génération des scripts de migration pour chaque table définie, la configuration des tests d'intégration qui valident la présence des tables et des contraintes, ainsi que l'intégration de ces migrations dans le pipeline GitHub Actions pour garantir que chaque déploiement applique les changements de schéma de façon automatisée et sécurisée.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Configurer Alembic en créant le répertoire 'alembic' avec le fichier 'alembic.ini' paramétré pour lire les variables d'environnement DATABASE_URL, et initialiser le script de migration de base en définissant le module 'env.py' pour utiliser SQLAlchemy's MetaData.",
+                    "Générer les scripts de migration initiale pour chaque table ('users', 'dashboards', 'widgets', 'widget_history', 'saved_widgets', 'ai_sessions', 'ai_queries', 'rate_limits') en exécutant 'alembic revision --autogenerate', puis vérifier manuellement que les contraintes de clé étrangère, les index sur les colonnes fréquemment filtrées (email, user_id) et les types JSONB sont correctement créés.",
+                    "Écrire des tests unitaires avec pytest qui démarrent un conteneur PostgreSQL via Docker Compose, appliquent les migrations Alembic, puis interrogent le catalogue d'information (information_schema) pour confirmer l'existence des tables et des colonnes attendues, assurant ainsi la fiabilité du processus de migration.",
+                    "Intégrer les étapes de migration dans le pipeline GitHub Actions en ajoutant un job 'db-migrate' qui dépend du job 'build-backend', exécute 'alembic upgrade head' contre la base de données de staging, et échoue le pipeline si une migration ne s'applique pas correctement, garantissant ainsi la synchronisation du schéma avant chaque déploiement Helm."
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-4",
+              "title": "Développement du Backend et Logique Métier",
+              "description": "Implémenter les services FastAPI pour la gestion des dashboards, des widgets, l'orchestration du chatbot IA, la limitation de débit et la sécurité des requêtes SQL.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Given les spécifications du service de chat IA, When le backend FastAPI implémente les endpoints et la logique métier, Then les appels à l'API OpenAI sont sécurisés, respectent le timeout de 5 s et utilisent le rôle PostgreSQL en lecture‑seule."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-5",
+              "title": "Création des API REST ou Endpoints",
+              "description": "Développer les API REST pour les CRUD des dashboards, widgets, sauvegarde des widgets générés et exposer les endpoints de génération de SQL et de streaming IA.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 5,
+              "acceptance_criteria": [
+                "Given le besoin d'exposer les ressources Nexus, When les API REST sont développées, Then elles respectent les conventions OpenAPI, retournent les codes HTTP appropriés et sont documentées."
+              ],
+              "tasks": [
+                {
+                  "id": "NEXUS-1",
+                  "title": "Développement API REST (FastAPI) – CRUD tableaux de bord, widgets et sauvegarde",
+                  "description": "Cette tâche implémente l’ensemble des endpoints REST nécessaires à la création, lecture, mise à jour et suppression des entités principales du module Nexus. Elle garantit la conformité aux modèles Pydantic, l’utilisation d’asyncpg pour des accès non bloquants à PostgreSQL, et l’intégration de la validation de schéma JSON pour les configurations de widgets. Chaque route est sécurisée par JWT et respecte les conventions de nommage API. Le but est de fournir une couche backend fiable qui alimente le frontend Next.js et persiste les widgets générés par l’IA.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Définir les modèles Pydantic détaillés pour les entités ('dashboards') avec ('id'), ('user_id'), ('name'), ('layout') et pour ('widgets') avec ('id'), ('dashboard_id'), ('type'), ('config_json'), ('position'), ('created_at'), en incluant la validation stricte des champs JSON.",
+                    "Créer le routeur FastAPI ('router_dashboard') exposant les routes exactes ('POST /api/dashboards'), ('GET /api/dashboards/{dashboard_id}'), ('PUT /api/dashboards/{dashboard_id}'), ('DELETE /api/dashboards/{dashboard_id}') et implémenter la logique métier via DashboardService avec gestion des erreurs HTTP appropriées.",
+                    "Implémenter le routeur FastAPI ('router_widget') avec les endpoints ('POST /api/widgets'), ('GET /api/widgets/{widget_id}'), ('PUT /api/widgets/{widget_id}'), ('DELETE /api/widgets/{widget_id}') qui persiste les données dans la table ('widgets') et assure la vérification de la propriété ('dashboard_id') appartenant à l'utilisateur authentifié.",
+                    "Ajouter le routeur FastAPI ('router_saved_widget') exposant ('POST /api/saved-widgets'), ('GET /api/saved-widgets'), ('DELETE /api/saved-widgets/{saved_widget_id}') pour permettre aux utilisateurs d’épingler les widgets générés, en stockant les champs ('type'), ('config_json'), ('user_id') dans la table ('saved_widgets') et en renvoyant des réponses HTTP 201/200/204 selon le cas."
+                  ]
+                },
+                {
+                  "id": "NEXUS-2",
+                  "title": "Développement API WebSocket (FastAPI) – Streaming IA et génération dynamique de widgets",
+                  "description": "Cette tâche crée le canal de communication temps réel utilisé par le chatbot IA pour renvoyer les réponses token par token et le JSON décrivant le widget à afficher. Le WebSocket gère la création de session, l’appel à l’LLM via LLMService, la transformation du texte en requête SQL sécurisée, puis la diffusion du résultat sous forme de flux. Elle assure la résilience face aux déconnexions et la conformité aux limites de temps d’exécution.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Définir le point d’entrée WebSocket ('/ws/chat') dans le routeur ('router_chat') en utilisant la classe WebSocketEndpoint de Starlette, incluant la validation du token JWT lors de la connexion initiale.",
+                    "Implémenter la logique de gestion de session dans ChatService qui crée une entrée dans la table ('ai_sessions') avec ('id'), ('user_id'), ('started_at') et associe chaque requête à ('ai_queries') contenant ('prompt'), ('sql_generated'), ('response_json'), ('duration_ms').",
+                    "Intégrer l’appel asynchrone à OpenAI via LLMService, récupérer les tokens générés, les transmettre immédiatement au client via websocket.send_text() et, une fois le texte complet reçu, appeler SQLGenService pour obtenir le SQL et le JSON du widget.",
+                    "Construire le message de diffusion final contenant ('type'), ('data'), ('widget_config') où ('widget_config') correspond au JSON stocké dans la table ('widgets') ou ('saved_widgets'), et gérer les cas d’erreur en renvoyant un message structuré avec code d’erreur et description."
+                  ]
+                },
+                {
+                  "id": "NEXUS-3",
+                  "title": "Mise en place de la sécurité, du contrôle d’accès et du rate‑limiting (FastAPI + Redis)",
+                  "description": "Cette tâche renforce la couche API en appliquant les exigences de sécurité et de conformité RGPD. Elle crée un rôle PostgreSQL en lecture‑seule, implémente un middleware JWT, ajoute un mécanisme de token‑bucket dans Redis pour limiter les appels IA à 50 par heure et sécurise l’exécution des requêtes SQL générées avec un timeout de 5 s. Le tout est journalisé pour audit et monitoring.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Configurer le rôle PostgreSQL ('nexus_reader') avec uniquement les permissions SELECT sur les tables ('sales'), ('customers'), ('products') et s’assurer que toutes les exécutions SQL passent par ce rôle via asyncpg.connect(dsn, role='nexus_reader').",
+                    "Développer un middleware FastAPI qui extrait le JWT du cookie HttpOnly, le valide avec JWTService, injecte le 'user_id' dans le request.state et rejette les requêtes non authentifiées avec HTTP 401.",
+                    "Implémenter RateLimitService en utilisant Redis (clé 'rl:{user_id}') avec un algorithme token‑bucket, décrémenter un token à chaque appel à l’endpoint ('POST /api/chat') et renvoyer HTTP 429 lorsque le quota de 50 requêtes par heure est dépassé.",
+                    "Créer la fonction utilitaire SQLExecService qui exécute le SQL généré via asyncpg, applique un timeout de 5 seconds via asyncio.wait_for, capture les exceptions d’injection et renvoie un résultat structuré ou une erreur sécurisée, tout en enregistrant ('duration_ms') dans la table ('ai_queries')."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "EPIC-3",
+          "title": "Frontend et Intégration",
+          "user_stories": [
+            {
+              "id": "US-6",
+              "title": "Développement Frontend et UI",
+              "description": "Construire l'interface Next.js avec TailwindCSS, implémenter le panneau chatbot slide‑over en glassmorphism, les loaders, et les composants Recharts/D3.js pour les visualisations dynamiques.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given le design system glassmorphism, When le composant Chatbot slide‑over est implémenté, Then il s'affiche correctement sur desktop et mobile avec les animations de skeleton loader."
+              ],
+              "tasks": [
+                {
+                  "id": "NEXUS-1",
+                  "title": "Initialisation du layout Next.js avec TailwindCSS et style Glassmorphism pour le panneau chatbot",
+                  "description": "Cette tâche consiste à configurer le projet Next.js 14 afin d'intégrer TailwindCSS 3.x, créer les fichiers de configuration nécessaires, et définir les classes utilitaires pour le style glassmorphism qui sera appliqué au panneau rétractable du chatbot. Le but est d'assurer que le composant s'affiche avec un flou d'arrière‑plan (backdrop‑blur) et une transparence subtile, tout en restant compatible avec le thème sombre et clair du tableau de bord existant. Cette configuration servira de base à toutes les pages du module Nexus et garantira une cohérence visuelle entre les widgets et le panneau de conversation.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Créer le fichier de configuration Tailwind ('tailwind.config.js') en activant le mode JIT, en ajoutant les couleurs personnalisées du design system et en incluant la variante 'backdrop-blur' pour le style glassmorphism, puis exécuter le build pour vérifier l'absence d'erreurs.",
+                    "Mettre en place le layout global de l'application dans le répertoire ('app/layout.tsx') en incluant le provider Zustand, le composant Header et le conteneur principal qui accueillera le slide‑over, tout en appliquant les classes Tailwind pour le fond et la police de base.",
+                    "Développer le composant React 'ChatSlideOver' dans le dossier ('components/ChatSlideOver.tsx') en utilisant les classes Tailwind 'bg-white/30', 'backdrop-blur-lg', 'rounded-xl' et en ajoutant les transitions CSS pour l'ouverture et la fermeture, afin d'obtenir l'effet glassmorphism requis.",
+                    "Intégrer le composant 'ChatSlideOver' dans le layout global via un état Zustand ('useChatStore') qui contrôle la visibilité, et vérifier que le panneau s'affiche correctement sur les résolutions desktop, tablette et mobile en testant les breakpoints Tailwind."
+                  ]
+                },
+                {
+                  "id": "NEXUS-2",
+                  "title": "Implémentation du chatbot slide‑over avec streaming WebSocket, skeleton loaders et gestion d'état",
+                  "description": "Cette tâche vise à développer l'interaction en temps réel entre le frontend et le backend via le WebSocket ('/api/chat/ws'), afficher les réponses de l'IA en streaming caractère par caractère, et fournir des indicateurs de chargement visuels pendant la génération du SQL. L'état de la conversation sera géré par Zustand, incluant l'historique, le statut de connexion et les erreurs éventuelles. Le composant devra également respecter les exigences d'accessibilité et de responsive design, notamment en masquant le contenu principal lorsqu'il est ouvert sur mobile.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Créer le store Zustand ('useChatStore') avec les champs ('messages'), ('isConnected'), ('isLoading'), ('error') et implémenter les actions pour ajouter un message, mettre à jour le statut de connexion et réinitialiser la conversation.",
+                    "Développer le hook personnalisé 'useWebSocket' qui ouvre une connexion sécurisée au route ('/api/chat/ws') en utilisant le token JWT stocké en HttpOnly cookie, gère les événements 'message', 'open', 'close' et 'error', et transmet chaque token reçu au store Zustand pour le rendu en streaming.",
+                    "Intégrer un composant 'SkeletonLoader' au sein de 'ChatSlideOver' qui s'affiche dès que l'utilisateur envoie une requête, en utilisant les classes Tailwind 'animate-pulse' et un texte placeholder « Analyse des données en cours… », puis le masquer dès que le premier token de réponse arrive.",
+                    "Ajouter la logique de gestion d'erreurs dans le composant, incluant la détection d'une déconnexion WebSocket, l'affichage d'un message d'erreur stylisé, et la reconnection automatique avec un back‑off exponentiel, tout en conservant l'historique des messages déjà reçus."
+                  ]
+                },
+                {
+                  "id": "NEXUS-3",
+                  "title": "Rendu dynamique des widgets Recharts/D3.js, responsive fallback et fonctionnalité d'épinglage",
+                  "description": "Cette tâche porte sur la transformation du JSON renvoyé par l'API ('POST /api/widgets/generate') en composants graphiques React dynamiques, l'adaptation responsive qui bascule les graphiques complexes en tableau empilé sur mobile, et l'implémentation du bouton « Épingler au tableau de bord » qui persiste le widget dans la table ('widgets') via l'endpoint ('POST /api/widgets'). Le but est d'offrir une expérience fluide où chaque visualisation générée par l'IA devient immédiatement interactive et sauvegardable par l'utilisateur.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Construire le composant 'DynamicChart' qui reçoit le JSON de configuration, sélectionne le type de graphique ('bar', 'line', 'pie') et rend le composant Recharts correspondant (ex. <BarChart>, <LineChart>, <PieChart>) avec les propriétés de données, axes et légendes, tout en validant la présence des champs requis ('type', 'data', 'options').",
+                    "Implémenter un fallback responsive dans 'DynamicChart' qui, lorsqu'il détecte la breakpoint 'sm' ou inférieure via le hook 'useMediaQuery', remplace le rendu Recharts par un tableau HTML stylisé avec Tailwind, affichant les mêmes données sous forme de lignes empilées pour une lisibilité optimale sur mobile.",
+                    "Ajouter le bouton d'action « Épingler au tableau de bord » dans le composant, qui déclenche un appel POST vers le route ('POST /api/widgets') avec le corps contenant ('type'), ('config_json'), ('position') et l'ID du tableau de bord courant, puis met à jour le store Zustand des widgets pour refléter la nouvelle entrée sans rechargement de page.",
+                    "Écrire les tests unitaires avec Jest et React Testing Library pour vérifier que 'DynamicChart' rend correctement chaque type de graphique, bascule vers le tableau sur mobile, et que l'appel d'épinglage renvoie un statut 201 et met à jour le store, en incluant des mocks pour les réponses API."
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-7",
+              "title": "Intégration globale (Front/Back)",
+              "description": "Connecter le frontend aux API REST et au WebSocket de streaming IA, gérer l'état avec Zustand et rendre les widgets JSON reçus dynamiquement.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given le backend opérationnel, When le frontend consomme les WebSockets du chat, Then les réponses IA sont affichées en streaming token par token et les widgets sont rendus dynamiquement."
+              ],
+              "tasks": [
+                {
+                  "id": "NEX-101",
+                  "title": "Intégration des appels API REST côté Frontend avec Zustand",
+                  "description": "Cette tâche vise à connecter le client Next.js aux endpoints REST du backend FastAPI, en centralisant les réponses dans le store Zustand afin de garantir une source unique de vérité pour les tableaux de bord, les widgets et l'état d'authentification. Elle inclut la définition de types TypeScript stricts, la gestion des tokens JWT via HttpOnly cookies, ainsi que la mise en place d'un wrapper fetch réutilisable qui applique les en‑têtes de sécurité et les stratégies de retry. Le but est de rendre les opérations CRUD transparentes pour les composants UI tout en respectant les contraintes de rate‑limit et de timeout.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Créer un slice Zustand nommé 'authStore' contenant les champs ('userId'), ('accessToken'), ('isAuthenticated') et implémenter les actions de login, logout et rafraîchissement du token en appelant la route ('POST /api/auth/login') puis ('POST /api/auth/refresh') avec gestion des cookies HttpOnly.",
+                    "Développer un slice Zustand appelé 'dashboardStore' qui expose les méthodes fetchDashboard(id) et updateDashboard, en consommant les routes ('GET /api/dashboards/{id}') et ('PUT /api/dashboards/{id}') et en stockant les propriétés du tableau de bord ainsi que les indicateurs de chargement et d'erreur.",
+                    "Implémenter un service API générique (file 'apiClient.ts') qui encapsule la fonction native fetch, ajoute automatiquement l'en‑tête 'Authorization: Bearer <token>' lorsqu'il est présent dans le store, gère les réponses JSON, les codes d'erreur 429 (rate‑limit) et 500, et expose des méthodes get, post, put, delete utilisables partout dans l'application.",
+                    "Écrire des wrappers TypeScript pour les réponses des endpoints ('GET /api/widgets', 'POST /api/widgets') incluant les interfaces WidgetResponse avec ('id'), ('type'), ('config_json'), ('created_at'), puis les consommer dans le slice 'widgetStore' afin de synchroniser la liste des widgets avec le backend après chaque création ou mise à jour."
+                  ]
+                },
+                {
+                  "id": "NEX-102",
+                  "title": "Gestion du flux WebSocket IA et mise à jour du store Zustand",
+                  "description": "Cette tâche implémente la connexion bidirectionnelle via WebSocket vers le backend FastAPI afin de recevoir le streaming token‑by‑token de la réponse du LLM, de le décoder et de le pousser en temps réel dans le store Zustand dédié à la session de chat. Elle comprend la logique de reconnexion, la gestion du cycle de vie de la session (ouverture, fermeture, timeout), ainsi que l'intégration avec les skeleton loaders UI pour offrir une expérience fluide et réactive.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Instancier un client WebSocket dans un hook React nommé useChatWebSocket qui se connecte à la route ('WS /api/chat/ws') en transmettant le JWT via le paramètre de requête 'token', et qui expose les callbacks onMessage, onError et onClose pour être consommés par le store.",
+                    "Créer un slice Zustand appelé 'chatStore' contenant les champs ('sessionId'), ('messages' array), ('isStreaming'), ('error') et implémenter les actions startSession, appendMessage, stopSession, handleError, en veillant à ce que chaque token reçu du WebSocket soit ajouté à la collection 'messages' avec un horodatage.",
+                    "Implémenter une logique de reconnexion exponentielle (max 5 tentatives) dans le hook useChatWebSocket, en stockant le nombre de tentatives dans le store et en déclenchant une notification utilisateur via un toast lorsqu'une reconnexion échoue après le nombre maximal d'essais.",
+                    "Synchroniser le statut d'attente du backend avec le composant UI en affichant le skeleton loader 'Analyse des données en cours...' dès que le champ ('isStreaming') du chatStore passe à true, et le masquer dès que le champ ('isStreaming') redevient false ou que la session se termine."
+                  ]
+                },
+                {
+                  "id": "NEX-103",
+                  "title": "Rendu dynamique des widgets JSON reçus depuis le LLM",
+                  "description": "Cette tâche permet de transformer le JSON structuré renvoyé par le LLM (type de graphique, données, options) en composants React Recharts ou D3.js, en fonction du type indiqué. Elle inclut la validation du schéma JSON contre une interface TypeScript, la création d'un factory component capable d'instancier le bon graphique, ainsi que la mise en place d'un fallback responsive (tableau HTML) pour les écrans mobiles, tout en conservant la cohérence avec le design system glassmorphism.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Définir une interface TypeScript WidgetConfig contenant les champs ('type'), ('data'), ('options'), ('title') et créer un validateur runtime (zod) qui assure que le JSON reçu depuis le champ ('response_json') de la table ('widgets') respecte ce schéma avant toute tentative de rendu.",
+                    "Construire un composant React nommé DynamicWidget qui reçoit une prop config de type WidgetConfig, utilise un switch sur le champ ('type') pour choisir entre les composants Recharts BarChart, LineChart, PieChart, ou le fallback Table, et transmet les données et options aux composants enfants en respectant les conventions de props de Recharts.",
+                    "Intégrer le composant DynamicWidget dans le layout du tableau de bord en l'enveloppant d'un conteneur TailwindCSS avec les classes 'backdrop-blur-lg bg-white/30 rounded-lg shadow-lg' afin de respecter le design system glassmorphism, et ajouter des media queries Tailwind (md:, lg:) pour basculer automatiquement vers le rendu Table sur les écrans <640px.",
+                    "Écrire des tests unitaires avec Jest et React Testing Library qui injectent différents exemples de WidgetConfig (bar, line, pie) et vérifient que le bon composant Recharts est monté, que les données sont correctement mappées, et que le fallback Table apparaît bien en mode mobile simulé."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "EPIC-4",
+          "title": "Tests, Documentation et Déploiement",
+          "user_stories": [
+            {
+              "id": "US-8",
+              "title": "Implémentation des Tests (Unitaires/Intégration)",
+              "description": "Écrire des tests unitaires pour les services backend, des tests d'intégration pour les API et des scénarios E2E Playwright pour valider le flux chatbot → génération de widget → sauvegarde.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given les scénarios d'utilisation du chatbot, When les tests Playwright sont exécutés, Then ils valident la génération du widget Recharts, son affichage et son épinglage dans le tableau de bord."
+              ],
+              "tasks": [
+                {
+                  "id": "NEXUS-101",
+                  "title": "Tests unitaires FastAPI (Pytest) pour les services métier",
+                  "description": "Cette tâche vise à garantir la fiabilité du code métier du module Nexus en écrivant des tests unitaires exhaustifs avec Pytest. Chaque service du backend, notamment `ChatService`, `SQLGenService`, `RateLimitService` et `SecurityService`, sera testé isolément afin de valider la logique de génération de prompts, la conversion texte‑to‑SQL, la limitation de débit et l'exécution sécurisée des requêtes. Les tests devront simuler les dépendances externes (OpenAI, Redis, PostgreSQL) à l'aide de mocks afin d'assurer une exécution rapide et déterministe, tout en vérifiant que les exceptions sont correctement propagées. Cette couverture unitaires permettra de détecter précocement les régressions lors de futures évolutions du pipeline IA.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Implémenter un fixture Pytest qui crée un mock du client OpenAI (`openai.ChatCompletion.create`) et qui renvoie une réponse JSON pré‑définie contenant le champ ('choices')[0]['message']['content'] pour simuler la génération de SQL sans appel réseau réel.",
+                    "Écrire un test unitaire pour la méthode `ChatService.process_message` en injectant le mock OpenAI, en vérifiant que le texte retourné est découpé token par token et que la session IA est correctement enregistrée dans la table ('ai_sessions') avec les champs ('id'), ('user_id'), ('started_at').",
+                    "Développer un test unitaire pour `SQLGenService.generate_sql` qui fournit un prompt d'exemple, utilise un mock du LLM et s'assure que le SQL retourné respecte le schéma en lecture seule et ne dépasse pas le timeout de 5 seconds, en validant la présence du champ ('sql_generated') dans la table ('ai_queries').",
+                    "Construire un test unitaire pour `RateLimitService.check_limit` qui simule le compteur Redis pour un utilisateur donné, vérifie que le token bucket autorise jusqu'à 50 requêtes par heure et que toute requête supplémentaire renvoie une exception `RateLimitExceeded` avec le champ ('user_id') correctement renseigné."
+                  ]
+                },
+                {
+                  "id": "NEXUS-102",
+                  "title": "Tests d'intégration API FastAPI (HTTPX) pour les endpoints critiques",
+                  "description": "Cette tâche porte sur la validation du comportement complet des points d'entrée REST et WebSocket du module Nexus en utilisant HTTPX et le client WebSocket de Starlette. Les tests d'intégration vérifieront que les routes exposées respectent les contrats contractuels, que les réponses contiennent les structures JSON attendues et que les contraintes de sécurité (SQL en lecture‑seule, timeout, rate‑limit) sont appliquées. Chaque scénario devra inclure le lancement d'une instance de l'application FastAPI en mode test, l'injection d'une base de données PostgreSQL en mémoire (via `asyncpg`), ainsi que la configuration d'un serveur Redis factice pour la limitation de débit. L'objectif est d'assurer que l'ensemble du flux, depuis la réception du prompt jusqu'à la génération du widget, fonctionne sans erreur et respecte les exigences de performance.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Écrire un test d'intégration qui envoie une requête HTTP POST vers la route ('POST /api/sql/generate') avec un payload JSON contenant le champ ('prompt'), puis vérifier que la réponse JSON inclut les champs ('sql_generated') et ('response_json') et que le temps d'exécution ne dépasse pas 5 seconds.",
+                    "Implémenter un test d'intégration WebSocket qui se connecte à l'endpoint ('ws://localhost:8000/chat/ws'), envoie un message de chat, puis consomme le flux token‑by‑token jusqu'à la fin, en s'assurant que le serveur renvoie le statut de session IA correct et que la table ('ai_sessions') possède bien une entrée associée au ('user_id') fourni.",
+                    "Créer un test d'intégration qui appelle la route ('GET /api/widgets/{widget_id}') avec un identifiant valide, puis valider que le corps de la réponse contient le champ ('config_json') correspondant à la configuration du widget Recharts et que le code HTTP retourné est 200, sinon 404 si le widget n'existe pas.",
+                    "Développer un test d'intégration qui simule 51 requêtes consécutives vers la route ('POST /api/sql/generate') pour le même ('user_id') en utilisant le client Redis factice, afin de confirmer que la 51ᵉ requête renvoie une erreur HTTP 429 et que le compteur Redis reflète correctement la fenêtre de 1 heure."
+                  ]
+                },
+                {
+                  "id": "NEXUS-103",
+                  "title": "Scénarios E2E Playwright (Chatbot → Génération de widget → Sauvegarde)",
+                  "description": "Cette tâche consiste à automatiser le parcours complet de l'utilisateur final depuis la saisie d'une requête dans le chatbot jusqu'à l'épinglage du widget généré sur son tableau de bord, en utilisant Playwright. Les scénarios couvriront le rendu du composant de chat en glassmorphism, le streaming en temps réel des réponses IA, la création dynamique du composant Recharts à partir du JSON reçu, ainsi que la persistance du widget via l'API backend. Chaque test E2E devra être exécuté contre une instance déployée du stack complet (Next.js, FastAPI, PostgreSQL, Redis) afin de valider l'intégration inter‑services, la conformité aux exigences de performance et la conformité aux règles de sécurité (pas de PII dans le prompt).",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Configurer le projet Playwright avec le navigateur Chromium en mode headless, créer un fixture qui démarre le serveur Next.js (`npm run dev`) et le serveur FastAPI (`uvicorn app.main:app`) en parallèle, puis nettoyer les containers Docker après chaque exécution de test.",
+                    "Écrire un scénario qui ouvre la page d'accueil, clique sur le bouton d'ouverture du panneau chatbot (identifié par le sélecteur CSS `[data-test-id=\"open-chat\"]`), saisit la phrase « Montre‑moi les ventes par région pour Q3 2026 comparées à Q3 2025 », puis attend que le texte streaming apparaisse caractère par caractère, en validant que chaque token contient au moins un mot du vocabulaire attendu.",
+                    "Implémenter une vérification qui, après la fin du streaming, intercepte la requête réseau vers l'endpoint ('POST /api/sql/generate') et extrait le JSON de réponse contenant le champ ('response_json'), puis s'assure que le composant React Recharts est présent dans le DOM avec le sélecteur `[data-test-id=\"recharts-canvas\"]` et que les données affichées correspondent aux valeurs du JSON.",
+                    "Ajouter un dernier pas qui clique sur le bouton « Épingler au tableau de bord » (sélecteur `[data-test-id=\"pin-widget\"]`), attend la réponse HTTP 201 de l'endpoint ('POST /api/widgets'), puis effectue une requête GET vers ('GET /api/dashboards/{dashboard_id}/widgets') pour confirmer que le widget apparaît dans la liste avec le champ ('type') égal à « bar » et que le champ ('config_json') correspond exactement à celui reçu précédemment."
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-9",
+              "title": "Documentation technique et Déploiement",
+              "description": "Rédiger la documentation API, le guide d'installation, créer les Helm charts et configurer le pipeline GitHub Actions pour le déploiement continu sur Kubernetes.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 5,
+              "acceptance_criteria": [
+                "Given le code complet, When la documentation est générée et le pipeline déploie sur Kubernetes, Then le module Nexus est accessible en production avec toutes les références documentées."
+              ],
+              "tasks": [
+                {
+                  "id": "DOC-001",
+                  "title": "Documentation API (OpenAPI/Swagger) pour le module Nexus",
+                  "description": "Cette tâche consiste à créer une spécification OpenAPI complète décrivant toutes les routes exposées par le backend FastAPI du module Nexus, afin de garantir une compréhension claire pour les développeurs et les intégrateurs. La documentation doit inclure les chemins exacts comme ('POST /api/chat/ws'), les schémas de requête et de réponse, ainsi que les codes d'erreur possibles, tout en respectant les conventions de versionnage. Un processus d'intégration continue devra valider la conformité du fichier YAML/JSON contre le schéma OpenAPI et publier automatiquement la documentation sur le portail interne. Cette étape est cruciale pour faciliter le support, la maintenance et l'extension future du service IA.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Générer le fichier OpenAPI ('openapi.yaml') en utilisant la bibliothèque FastAPI native, en incluant chaque route du backend comme ('GET /api/metrics'), ('POST /api/sql/generate'), et ('GET /api/users/me') avec leurs paramètres détaillés et leurs réponses JSON structurées.",
+                    "Enrichir la spécification avec des descriptions complètes, des exemples de payloads, des codes d'erreur HTTP (400, 401, 403, 500) et des références aux modèles de données tels que la table ('ai_queries') et ses champs ('id'), ('prompt'), ('sql_generated').",
+                    "Intégrer un job GitHub Actions qui exécute l'outil 'swagger-cli validate' sur le fichier OpenAPI afin de détecter toute incohérence ou violation de schéma avant chaque merge dans la branche principale.",
+                    "Déployer automatiquement la documentation générée sur le serveur de documentation interne (ex. Redoc ou Swagger UI) via un conteneur Docker, en configurant le endpoint ('/docs') et en assurant l'accès sécurisé via JWT."
+                  ]
+                },
+                {
+                  "id": "GUIDE-002",
+                  "title": "Guide d'installation et d'exploitation (Installation Guide) pour le module Nexus",
+                  "description": "Cette tâche vise à rédiger un guide d'installation exhaustif qui décrit chaque prérequis, les étapes de construction des images Docker, la configuration des variables d'environnement et le déploiement via Helm sur le cluster Kubernetes. Le guide doit couvrir les scénarios de développement local, de test d'intégration et de mise en production, en incluant les références aux secrets stockés dans AWS Secrets Manager et aux paramètres de connexion PostgreSQL et Pinecone. Des sections dédiées aux procédures de mise à jour, de rollback et de monitoring (Prometheus, Grafana) seront ajoutées pour assurer la continuité opérationnelle. Le document final sera versionné dans le dépôt GitHub sous le répertoire '/docs' au format Markdown.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 3,
+                  "subtasks": [
+                    "Lister les prérequis système tels que Docker ≥ 24, kubectl ≥ 1.30, Helm ≥ 3.14, ainsi que les comptes AWS nécessaires pour accéder à RDS, EKS et Secrets Manager, en précisant les permissions IAM requises.",
+                    "Décrire la procédure de construction multi‑stage des images Docker pour le frontend et le backend, incluant les commandes exactes ('docker build -t nexus-frontend:{{VERSION}} .') et les tags de versionnage sémantique, ainsi que les options de cache pour accélérer les builds CI.",
+                    "Documenter le processus d'installation Helm en détaillant chaque valeur du fichier ('values.yaml') comme ('image.repository'), ('image.tag'), ('postgres.passwordSecret'), ('redis.passwordSecret'), et expliquer comment les injecter via '--set' ou un fichier de valeurs personnalisé.",
+                    "Fournir des instructions de validation post‑déploiement, incluant les vérifications de pods en état 'Running', les endpoints healthcheck ('/healthz'), et les métriques exposées sur Prometheus, ainsi que les étapes de dépannage courantes."
+                  ]
+                },
+                {
+                  "id": "DEPLOY-003",
+                  "title": "Définition des Helm charts et configuration du pipeline CI/CD (GitHub Actions) pour Nexus",
+                  "description": "Cette tâche a pour objectif de créer les Helm charts nécessaires au déploiement du module Nexus sur Kubernetes, puis d'automatiser le processus de build, test et déploiement continu via GitHub Actions. Les charts doivent encapsuler les micro‑services frontend, backend, Redis, PostgreSQL et Pinecone, en exposant les valeurs configurables via des paramètres clairement documentés. Le pipeline CI/CD devra inclure des étapes de linting des charts, de génération d'images Docker, de push vers le registre ECR, puis de mise à jour du release Helm avec rollback en cas d'échec. L'ensemble du flux doit être sécurisé, traçable et intégré aux outils de monitoring existants.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Structurer le répertoire Helm avec les sous‑charts ('frontend', 'backend', 'redis', 'postgres'), créer les fichiers Chart.yaml, values.yaml et templates/*.yaml, et inclure les références aux secrets AWS via les annotations ('secretsmanager.amazonaws.com/secret-id').",
+                    "Écrire un job GitHub Actions nommé 'helm-lint' qui utilise l'action 'helm/chart-testing' pour valider la syntaxe et les meilleures pratiques des charts, en s'assurant que chaque template rend correctement les objets Kubernetes attendus.",
+                    "Configurer le workflow CI/CD complet avec les étapes suivantes : checkout du code, setup de Python 3.11 et Node 20, exécution des tests unitaires (pytest, jest), construction des images Docker, push vers Amazon ECR, puis déploiement Helm via l'action 'azure/k8s-deploy' en ciblant le cluster EKS et en passant les variables d'environnement sécurisées depuis les secrets GitHub.",
+                    "Implémenter une stratégie de rollback automatisée dans le pipeline en utilisant la commande Helm ('helm rollback <release> <revision>') lorsqu'une étape post‑déploiement (vérification des pods, healthcheck) échoue, et notifier l'équipe via Slack en incluant le log d'erreur complet."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "_metadata": {
+        "created_at": "2026-09-16T11:38:52.972152",
+        "original_idea": "# EPIC : Module \"Nexus\" - Génération de Tableaux de Bord Dynamiques par IA\n\n## 1. Contexte du Produit (Product Context)\nNotre plateforme SaaS actuelle fournit d'excellentes données analytiques, mais les utilisateurs se plaignent de la rigidité des tableaux de bord préconfigurés. L'objectif de ce module (nom de code \"Nexus\") est d'introduire une interface conversationnelle (chatbot) intégrée permettant aux utilisateurs de taper des requêtes en langage naturel (ex: \"Montre-moi les ventes par région pour Q3 2026 comparées à Q3 2025\") et de générer instantanément un graphique interactif (React Recharts/D3.js).\n\n## 2. Architecture et Stack Technologique (Tech Stack)\n- **Frontend :** Next.js 14 (App Router), TailwindCSS, Zustand (State Management), Recharts pour la visualisation.\n- **Backend :** FastAPI (Python 3.11) pour l'API haute performance, WebSockets pour le streaming de la réponse IA.\n- **IA / LLM :** Intégration de l'API OpenAI (GPT-4o) avec des fonctions \"Tool Calling\" pour générer des requêtes SQL sécurisées (Text-to-SQL).\n- **Base de données :** PostgreSQL (Données métiers) et Pinecone (Vector DB) pour le contexte RAG (Retrieval-Augmented Generation) sur le schéma de base de données.\n\n## 3. Fonctionnalités Principales (Core Features)\n1. **Interface Conversationnelle (Chatbot) :** Un panneau rétractable (Slide-over) accessible depuis n'importe quelle page du Dashboard.\n2. **Streaming en Temps Réel :** Les réponses textuelles de l'IA doivent s'afficher en streaming lettre par lettre (Server-Sent Events ou WebSockets).\n3. **Génération Dynamique de Widgets :** L'IA ne doit pas renvoyer une image, mais un objet JSON structuré définissant le type de graphique (Bar, Line, Pie) et les données. Le frontend instanciera le composant React dynamiquement.\n4. **Export et Sauvegarde :** L'utilisateur doit pouvoir cliquer sur \"Épingler au tableau de bord\" pour sauvegarder le widget généré dans sa base de données personnelle.\n\n## 4. Sécurité et Contraintes (Security & Constraints)\n- **Prévention d'Injection SQL :** Le modèle IA générera du SQL basé sur un schéma \"Read-Only\". Toutes les requêtes exécutées par l'agent doivent passer par un rôle PostgreSQL restreint (permissions `SELECT` uniquement, timeout max de 5 secondes).\n- **Privacy (RGPD) :** Aucune donnée PII (Personnal Identifiable Information) ne doit être incluse dans le prompt envoyé au LLM. Seul le schéma de la base de données est transmis.\n- **Rate Limiting :** Limiter l'utilisation du Chatbot à 50 requêtes par utilisateur et par heure (implémentation via Redis).\n\n## 5. Exigences d'Expérience Utilisateur (UX Requirements)\n- **Squelettes de chargement (Skeleton Loaders) :** Pendant que le LLM génère la requête SQL, afficher une animation pulsante \"Analyse des données en cours...\".\n- **Design System :** Utiliser des composants \"Glassmorphism\" (flou d'arrière-plan) pour le panneau du Chatbot afin qu'il s'intègre parfaitement par-dessus les tableaux existants sans cacher tout le contexte.\n- **Responsive :** Sur mobile, le widget généré doit se transformer automatiquement d'un graphique en barres à un tableau de données empilées pour des raisons de lisibilité.\n\n## 6. Tests Attendus (QA & Testing)\n- **E2E Testing (Playwright) :** Simuler un utilisateur tapant une requête et vérifier l'apparition du Canvas React Recharts.\n- **Test de Charge (K6) :** Simuler 500 utilisateurs simultanés effectuant des requêtes Text-to-SQL pour mesurer la latence de notre API FastAPI."
+      }
+    },
+    {
+      "project_title": "ImmoSync AI - CRM SaaS pour Agences Immobilières",
+      "architecture_report": "\n\n# Rapport d'Architecture Technique - Projet ImmoSync AI\n\n## 1. Setup & Stack Technique\n\n### Frontend\n*   **Framework** : React.js (SPA - Single Page Application) avec Vite pour l'optimisation du build.\n*   **Langage** : TypeScript (typage strict).\n*   **Styling** : Tailwind CSS pour un design systeme utility-first, configuration d'un thème sombre (Dark Mode) par défaut avec accents cyan et indigo, application d'effets de Glassmorphism (verre dépoli) sur les modales et les menus latéraux (drawers).\n*   **State Management** : Zustand pour la gestion de l'état global (session utilisateur, préférences).\n*   **Charting & Visualisation** : Bibliothèque de graphiques interactifs (ex: Recharts ou Chart.js) pour le Dashboard.\n*   **Drag & Drop** : Bibliothèque de glâtre-déposer (ex: dnd-kit ou react-dnd) pour le tableau Kanban.\n\n### Backend\n*   **Framework** : FastAPI (Python 3.x).\n*   **Architecture** : Architecture hexagonale (divisée en couches : API / Domaine Services / Repositories / Infrastructures).\n*   **Base de Données** : PostgreSQL (gérée via l'ORM SQLAlchemy).\n*   **Migrations** : Alembic pour la gestion des versions de schéma de base de données.\n*   **Authentification** : JWT (JSON Web Tokens) avec gestion des rôles `Agent` et `Manager`.\n*   **Stockage des Fichiers** : AWS S3 pour l'hébergement des images des biens immobiliers (utilisation de URLs pré-signés pour l'upload direct depuis le frontend).\n*   **Intelligence Artificielle** : Intégration de l'API OpenAI pour le moteur de matching sémantique (`Smart Suggest`).\n\n### DevOps & Déploiement\n*   **Environnement** : Plateforme SaaS (multi-locataire / multi-agences).\n*   **Conteneurisation** : Docker pour l'isolement des dépendances Python.\n*   **CI/CD** : Pipeline de déploiement automatisé (ex: GitHub Actions, GitLab CI) vers un serveur cloud (AWS ou équivalent).\n*   **Base de données** : Service de base de données PostgreSQL géré (ex: Amazon RDS ou service équivalent).\n\n---\n\n## 2. Schéma Relationnel de la Base de Données\n\nLe schéma relationnel repose sur les entités principales suivantes :\n\n### Table `users` (Utilisateurs du CRM)\n*   **Clé Primaire (PK)** : `id` (UUID)\n*   **Colonnes** : `email` (VARCHAR, unique), `password_hash` (VARCHAR), `name` (VARCHAR), `role` (ENUM: 'Agent', 'Manager'), `created_at` (TIMESTAMP)\n*   **Relations** :\n    *   1-N avec la table `properties` (un agent gère plusieurs biens).\n    *   1-N avec la table `clients` (un agent gère plusieurs clients).\n\n### Table `properties` (Inventaire des biens immobiliers)\n*   **Clé Primaire (PK)** : `id` (UUID)\n*   **Clé Étrangère (FK)** : `agent_id` -> `users.id`\n*   **Colonnes** : `title` (VARCHAR), `price` (FLOAT), `surface` (FLOAT), `dpe` (VARCHAR - classement énergétique), `address` (VARCHAR), `description` (TEXT), `s3_image_paths` (ARRAY de VARCHAR - liste des clés S3), `created_at` (TIMESTAMP)\n*   **Relations** :\n    *   N-1 avec `users` (beaucoup de propriétés pour un agent).\n    *   N-N implicite avec `clients` via la table `visits` et la table `ai_matches`.\n\n### Table `clients` (Clients acheteurs / Prospects)\n*   **Clé Primaire (PK)** : `id` (UUID)\n*   **Clé Étrangère (FK)** : `agent_id` -> `users.id`\n*   **Colonnes** : `name` (VARCHAR), `email` (VARCHAR), `phone` (VARCHAR), `criteria` (TEXT/JSON - critères bruts pour l'IA : ex: \"famille, 2 enfants, jardin requis\"), `pipeline_status` (ENUM: 'prospect', 'visit_scheduled', 'offer_submitted', 'contract_signed'), `kanban_position` (INTEGER - ordre d'affichage dans le Kanban), `created_at` (TIMESTAMP)\n*   **Relations** :\n    *   N-1 avec `users` (un client est rattaché à un agent).\n\n### Table `visits` (Visites planifiées)\n*   **Clé Primaire (PK)** : `id` (UUID)\n*   **Clés Étrangères (FK)** :\n    *   `client_id` -> `clients.id`\n    *   `property_id` -> `properties.id`\n*   **Colonnes** : `scheduled_at` (TIMESTAMP), `status` (ENUM: 'scheduled', 'done', 'cancelled'), `notes` (TEXT)\n*   **Relations** :\n    *   N-1 avec `clients` (un client peut avoir plusieurs visites).\n    *   N-1 avec `properties` (un bien peut être visité plusieurs fois).\n\n### Table `ai_matches` (Résultats du matching IA)\n*   **Clé Primaire (PK)** : `id` (UUID)\n*   **Clés Étrangères (FK)** :\n    *   `client_id` -> `clients.id`\n    *   `property_id` -> `properties.id`\n*   **Colonnes** : `match_score` (FLOAT - score de correspondance en %), `ai_rationale` (TEXT - explication textuelle de l'IA), `created_at` (TIMESTAMP)\n*   **Relations** :\n    *   N-1 avec `clients` (historique des suggestions pour un client).\n    *   N-1 avec `properties` (historique des suggestions pour un bien).\n\n---\n\n## 3. Architecture Backend & APIs\n\nL'architecture suit une approche hexagonale (clean architecture) séparant les couches de manière stricte :\n\n### Couche API (Contrôleurs / Routes)\n*   **`/api/v1/auth`** : Authentification (login, inscription, profil connecté). Gestion des tokens JWT.\n*   **`/api/v1/properties`** : CRUD des biens immobiliers. Génère des URLs pré-signées pour l'upload d'images sur AWS S3. Filtres avancés (prix, surface, DPE).\n*   **`/api/v1/clients`** : CRUD des profils clients. Mise à jour du statut du pipeline (déplacement dans le Kanban).\n*   **`/api/v1/matching`** : Endpoint déclenchant le calcul de correspondance IA et renvoyant les scores de similarité.\n*   **`/api/v1/dashboard`** : Endpoints d'agrégation pour les graphiques de ventes, les visites planifiées et les alertes.\n*   **`/api/v1/visits`** : Gestion calendrier des visites.\n\n### Couche Métiers (Services)\n*   **`AuthService`** : Hachage des mots de passe (bcrypt), émission et validation des tokens JWT, gestion des rôles (`Agent`, `Manager`).\n*   **`PropertyService`** : Règles métiers sur les biens (validation des données, coordination de l'upload S3).\n*   **`ClientService`** : Logique de transition du pipeline de vente ( Prospect -> Visite -> Offre -> Contrat ).\n*   **`MatchingService` (IA Module)** :\n    *   Récupère le champ `criteria` du client.\n    *   Appelle l'API OpenAI pour l'analyse sémantique des besoins.\n    *   Interroge la base de données pour trouver les biens correspondants.\n    *   Calcule un score de pertinence (%) et stocke le résultat dans la table `ai_matches`.\n*   **`DashboardService`** : Agrégation de données pour les KPIs (ventes du mois, volume de visites, taux de conversion).\n\n### Couche Persistance (Repositories)\n*   **`UserRepository`**, **`PropertyRepository`**, **`ClientRepository`**, **`VisitRepository`**, **`MatchRepository`** : Interfaces SQLAlchemy gérant les requêtes SQL complexes, les jointures et les requêtes de filtrage dynamique.\n\n---\n\n## 4. Architecture Frontend et Intégration\n\n### Structure de l'Application (SPA)\n*   **TypeScript** pour un typage robuste des données échangées avec l'API FastAPI.\n*   **React.js** avec un routing centralisé (React Router) pour séparer les espaces de travail (Dashboard, Inventaire, Pipeline Kanban, Profil).\n\n### State Management (Zustand)\n*   **Store Utilisateur** : Gestion de l'authentification (token JWT, rôle de l'utilisateur `Agent` ou `Manager`). Contrôle d'accès conditionnel (RBAC) aux composants.\n*   **Store Pipeline** : État temporaire du tableau Kanban lors des opérations de glâtre-déposer (drag-and-drop).\n\n### Design System & UI\n*   **Thème visuel** : Fond sombre par défaut, accents cyan et indigo pour les éléments interactifs (boutons, statuses).\n*   **Glassmorphism** : Utilisation de classes CSS de verre dépoli (backdrop-filter blur, semi-transparence) pour les conteneurs de modales, les drawers latéraux et les menus de navigation flottants, assurant une UX moderne et dense (inspirée de Linear / Azure DevOps).\n*   **Composants Graphiques** : Intégration de cartes interactives pour le Dashboard (graphiques de ventes, courbes d'activité).\n\n### Mécanismes de Communication\n*   **HTTP/REST (Axios)** : Client API pour les appels synchrones aux endpoints FastAPI. Inclusion du token JWT dans les en-têtes `Authorization` (Bearer).\n*   **WebSockets (Optionnel)** : Connexion en temps réel pour la réception de notifications d'alertes (ex: nouveau matching IA généré, visite imminente).\n*   **AWS S3 Integration** : Le frontend communique directement avec S3 via des URLs pré-signées générées par le backend pour l'upload d'images sans passer par le serveur principal.",
+      "epics": [
+        {
+          "id": "EPIC-1",
+          "title": "Initiation et Configuration",
+          "user_stories": [
+            {
+              "id": "US-1",
+              "title": "Étude du projet et Setup",
+              "description": "Initialiser la structure du projet ImmoSync AI, définir l'architecture hexagonale et configurer le dépôt de code pour le frontend (React.js/Vite) et le backend (FastAPI).",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 3,
+              "acceptance_criteria": [
+                "Given les exigences du projet, When l'architecture technique est validée, Then les dossiers de base pour le frontend et le backend sont créés dans un environnement de versionnement.",
+                "Given les contraintes de stack, When les choix technologiques (TypeScript, Zustand, Tailwind CSS) sont gelés, Then le cahier des charges techniques est archivé."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-2",
+              "title": "Configuration de l'environnement et outils",
+              "description": "Préparer l'environnement de développement local, configurer les outils de CI/CD, les conteneurs Docker, et les services cloud (AWS S3, base de données PostgreSQL gérée).",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 5,
+              "acceptance_criteria": [
+                "Given un nouveau développeur rejoint l'équipe, When il suit le guide de configuration, Then il peut lancer les conteneurs Docker pour exécuter la base de données PostgreSQL et l'API FastAPI en local.",
+                "Given les clés d'accès AWS, When le bucket S3 est configuré, Then les politiques de bucket permettent l'upload direct des images immobilières depuis le frontend via des URLs pré-signées."
+              ],
+              "tasks": [
+                {
+                  "id": "TERA-1",
+                  "title": "Configuration de l'environnement de développement local et conteneurisation Docker",
+                  "description": "Cette tâche a pour objectif de standardiser l'environnement de développement des développeurs en utilisant Docker et Docker Compose, éliminant ainsi les problèmes de dépendances 'works on my machine'. La conteneurisation permet d'isoler le frontend React.js, le backend FastAPI, et la base de données PostgreSQL locale, garantissant une cohérence parfaite entre tous les environnements de développement. Nous allons configurer des Dockerfiles multi-stage pour optimiser les builds et un file docker-compose.yml pour orchestrer services localement avec des configurations d'environnement spécifiques, incluant les routes d'API cruciales comme (Route: 'POST /api/v1/auth/login').",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Créer un Dockerfile multi-stage pour le backend Python FastAPI, installant les dépendances requirements.txt et copiant les fichiers de configuration de l'architecture hexagonale.",
+                    "Configurer un Dockerfile pour le frontend React.js (Vite), installant les dépendances npm, configurant Tailwind CSS et le dark mode, et préparant le build de production.",
+                    "Rédiger le fichier docker-compose.yml local orchestrateur incluant les services backend, frontend, base de données PostgreSQL locale sur le port ('5432'), et un outil de visualisation de logs.",
+                    "Configurer les variables d'environnement locales (.env.example) contenant les clés API (comme OpenAI API key), les identifiants de base de données locales, et les secrets JWT pour les routes d'authentification (Route: 'POST /api/v1/auth/login')."
+                  ]
+                },
+                {
+                  "id": "TERA-2",
+                  "title": "Configuration de la base de données PostgreSQL gérée et du framework SQLAlchemy/Alembic",
+                  "description": "Le cœur de l'application ImmoSync AI repose sur un schéma relationnel robuste stocké dans une base de données PostgreSQL gérée (AWS RDS ou équivalent) pour garantir la haute disponibilité, la scalabilité et la sécurité des données des agences immobilières. Cette tâche consiste à configurer l'ORM SQLAlchemy pour gérer les modèles de données clés comme la table ('users'), la table ('properties'), la table ('clients'), la table ('visits'), et la table ('ai_matches'), tout en utilisant Alembic pour versionner les migrations de schéma de manière collaborative et déployable sans perte de données.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Définir les modèles SQLAlchemy pour les tables critiques (table ('users') avec ('id', 'email', 'role'), table ('properties') avec ('id', 's3_image_paths'), table ('clients') avec ('id', 'criteria')).",
+                    "Configurer l'environnement Alembic dans le répertoire backend, en pointant vers l'URL de la base de données de production ou de staging via une variable d'environnement.",
+                    "Écrire les scripts de migration Alembic initiaux pour créer les tables (table ('users'), table ('properties'), table ('clients'), table ('visits'), table ('ai_matches')), les clés primaires UUID, les clés étrangères, et les index de recherche sur les filtres avancés (prix, surface, DPE).",
+                    "Configurer le moteur de pooling de SQLAlchemy (ex: QueuePool) pour gérer efficacement les connexions simultanées au service de base de données PostgreSQL géré depuis l'environnement de production SaaS."
+                  ]
+                },
+                {
+                  "id": "TERA-3",
+                  "title": "Configuration du stockage cloud AWS S3 et du pipeline de CI/CD automatisé",
+                  "description": "Cette tâche permet d'installer les briques d'infrastructure cloud nécessaires au stockage des images immobilières (AWS S3) et de configurer le pipeline de déploiement continu (CI/CD) via GitHub Actions pour automatiser le test, le build et le déploiement de la plateforme SaaS. Le stockage S3 sera configuré pour recevoir les images des biens via des URLs pré-signés générés par le backend FastAPI, assurant une sécurité renforcée sans exposer les clés AWS. Le pipeline CI/CD garantira que chaque modification de code est testée, validée et déployée de manière automatisée et sécurisée, incluant l'exécution des tests d'intégration pour les endpoints clés comme (Route: 'GET /api/v1/dashboard').",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Créer les buckets AWS S3 dédiés aux images des propriétés stockées dans le champ ('s3_image_paths') de la table ('properties'), configurer les politiques IAM restrictives pour l'accès au bucket, et activer le versioning pour la sauvegarde des fichiers.",
+                    "Développer le service backend FastAPI de génération d'URLs pré-signées pour l'upload direct des images depuis le frontend React (Route: 'POST /api/v1/properties/generate-upload-url').",
+                    "Configurer un workflow GitHub Actions CI pour le backend, exécutant les tests unitaires, les tests d'intégration et les migrations Alembic à chaque push sur la branche principale.",
+                    "Configurer un workflow GitHub Actions CD pour déployer l'application backend FastAPI et le frontend React.js compilé sur les serveurs cloud de production, en utilisant les variables d'environnement sécurisées pour le route (Route: 'GET /api/v1/dashboard')."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "EPIC-2",
+          "title": "Base de données et Backend",
+          "user_stories": [
+            {
+              "id": "US-3",
+              "title": "Modélisation et création de la Base de Données",
+              "description": "Créer le schéma relationnel de la base de données PostgreSQL pour ImmoSync AI en utilisant SQLAlchemy et gérer les migrations avec Alembic (tables users, properties, clients, visits, ai_matches).",
+              "status": "TO DO",
+              "priority": "Critique",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given le schéma relationnel conçu, When la migration Alembic est exécutée, Then les tables du CRM sont créées avec les bonnes contraintes de clés étrangères (FK agent_id, client_id, etc.).",
+                "Given un modèle Property, When un enregistrement est inséré via SQLAlchemy, Then les relations N-1 avec l'agent gérant sont correctement chargées."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-4",
+              "title": "Développement du Backend et Logique Métier",
+              "description": "Implémenter les services métier dans l'architecture hexagonale (AuthService, PropertyService, ClientService, MatchingService avec l'API OpenAI, DashboardService).",
+              "status": "TO DO",
+              "priority": "Critique",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Given un client avec des critères textuels (ex: 'famille avec 2 enfants cherchant un jardin'), When le MatchingService est déclenché, Then l'API OpenAI est appelée pour analyser les besoins et générer un score de correspondance.",
+                "Given un client déplacé dans le Kanban (ex: 'Offre déposée' -> 'Contrat signé'), When le ClientService traite la transition, Then le statut pipeline_status et la position kanban_position sont mis à jour."
+              ],
+              "tasks": [
+                {
+                  "id": "TERA-1",
+                  "title": "Infrastructure, Authentification JWT et Modélisation SQLAlchemy (FastAPI)",
+                  "description": "Cette tâche pose les bases techniques fondamentales du projet ImmoSync AI en mettant en place l'architecture hexagonale FastAPI. Elle consiste à concevoir le schéma relationnel PostgreSQL complet via l'ORM SQLAlchemy et les migrations Alembic pour garantir une persistance de données robuste et évolutive. La sécurité est un pilier central, nécessitant l'implémentation d'un système d'authentification JWT robuste avec gestion de rôles granulaires pour isoler l'accès aux endpoints selon que l'utilisateur est un 'Agent' ou un 'Manager'.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Créer les modèles SQLAlchemy pour la table `users` avec les colonnes `id` (UUID clé primaire), `email` unique, `password_hash`, et `role` (ENUM 'Agent' ou 'Manager'), en définissant les relations de one-to-many avec les tables `properties` et `clients`.",
+                    "Développer la logique de hachage bcrypt dans le `AuthService` pour les mots de passe avant stockage, et implémenter les routes d'authentification sous le préfixe `('/api/v1/auth')` dont la route `('POST /api/v1/auth/login')` pour la génération de tokens JWT.",
+                    "Rédiger les scripts de migration Alembic obligatoires pour créer les tables `users`, `properties`, `clients`, `visits`, et `ai_matches` dans PostgreSQL en faisant attention aux contraintes de clés étrangères comme `agent_id`.",
+                    "Implémenter une dépendance FastAPI d'extraction de token JWT depuis l'en-tête HTTP `('Authorization: Bearer <token>')` pour protéger les routes sensibles et autoriser l'accès selon les rôles `Agent` ou `Manager`."
+                  ]
+                },
+                {
+                  "id": "TERA-2",
+                  "title": "API REST Hexagonale pour Gestion des Biens, Clients et Pipeline de Ventes (FastAPI)",
+                  "description": "Cette tâche concentre le développement des opérations CRUD de base et de la logique métier pour la gestion des biens immobiliers, des clients et des visites. L'objectif est d'exposer des endpoints REST standardisés dans une architecture hexagonale (couches API / Services / Repositories) tout en gérant les transitions complexes du pipeline de vente via un tableau Kanban. Une attention particulière doit être portée à l'intégration AWS S3 pour l'upload direct des images depuis le frontend grâce à des URLs pré-signées.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Construire le `PropertyRepository` avec des méthodes de filtrage dynamique avancées permettant de rechercher les biens par `price`, `surface`, ou classement `dpe` en utilisant les filtres SQLAlchemy dynamiques.",
+                    "Implémenter l'endpoint API `('POST /api/v1/properties/generate-upload-url')` qui génère des URLs pré-signées AWS S3 permettant au frontend React d' uploader les images de biens directement dans le bucket S3.",
+                    "Développer le `ClientService` pour gérer les transitions du pipeline de vente (Prospect -> Visite planifiée -> Offre déposée -> Contrat signé) en mettant à jour le champ `pipeline_status` et `kanban_position` dans la table `clients`.",
+                    "Créer les routes REST sous `('/api/v1/visits')` pour planifier, modifier ou annuler les visites, assurant la liaison correcte entre le `client_id` et le `property_id` dans la table `visits`."
+                  ]
+                },
+                {
+                  "id": "TERA-3",
+                  "title": "Service de Matching IA (OpenAI) et Tableau de Bord Agrégé (FastAPI)",
+                  "description": "Cette tâche introduit la puissance de l'IA et l'analyse de données pour le tableau de bord et le moteur de recommandation. Le `MatchingService` utilise l'API OpenAI pour une analyse sémantique avancée des critères d'achat, couplée à un algorithme de scoring pour générer des correspondances automatiques. Simultanément, le `DashboardService` fournit les agrégats de KPIs nécessaires aux décideurs pour suivre la santé commerciale de l'agence en temps réel via des graphiques interactifs.",
+                  "status": "TO DO",
+                  "priority": "Medium",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Intégrer le client Python de l'API OpenAI dans le `MatchingService` pour analyser le champ `criteria` des clients (situé dans la table `clients`) et générer des embeddings sémantiques des besoins.",
+                    "Créer l'algorithme de calcul de similarité cosinus entre les embeddings des critères clients et les descriptions des biens immobiliers (champ `description` de la table `properties`) pour calculer un score en pourcentage.",
+                    "Développer l'endpoint API `('POST /api/v1/matching/run')` qui déclenche le calcul, sauvegarde les résultats dans la table `ai_matches` avec le score et le `ai_rationale`, et renvoie les 3 meilleurs biens.",
+                    "Implémenter le `DashboardService` chargé d'agréger les données de vente mensuelle, le nombre de visites à venir et les taux de conversion à partir de requêtes SQL complexes sur les tables `visits` et `clients`."
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "US-5",
+              "title": "Création des API REST ou Endpoints",
+              "description": "Exposer les endpoints REST API de l'application FastAPI sous /api/v1/ (auth, properties, clients, matching, dashboard, visits) avec authentification JWT et gestion des rôles Agent/Manager.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given un token JWT valide pour un rôle 'Agent', When une requête GET /api/v1/properties est envoyée, Then la liste des biens immobiliers gérés par cet agent est retournée avec un statut 200.",
+                "Given un token expiré ou manquant, When une requête protégée est envoyée, Then l'API renvoie une réponse 401 indiquant que l'accès est non autorisé."
+              ],
+              "tasks": []
+            }
+          ]
+        },
+        {
+          "id": "EPIC-3",
+          "title": "Frontend et Intégration",
+          "user_stories": [
+            {
+              "id": "US-6",
+              "title": "Développement Frontend et UI",
+              "description": "Développer l'interface utilisateur de ImmoSync AI en SPA avec React.js et TypeScript, utilisant Tailwind CSS (thème sombre, accents cyan/indigo, effets Glassmorphism) et Zustand pour l'état global.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 13,
+              "acceptance_criteria": [
+                "Given les spécifications de design, When l'application est chargée dans le navigateur, Then le thème sombre (Dark Mode) est appliqué par défaut avec des effets de verre dépoli (Glassmorphism) sur les menus latéraux.",
+                "Given un dashboard ouvert, When les composants graphiques se chargent, Then les graphiques interactifs de ventes (Recharts/Chart.js) se rendent correctement avec les données en temps réel."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-7",
+              "title": "Intégration globale (Front/Back)",
+              "description": "Intégrer le frontend React aux endpoints FastAPI, configurer l'upload direct des images sur AWS S3, et activer les notifications en temps réel (WebSockets) pour les alertes IA.",
+              "status": "TO DO",
+              "priority": "Haute",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given un agent clique sur le bouton d'upload d'images pour un bien, When le frontend demande une URL pré-signée au backend, Then l'upload direct vers AWS S3 est effectué avec succès sans passer par le serveur principal.",
+                "Given un nouveau matching IA est généré, When l'utilisateur navigue sur le dashboard, Then une alerte en temps réel s'affiche via la socket WebSocket."
+              ],
+              "tasks": [
+                {
+                  "id": "TERA-1",
+                  "title": "Développement de l'API Backend & intégration S3 (FastAPI / SQLAlchemy)",
+                  "description": "Cette tâche consiste à construire les endpoints REST critiques du backend FastAPI nécessaires à l'interaction avec le frontend React. Nous allons configurer un mécanisme de génération d'URLs pré-signées AWS S3 pour permettre l'upload direct et sécurisé des images de biens immobiliers depuis le navigateur, en contournant le serveur principal pour optimiser les temps de transfert. L'accès à ces endpoints sera strictement protégé par JWT pour isoler les agences et les rôles utilisateurs.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Créer le contrôleur FastAPI route `('POST /api/v1/properties/generate-presign-url')` pour recevoir les métadonnées de fichiers (nom, extension) et générer dynamiquement des URLs pré-signés S3 expirexibles permettant l'upload direct depuis le navigateur sans passer par le serveur Python.",
+                    "Appliquer un système de dépendance de sécurité JWT (OAuth2PasswordBearer) sur la route `('POST /api/v1/properties/generate-presign-url')` pour valider le token de l'utilisateur et vérifier qu'il possède le rôle `('Agent')` ou `('Manager')` avant d'autoriser la génération d'URL S3.",
+                    "Développer la classe de service S3 utilisant la bibliothèque `boto3` pour configurer le client de stockage, générer les URLs pré-signées structurées dans un JSON contenant `('presigned_url')` et `('s3_key')`, et initialiser le champ `('s3_image_paths')` de la table `('properties')` en base de données.",
+                    "Implémenter la méthode du repository SQLAlchemy `('save_property_image_keys')` pour persister les clés S3 générées dans la colonne `('s3_image_paths')` (de type ARRAY de VARCHAR) de la table PostgreSQL `('properties')` une fois que l'upload côté frontend est confirmé par l'application."
+                  ]
+                },
+                {
+                  "id": "TERA-2",
+                  "title": "Développement du client Frontend & état global (React / Zustand / Axios)",
+                  "description": "Cette tâche se concentre sur la construction de la couche de service frontend et de la gestion d'état cruciale pour une UX fluide et réactive. Nous configurons un client Axios robust avec intercepteurs pour le passage automatique des tokens JWT, le système de stockage d'état global via Zustand pour gérer les notifications, et les fonctions d'upload direct S3. L'objectif est de faire vibrer l'interface React en temps réel sansrafraîchissements manuels.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Configurer l'instance client Axios avec une URL de base pointant vers l'API FastAPI et installer un intercepteur de requêtes pour injecter automatiquement le token JWT extrait du store Zustand `('authStore')` dans l'en-tête `('Authorization')` (Bearer Token) pour toutes les appels HTTP.",
+                    "Développer la fonction de service frontend `('uploadPropertyImageToS3')` pour effectuer des requêtes HTTP PUT directes vers les URLs pré-signées S3 retournées par le backend, gérant les événements de progression (`onUploadProgress`) et les codes de statut HTTP de réponse.",
+                    "Créer le store Zustand global `('notificationStore')` pour gérer l'état des alertes en temps réel, définissant des propriétés comme le tableau `('notifications')`, le compteur `('unreadCount')` et des fonctions d'ajout de nouvelles alertes IA de manière réactive.",
+                    "Intégrer des Error Boundaries React et des notifications toast (comme `react-hot-toast`) pour capturer les erreurs de chargement d'images S3 ou les réponses d'erreurs API (4xx/5xx), offrant un feedback visuel élégant à l'utilisateur en cas de défaillances de réseau."
+                  ]
+                },
+                {
+                  "id": "TERA-3",
+                  "title": "Mise en place du système de notifications temps réel (FastAPI WebSockets / React)",
+                  "description": "Cette tâche concerne l'implémentation du canal de communication bidirectionnel temps réel (WebSockets) pour la poussée d'alertes IA. Nous allons configurer un serveur WebSocket dans FastAPI capable de gérer de multiples connexions locales par agence, déclencher des événements à la création de matchs automatiques dans la base de données, et développer un hook React pour capter ces événements et actualiser l'interface de l'utilisateur sans interruption de travail.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Implémenter la route WebSocket `('WS /ws/notifications/{agency_id}')` dans FastAPI en utilisant `starlette.websockets` pour gérer les connexions persistantes, authentifiant chaque socket via des paramètres de requête contenant le token JWT pour un contrôle d'accès sécurisé.",
+                    "Développer la classe `('NotificationManager')` en Python pour gérer les abonnements multi-locataires par salons (rooms), permettant la diffusion d'alertes en temps réel spécifiquement vers le tableau de bord et le tableau Kanban de l'agence concernée.",
+                    "Déclencher la fonction de diffusion WebSocket au sein du service `('MatchingService')` lors de la création d'un nouveau match de score élevé dans la table `('ai_matches')`, envoyant un payload JSON contenant le `('client_id')`, le `('property_id')` et le `('match_score')`.",
+                    "Créer le hook client WebSocket frontend `('useWebSocketNotifications')` en React pour écouter les messages entrants, mettre à jour le store Zustand `('notificationStore')` et déclencher une notification sonore de bureau si l'onglet de l'utilisateur est inactif."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "EPIC-4",
+          "title": "Tests, Documentation et Déploiement",
+          "user_stories": [
+            {
+              "id": "US-8",
+              "title": "Implémentation des Tests (Unitaires/Intégration)",
+              "description": "Rédiger les tests unitaires pour les services (notamment le MatchingService mocké) et les tests d'intégration pour les endpoints API de l'application ImmoSync AI.",
+              "status": "TO DO",
+              "priority": "Moyenne",
+              "story_points": 8,
+              "acceptance_criteria": [
+                "Given le code source du MatchingService, When les tests unitaires sont exécutés, Then la logique de calcul de score et d'appel OpenAI est validée avec des cas de test simulés.",
+                "Given un client de test, When les tests d'intégration API sont lancés, Then le cycle complet de création, modification et suppression d'un client est vérifié."
+              ],
+              "tasks": []
+            },
+            {
+              "id": "US-9",
+              "title": "Documentation technique et Déploiement",
+              "description": "Rédiger la documentation technique de l'API (Swagger/OpenAPI), configurer le pipeline de déploiement automatisé (CI/CD) et déployer la plateforme SaaS en production.",
+              "status": "TO DO",
+              "priority": "Moyenne",
+              "story_points": 5,
+              "acceptance_criteria": [
+                "Given l'API FastAPI est en cours d'exécution, When l'accès à /docs est sollicité, Then la documentation interactive de l'API est affichée automatiquement par Swagger UI.",
+                "Given un commit sur la branche principale, When le pipeline de déploiement CI/CD se déclenche, Then les conteneurs Docker sont construits, testés et déployés sur l'environnement de production cloud."
+              ],
+              "tasks": [
+                {
+                  "id": "TERA-1",
+                  "title": "Rédaction de la documentation technique API (FastAPI / OpenAPI / Swagger)",
+                  "description": "Cette tâche vise à produire une documentation technique exhaustive, précise et exécutable pour l'API REST de la plateforme ImmoSync AI, en utilisant les standards OpenAPI 3.0 et l'interface Swagger UI intégrée à FastAPI. La documentation doit couvrir tous les endpoints critiques (authentification, gestion des biens, clients, visites, matching IA) en précisant les schémas de requêtes, de réponses, les codes d'erreurs HTTP standard, et les mécanismes de sécurité basés sur les tokens JWT. Une attention particulière doit être portée à la documentation des schémas JSON complexes, notamment les objets de critères clients en JSON brut pour l'analyse IA, et les tableaux de chemins S3 pour les images, assurant ainsi une intégration fluide et compréhensible pour les développeurs tiers ou futurs mainteneurs.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 5,
+                  "subtasks": [
+                    "Configuration du spécification OpenAPI (dans le fichier `main.py` de FastAPI) pour décrire les schémas de sécurité HTTP de type Bearer JWT (schéma `HTTPBearer`) et les globaux security definitions requises pour protéger les endpoints sensibles.",
+                    "Rédaction des descriptions détaillées des schémas de données pour les endpoints de gestion des biens immobiliers (Route: `GET /api/v1/properties`), en précisant les filtres avancés en query parameters (ex: `price`, `surface`, `dpe`) et la structure du champ `s3_image_paths` (tableau de chaînes de caractères représentant les clés S3).",
+                    "Documenter technique et schématiquement l'endpoint de l'IA de matching (Route: `POST /api/v1/matching`) en détaillant l'objet JSON d'entrée contenant les critères sémantiques du client (champ `criteria`) et les schémas de réponse renvoyant les scores de correspondance (`match_score`) et les explications textuelles de l'IA (`ai_rationale`).",
+                    "Générer et valider la documentation interactive Swagger UI pour les endpoints de gestion des rôles (`Agent`, `Manager`) et du pipeline de vente (Route: `PUT /api/v1/clients/{id}/status`), en s'assurant de la cohérence des schémas décrivant la table `clients` avec son champ `pipeline_status` (ENUM: 'prospect', 'visit_scheduled', 'offer_submitted', 'contract_signed')."
+                  ]
+                },
+                {
+                  "id": "TERA-2",
+                  "title": "Configuration du pipeline de déploiement automatisé CI/CD (Docker / GitHub Actions)",
+                  "description": "L'objectif de cette tâche est d'automatiser le cycle de vie complet du logiciel, de la validation initiale du code jusqu'au déploiement en production, en utilisant une approche de conteneurisation Docker associée à un pipeline CI/CD sur GitHub Actions. Il s'agit de configurer un environnement de build reproductible pour l'application backend FastAPI et l'application frontend React.js (Vite). Le pipeline doit inclure des étapes de tests unitaires, d'analyse de code statique (linting), de build d'images Docker, de push vers un registre d'images (comme AWS ECR), et de déploiement déclenché par un événement de merge sur la branche principale, garantissant une livraison continue et de qualité.",
+                  "status": "TO DO",
+                  "priority": "High",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Création et configuration d'un Dockerfile optimisé pour le backend FastAPI, divisé en étapes pour installer les dépendances Python (via un `requirements.txt` contenant FastAPI, SQLAlchemy, Alembic, etc.) et copier l'ensemble des fichiers sources de l'architecture hexagonale (dossiers `api`, `services`, `repositories`).",
+                    "Configuration d'un workflow CI/CD GitHub Actions (fichier `.yml` placé dans le répertoire `.github/workflows/`) déclenché par les événements `push` ou `pull_request` pour exécuter automatiquement la suite de tests unitaires Pytest, le linting du code Python, et la validation de la structure de l'architecture.",
+                    "Mise en place d'un job de build automatisé d'image Docker, push de celle-ci vers le registre de conteneurs cloud (AWS ECR) en l'étiquetant avec le hash du commit Git (`git_commit_hash`) et le nom de l'environnement cible (`staging` ou `production`).",
+                    "Configuration de l'automatisation du build et du déploiement de l'application frontend React.js (Vite) via un script de compilation, upload des fichiers statiques générés vers un bucket de stockage d'objets (AWS S3) ou un CDN, en utilisant les variables d'environnement pour l'hydratation des endpoints d'API."
+                  ]
+                },
+                {
+                  "id": "TERA-3",
+                  "title": "Déploiement de la plateforme SaaS en production, infrastructure cloud (AWS / PostgreSQL / Docker)",
+                  "description": "Cette tâche concerne le déploiement effectif de la plateforme ImmoSync AI en environnement de production, en assurant une architecture multi-locataire (multi-agences) robuste et sécurisée. Elle implique la configuration de l'infrastructure cloud AWS pour héberger les services (conteneurs Docker sur ECS ou EKS, base de données PostgreSQL gérée via Amazon RDS), la configuration des politiques de sécurité, et la gestion des secrets. Il faut également s'assurer de la cohérence des variables d'environnement, de la mise en place de la sauvegarde automatisée de la base de données relationnelle, et de la configuration des permissions d'accès au stockage S3 pour les images immobilières via des URLs pré-signées, assurant la disponibilité et la scalabilité du système.",
+                  "status": "TO DO",
+                  "priority": "Highest",
+                  "story_points": 8,
+                  "subtasks": [
+                    "Configuration de l'environnement de base de données relationnelle PostgreSQL gérée (Amazon RDS) en production, application des migrations Alembic pour créer et maintenir les schémas des tables `users`, `properties`, `clients`, `visits`, et `ai_matches` dans un ordre de dépendance strict.",
+                    "Configuration de la gestion centralisée et sécurisée des secrets sensibles (JWT secrets, clés API OpenAI, credentials AWS) via le service AWS Secrets Manager ou le SSM Parameter Store, pour un injection dynamique des variables d'environnement dans les conteneurs de déploiement.",
+                    "Configuration du service de stockage d'objets AWS S3 pour l'hébergement des images des biens immobiliers, définition des politiques de bucket pour restreindre l'accès en lecture/écriture, et génération d'URLs pré-signées à expiration limitée pour l'upload direct depuis le frontend TypeScript.",
+                    "Configuration du déploiement des conteneurs FastAPI sur le service de conteneurs géré (AWS ECS ou équivalent) derrière un Load Balancer applicatif, configuration de la mise à l'échelle automatique (Auto-scaling) pour gérer les pics de charge des calculs de matching IA, et exposition des routes API (comme `GET /api/v1/dashboard`)."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "_metadata": {
+        "created_at": "2026-09-30T12:10:25.298121",
+        "original_idea": "Je veux construire \"ImmoSync AI\", une plateforme SaaS de CRM (Customer Relationship Management) dédiée aux agences immobilières. Le but est de gérer les biens immobiliers, les clients acheteurs, et d'automatiser le rapprochement (matching) entre les biens et les clients grâce à l'IA.\n\nContraintes Techniques (Stack) :\n\nFrontend : React.js (Vite) avec TypeScript, Tailwind CSS pour le style, et Zustand pour le state management. L'interface doit être une SPA (Single Page Application).\nBackend : Python avec le framework FastAPI. L'architecture doit être hexagonale (ou divisée en API / Services / Repositories).\nBase de données : PostgreSQL gérée avec l'ORM SQLAlchemy et Alembic pour les migrations.\nAuthentification : JWT (JSON Web Tokens) avec gestion des rôles (rôle \"Agent\" et rôle \"Manager\").\nDesign et UX :\n\nInterface très dense et professionnelle, inspirée de Azure DevOps et Linear.\nThème sombre (Dark Mode) par défaut avec des accents cyan et indigo.\nUtilisation d'effets de Glassmorphism légers pour les modales et les menus latéraux (drawers).\nFonctionnalités Principales attendues :\n\nTableau de Bord (Dashboard) : Graphiques interactifs affichant les ventes du mois, le nombre de visites prévues et les alertes.\nPipeline de Ventes (Kanban) : Un tableau Kanban en drag-and-drop pour suivre l'état d'un acheteur (Prospect -> Visite planifiée -> Offre déposée -> Contrat signé).\nGestion des Biens (Inventaire) : Table de données avec filtres avancés (prix, surface, DPE) et upload d'images sur AWS S3.\nMatching IA (Smart Suggest) : Un module qui utilise l'API OpenAI pour lire les critères d'un acheteur (ex: \"famille avec 2 enfants cherchant un jardin\") et ressortir automatiquement les 3 meilleurs biens correspondants dans la base de données avec un score de %."
+      }
     }
   ]
 }

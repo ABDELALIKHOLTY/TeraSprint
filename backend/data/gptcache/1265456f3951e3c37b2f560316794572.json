@@ -1,0 +1,126 @@
+
+
+# Rapport d'Architecture Technique - Projet ImmoSync AI
+
+## 1. Setup & Stack Technique
+
+### Frontend
+*   **Framework** : React.js (SPA - Single Page Application) avec Vite pour l'optimisation du build.
+*   **Langage** : TypeScript (typage strict).
+*   **Styling** : Tailwind CSS pour un design systeme utility-first, configuration d'un thème sombre (Dark Mode) par défaut avec accents cyan et indigo, application d'effets de Glassmorphism (verre dépoli) sur les modales et les menus latéraux (drawers).
+*   **State Management** : Zustand pour la gestion de l'état global (session utilisateur, préférences).
+*   **Charting & Visualisation** : Bibliothèque de graphiques interactifs (ex: Recharts ou Chart.js) pour le Dashboard.
+*   **Drag & Drop** : Bibliothèque de glâtre-déposer (ex: dnd-kit ou react-dnd) pour le tableau Kanban.
+
+### Backend
+*   **Framework** : FastAPI (Python 3.x).
+*   **Architecture** : Architecture hexagonale (divisée en couches : API / Domaine Services / Repositories / Infrastructures).
+*   **Base de Données** : PostgreSQL (gérée via l'ORM SQLAlchemy).
+*   **Migrations** : Alembic pour la gestion des versions de schéma de base de données.
+*   **Authentification** : JWT (JSON Web Tokens) avec gestion des rôles `Agent` et `Manager`.
+*   **Stockage des Fichiers** : AWS S3 pour l'hébergement des images des biens immobiliers (utilisation de URLs pré-signés pour l'upload direct depuis le frontend).
+*   **Intelligence Artificielle** : Intégration de l'API OpenAI pour le moteur de matching sémantique (`Smart Suggest`).
+
+### DevOps & Déploiement
+*   **Environnement** : Plateforme SaaS (multi-locataire / multi-agences).
+*   **Conteneurisation** : Docker pour l'isolement des dépendances Python.
+*   **CI/CD** : Pipeline de déploiement automatisé (ex: GitHub Actions, GitLab CI) vers un serveur cloud (AWS ou équivalent).
+*   **Base de données** : Service de base de données PostgreSQL géré (ex: Amazon RDS ou service équivalent).
+
+---
+
+## 2. Schéma Relationnel de la Base de Données
+
+Le schéma relationnel repose sur les entités principales suivantes :
+
+### Table `users` (Utilisateurs du CRM)
+*   **Clé Primaire (PK)** : `id` (UUID)
+*   **Colonnes** : `email` (VARCHAR, unique), `password_hash` (VARCHAR), `name` (VARCHAR), `role` (ENUM: 'Agent', 'Manager'), `created_at` (TIMESTAMP)
+*   **Relations** :
+    *   1-N avec la table `properties` (un agent gère plusieurs biens).
+    *   1-N avec la table `clients` (un agent gère plusieurs clients).
+
+### Table `properties` (Inventaire des biens immobiliers)
+*   **Clé Primaire (PK)** : `id` (UUID)
+*   **Clé Étrangère (FK)** : `agent_id` -> `users.id`
+*   **Colonnes** : `title` (VARCHAR), `price` (FLOAT), `surface` (FLOAT), `dpe` (VARCHAR - classement énergétique), `address` (VARCHAR), `description` (TEXT), `s3_image_paths` (ARRAY de VARCHAR - liste des clés S3), `created_at` (TIMESTAMP)
+*   **Relations** :
+    *   N-1 avec `users` (beaucoup de propriétés pour un agent).
+    *   N-N implicite avec `clients` via la table `visits` et la table `ai_matches`.
+
+### Table `clients` (Clients acheteurs / Prospects)
+*   **Clé Primaire (PK)** : `id` (UUID)
+*   **Clé Étrangère (FK)** : `agent_id` -> `users.id`
+*   **Colonnes** : `name` (VARCHAR), `email` (VARCHAR), `phone` (VARCHAR), `criteria` (TEXT/JSON - critères bruts pour l'IA : ex: "famille, 2 enfants, jardin requis"), `pipeline_status` (ENUM: 'prospect', 'visit_scheduled', 'offer_submitted', 'contract_signed'), `kanban_position` (INTEGER - ordre d'affichage dans le Kanban), `created_at` (TIMESTAMP)
+*   **Relations** :
+    *   N-1 avec `users` (un client est rattaché à un agent).
+
+### Table `visits` (Visites planifiées)
+*   **Clé Primaire (PK)** : `id` (UUID)
+*   **Clés Étrangères (FK)** :
+    *   `client_id` -> `clients.id`
+    *   `property_id` -> `properties.id`
+*   **Colonnes** : `scheduled_at` (TIMESTAMP), `status` (ENUM: 'scheduled', 'done', 'cancelled'), `notes` (TEXT)
+*   **Relations** :
+    *   N-1 avec `clients` (un client peut avoir plusieurs visites).
+    *   N-1 avec `properties` (un bien peut être visité plusieurs fois).
+
+### Table `ai_matches` (Résultats du matching IA)
+*   **Clé Primaire (PK)** : `id` (UUID)
+*   **Clés Étrangères (FK)** :
+    *   `client_id` -> `clients.id`
+    *   `property_id` -> `properties.id`
+*   **Colonnes** : `match_score` (FLOAT - score de correspondance en %), `ai_rationale` (TEXT - explication textuelle de l'IA), `created_at` (TIMESTAMP)
+*   **Relations** :
+    *   N-1 avec `clients` (historique des suggestions pour un client).
+    *   N-1 avec `properties` (historique des suggestions pour un bien).
+
+---
+
+## 3. Architecture Backend & APIs
+
+L'architecture suit une approche hexagonale (clean architecture) séparant les couches de manière stricte :
+
+### Couche API (Contrôleurs / Routes)
+*   **`/api/v1/auth`** : Authentification (login, inscription, profil connecté). Gestion des tokens JWT.
+*   **`/api/v1/properties`** : CRUD des biens immobiliers. Génère des URLs pré-signées pour l'upload d'images sur AWS S3. Filtres avancés (prix, surface, DPE).
+*   **`/api/v1/clients`** : CRUD des profils clients. Mise à jour du statut du pipeline (déplacement dans le Kanban).
+*   **`/api/v1/matching`** : Endpoint déclenchant le calcul de correspondance IA et renvoyant les scores de similarité.
+*   **`/api/v1/dashboard`** : Endpoints d'agrégation pour les graphiques de ventes, les visites planifiées et les alertes.
+*   **`/api/v1/visits`** : Gestion calendrier des visites.
+
+### Couche Métiers (Services)
+*   **`AuthService`** : Hachage des mots de passe (bcrypt), émission et validation des tokens JWT, gestion des rôles (`Agent`, `Manager`).
+*   **`PropertyService`** : Règles métiers sur les biens (validation des données, coordination de l'upload S3).
+*   **`ClientService`** : Logique de transition du pipeline de vente ( Prospect -> Visite -> Offre -> Contrat ).
+*   **`MatchingService` (IA Module)** :
+    *   Récupère le champ `criteria` du client.
+    *   Appelle l'API OpenAI pour l'analyse sémantique des besoins.
+    *   Interroge la base de données pour trouver les biens correspondants.
+    *   Calcule un score de pertinence (%) et stocke le résultat dans la table `ai_matches`.
+*   **`DashboardService`** : Agrégation de données pour les KPIs (ventes du mois, volume de visites, taux de conversion).
+
+### Couche Persistance (Repositories)
+*   **`UserRepository`**, **`PropertyRepository`**, **`ClientRepository`**, **`VisitRepository`**, **`MatchRepository`** : Interfaces SQLAlchemy gérant les requêtes SQL complexes, les jointures et les requêtes de filtrage dynamique.
+
+---
+
+## 4. Architecture Frontend et Intégration
+
+### Structure de l'Application (SPA)
+*   **TypeScript** pour un typage robuste des données échangées avec l'API FastAPI.
+*   **React.js** avec un routing centralisé (React Router) pour séparer les espaces de travail (Dashboard, Inventaire, Pipeline Kanban, Profil).
+
+### State Management (Zustand)
+*   **Store Utilisateur** : Gestion de l'authentification (token JWT, rôle de l'utilisateur `Agent` ou `Manager`). Contrôle d'accès conditionnel (RBAC) aux composants.
+*   **Store Pipeline** : État temporaire du tableau Kanban lors des opérations de glâtre-déposer (drag-and-drop).
+
+### Design System & UI
+*   **Thème visuel** : Fond sombre par défaut, accents cyan et indigo pour les éléments interactifs (boutons, statuses).
+*   **Glassmorphism** : Utilisation de classes CSS de verre dépoli (backdrop-filter blur, semi-transparence) pour les conteneurs de modales, les drawers latéraux et les menus de navigation flottants, assurant une UX moderne et dense (inspirée de Linear / Azure DevOps).
+*   **Composants Graphiques** : Intégration de cartes interactives pour le Dashboard (graphiques de ventes, courbes d'activité).
+
+### Mécanismes de Communication
+*   **HTTP/REST (Axios)** : Client API pour les appels synchrones aux endpoints FastAPI. Inclusion du token JWT dans les en-têtes `Authorization` (Bearer).
+*   **WebSockets (Optionnel)** : Connexion en temps réel pour la réception de notifications d'alertes (ex: nouveau matching IA généré, visite imminente).
+*   **AWS S3 Integration** : Le frontend communique directement avec S3 via des URLs pré-signées générées par le backend pour l'upload d'images sans passer par le serveur principal.

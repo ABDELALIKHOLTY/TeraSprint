@@ -24,7 +24,40 @@ from core.security import get_password_hash, verify_password, create_access_toke
 from services.hibp_service import is_password_pwned
 from pydantic import BaseModel
 import httpx
+import logging
+from datetime import datetime, timedelta
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
+logger = logging.getLogger(__name__)
+
+async def send_email(to: str, subject: str, html_body: str):
+    """Send email via Gmail SMTP, else print OTP to console (dev mode)."""
+    smtp_user = settings.SMTP_USER
+    smtp_pass = settings.SMTP_PASS
+    
+    if smtp_user and smtp_pass:
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = f"TeraSprint <{smtp_user}>"
+            msg['To'] = to
+            msg.attach(MIMEText(html_body, 'html'))
+            
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_user, to, msg.as_string())
+            logger.info(f"Email sent via Gmail SMTP to {to}")
+            return
+        except Exception as e:
+            logger.error(f"Gmail SMTP error: {e}")
+    
+    # Fallback: print OTP to console for local dev
+    import re
+    otp_match = re.search(r'letter-spacing: 8px[^>]*(\d{6})', html_body)
+    otp_code = otp_match.group(1) if otp_match else '??????'
+    print(f"\n{'='*60}\n[DEV EMAIL] To: {to} | Subject: {subject}\n>>> OTP CODE: {otp_code} <<<\n{'='*60}\n")
 
 router = APIRouter(prefix="/auth", tags=["Authentification"])
 
@@ -88,12 +121,23 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "name": current_user.name,
         "email": current_user.email,
         "role": current_user.role,
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name,
+        "avatar_url": current_user.avatar_url,
+        "saas_email": current_user.saas_email,
         "mfa_enabled": current_user.mfa_enabled,
         "has_groq_key": bool(current_user.api_key_groq),
         "has_openrouter_key": bool(current_user.api_key_openrouter),
         "has_gemini_key": bool(current_user.api_key_gemini),
-        "has_github_token": bool(current_user.github_access_token)
+        "has_github_token": bool(current_user.github_access_token),
+        "needs_password_setup": current_user.password_hash.startswith("SSO_NOT_SET_") if current_user.password_hash else False
     }
+
+@router.get("/users")
+async def get_all_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Retourne la liste de tous les utilisateurs pour l'assignation des tâches."""
+    users = db.query(User).all()
+    return [{"id": u.id, "name": u.name, "email": u.email, "first_name": u.first_name, "last_name": u.last_name, "avatar_url": u.avatar_url} for u in users]
 
 @router.put("/me/api-keys")
 async def update_api_keys(req: UserUpdateKey, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -105,6 +149,148 @@ async def update_api_keys(req: UserUpdateKey, current_user: User = Depends(get_c
         current_user.api_key_gemini = req.gemini_api_key
     db.commit()
     return {"message": "Clés API mises à jour avec succès."}
+
+class PasswordUpdate(BaseModel):
+    new_password: str
+    otp: str
+
+class StandardPasswordUpdate(BaseModel):
+    current_password: str
+    new_password: str
+
+# In-memory OTP store
+otp_store = {}
+
+@router.post("/send-otp")
+async def send_otp_auth(current_user: User = Depends(get_current_user)):
+    otp_code = str(secrets.randbelow(900000) + 100000)
+    otp_store[current_user.email] = {
+        "otp": otp_code,
+        "expires": datetime.utcnow() + timedelta(minutes=15)
+    }
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f9fafb; border-radius: 12px;">
+      <h2 style="color: #0891b2; margin-bottom: 8px;">Code OTP TeraSprint</h2>
+      <p style="color: #374151;">Voici votre code OTP pour modifier votre mot de passe&nbsp;:</p>
+      <div style="background: #fff; border: 2px solid #0891b2; border-radius: 8px; text-align: center; padding: 24px; margin: 24px 0;">
+        <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #0891b2;">{otp_code}</span>
+      </div>
+      <p style="color: #6b7280; font-size: 13px;">Ce code expire dans <strong>15 minutes</strong>. Ne le partagez avec personne.</p>
+    </div>
+    """
+    await send_email(current_user.email, "Votre code OTP TeraSprint", html_body)
+    return {"message": "Code OTP envoyé."}
+
+@router.put("/password")
+async def update_password(req: PasswordUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    record = otp_store.get(current_user.email)
+    if not record or record["otp"] != req.otp or datetime.utcnow() > record["expires"]:
+        raise HTTPException(status_code=400, detail="Code OTP invalide ou expiré.")
+        
+    if await is_password_pwned(req.new_password):
+        raise HTTPException(
+            status_code=400, 
+            detail="Ce mot de passe est compromis (fuite de données). Veuillez en choisir un autre."
+        )
+    current_user.password_hash = get_password_hash(req.new_password)
+    db.commit()
+    del otp_store[current_user.email]
+    return {"message": "Mot de passe mis à jour avec succès."}
+
+@router.put("/password/standard")
+async def update_password_standard(req: StandardPasswordUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not verify_password(req.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="L'ancien mot de passe est incorrect.")
+        
+    if await is_password_pwned(req.new_password):
+        raise HTTPException(
+            status_code=400, 
+            detail="Ce mot de passe est compromis (fuite de données). Veuillez en choisir un autre."
+        )
+    current_user.password_hash = get_password_hash(req.new_password)
+    db.commit()
+    return {"message": "Mot de passe mis à jour avec succès."}
+
+class SSOPasswordSetup(BaseModel):
+    new_password: str
+
+@router.put("/setup-sso-password")
+async def setup_sso_password(req: SSOPasswordSetup, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.password_hash or not current_user.password_hash.startswith("SSO_NOT_SET_"):
+        raise HTTPException(status_code=400, detail="Mot de passe déjà configuré.")
+        
+    if await is_password_pwned(req.new_password):
+        raise HTTPException(
+            status_code=400, 
+            detail="Ce mot de passe est compromis (fuite de données). Veuillez en choisir un autre."
+        )
+    current_user.password_hash = get_password_hash(req.new_password)
+    db.commit()
+    return {"message": "Mot de passe configuré avec succès."}
+
+class OTPRequest(BaseModel):
+    email: str
+
+class OTPVerify(BaseModel):
+    email: str
+    otp: str
+
+class PasswordReset(BaseModel):
+    email: str
+    otp: str
+    new_password: str
+
+@router.post("/forgot-password")
+async def forgot_password(req: OTPRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == req.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        
+    otp_code = str(secrets.randbelow(900000) + 100000)
+    otp_store[req.email] = {
+        "otp": otp_code,
+        "expires": datetime.utcnow() + timedelta(minutes=15)
+    }
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f9fafb; border-radius: 12px;">
+      <h2 style="color: #0891b2; margin-bottom: 8px;">Réinitialisation du mot de passe TeraSprint</h2>
+      <p style="color: #374151;">Voici votre code OTP pour réinitialiser votre mot de passe&nbsp;:</p>
+      <div style="background: #fff; border: 2px solid #0891b2; border-radius: 8px; text-align: center; padding: 24px; margin: 24px 0;">
+        <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #0891b2;">{otp_code}</span>
+      </div>
+      <p style="color: #6b7280; font-size: 13px;">Ce code expire dans <strong>15 minutes</strong>. Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
+    </div>
+    """
+    await send_email(req.email, "Réinitialisation du mot de passe TeraSprint", html_body)
+    return {"message": "Code OTP envoyé."}
+
+@router.post("/verify-otp")
+async def verify_otp(req: OTPVerify):
+    record = otp_store.get(req.email)
+    if not record or record["otp"] != req.otp or datetime.utcnow() > record["expires"]:
+        raise HTTPException(status_code=400, detail="Code OTP invalide ou expiré.")
+    return {"message": "Code OTP valide."}
+
+@router.post("/reset-password")
+async def reset_password(req: PasswordReset, db: Session = Depends(get_db)):
+    record = otp_store.get(req.email)
+    if not record or record["otp"] != req.otp or datetime.utcnow() > record["expires"]:
+        raise HTTPException(status_code=400, detail="Code OTP invalide ou expiré.")
+        
+    user = db.query(User).filter(User.email == req.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        
+    if await is_password_pwned(req.new_password):
+        raise HTTPException(
+            status_code=400, 
+            detail="Ce mot de passe est compromis (fuite de données). Veuillez en choisir un autre."
+        )
+        
+    user.password_hash = get_password_hash(req.new_password)
+    db.commit()
+    del otp_store[req.email]
+    return {"message": "Mot de passe modifié avec succès."}
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, request: Request, db: Session = Depends(get_db)):
@@ -182,29 +368,60 @@ async def google_login():
 @router.get("/google/callback")
 async def google_callback(request: Request, db: Session = Depends(get_db)):
     try:
-        async with google_sso:
-            user_info = await google_sso.verify_and_process(request)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).error(f"Google SSO Error: {e}", exc_info=True)
-        FRONTEND_URL = "http://localhost:5173"
-        return RedirectResponse(f"{FRONTEND_URL}/login?error=google_sso_failed")
-    
-    user = db.query(User).filter(User.email == user_info.email).first()
-    if not user:
-        random_password = secrets.token_urlsafe(32)
-        hashed_password = get_password_hash(random_password)
-        name = user_info.display_name or user_info.email
-        user = User(name=name, email=user_info.email, password_hash=hashed_password)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        try:
+            async with google_sso:
+                user_info = await google_sso.verify_and_process(request)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Google SSO Error: {e}", exc_info=True)
+            FRONTEND_URL = "http://localhost:5173"
+            return RedirectResponse(f"{FRONTEND_URL}/login?error=google_sso_failed")
         
-    user_session = create_user_session(db, user.id, request)
-    access_token = create_access_token(data={"sub": str(user.id), "sid": str(user_session.id)})
-    
-    FRONTEND_URL = "http://localhost:5173"
-    return RedirectResponse(f"{FRONTEND_URL}/?token={access_token}")
+        user = db.query(User).filter(User.email == user_info.email).first()
+        if not user:
+            random_password = secrets.token_urlsafe(32)
+            hashed_password = "SSO_NOT_SET_" + get_password_hash(random_password)
+            name = user_info.display_name or user_info.email
+            first_name = user_info.first_name or name.split(' ')[0]
+            last_name = user_info.last_name or (name.split(' ')[1] if len(name.split(' ')) > 1 else "")
+            avatar_url = user_info.picture
+            if avatar_url:
+                try:
+                    import httpx, uuid
+                    from services.storage_service import storage_service
+                    with httpx.Client() as client:
+                        resp = client.get(avatar_url)
+                        if resp.status_code == 200:
+                            ext = avatar_url.split('.')[-1] if '.' in avatar_url.split('/')[-1] else 'png'
+                            filename = f"oauth-{uuid.uuid4().hex[:8]}.{ext}"
+                            avatar_url = storage_service.upload_avatar(resp.content, filename, resp.headers.get("Content-Type", "image/png"))
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error(f"Failed to upload avatar: {e}")
+            
+            saas_email = f"{first_name.lower()}.{last_name.lower()}@terasprint.com" if last_name else f"{first_name.lower()}@terasprint.com"
+            
+            user = User(
+                name=name, 
+                email=user_info.email, 
+                password_hash=hashed_password,
+                first_name=first_name,
+                last_name=last_name,
+                avatar_url=avatar_url,
+                saas_email=saas_email
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            
+        user_session = create_user_session(db, user.id, request)
+        access_token = create_access_token(data={"sub": str(user.id), "sid": str(user_session.id)})
+        
+        FRONTEND_URL = "http://localhost:5173"
+        return RedirectResponse(f"{FRONTEND_URL}/?token={access_token}")
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
 
 github_sso = GithubSSO(
     client_id=settings.GITHUB_CLIENT_ID,
@@ -244,9 +461,37 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_info.email).first()
     if not user:
         random_password = secrets.token_urlsafe(32)
-        hashed_password = get_password_hash(random_password)
+        hashed_password = "SSO_NOT_SET_" + get_password_hash(random_password)
         name = user_info.display_name or user_info.email or "GitHub User"
-        user = User(name=name, email=user_info.email, password_hash=hashed_password, github_access_token=github_access_token)
+        first_name = user_info.first_name or name.split(' ')[0]
+        last_name = user_info.last_name or (name.split(' ')[1] if len(name.split(' ')) > 1 else "")
+        avatar_url = user_info.picture
+        if avatar_url:
+            try:
+                import httpx, uuid
+                from services.storage_service import storage_service
+                with httpx.Client() as client:
+                    resp = client.get(avatar_url)
+                    if resp.status_code == 200:
+                        ext = avatar_url.split('.')[-1] if '.' in avatar_url.split('/')[-1] else 'png'
+                        filename = f"oauth-{uuid.uuid4().hex[:8]}.{ext}"
+                        avatar_url = storage_service.upload_avatar(resp.content, filename, resp.headers.get("Content-Type", "image/png"))
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to upload avatar: {e}")
+        
+        saas_email = f"{first_name.lower()}.{last_name.lower()}@terasprint.com" if last_name else f"{first_name.lower()}@terasprint.com"
+        
+        user = User(
+            name=name, 
+            email=user_info.email, 
+            password_hash=hashed_password, 
+            github_access_token=github_access_token,
+            first_name=first_name,
+            last_name=last_name,
+            avatar_url=avatar_url,
+            saas_email=saas_email
+        )
         db.add(user)
         db.commit()
         db.refresh(user)

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiCall } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { FolderKanban, Plus, Calendar, Search, ArrowRight, Clock } from 'lucide-react';
 
@@ -12,6 +13,7 @@ interface Project {
 
 export const ProjectsPage: React.FC = () => {
   const { token } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,10 +45,10 @@ export const ProjectsPage: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center">
                 <FolderKanban className="w-8 h-8 mr-3 text-cyan-600 dark:text-cyan-400" />
-                Mes Projets
+                {t('projects.title')}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Recherchez et accédez à vos architectures de projets générées.
+                {t('projects.desc')}
               </p>
             </div>
             
@@ -55,7 +57,7 @@ export const ProjectsPage: React.FC = () => {
               className="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] flex items-center shrink-0"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Nouveau Projet
+              {t('projects.new_project')}
             </button>
           </div>
 
@@ -65,7 +67,7 @@ export const ProjectsPage: React.FC = () => {
             </div>
             <input
               type="text"
-              placeholder="Rechercher un projet par nom ou date..."
+              placeholder={t('projects.search_placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="block w-full pl-11 pr-4 py-3 bg-white dark:bg-[#121214] border border-gray-200 dark:border-[#27272a] rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-sm"
@@ -85,9 +87,9 @@ export const ProjectsPage: React.FC = () => {
             <div className="w-16 h-16 bg-cyan-100 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400 rounded-full flex items-center justify-center mb-4">
               <FolderKanban className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucun projet trouvé</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('projects.no_projects_title')}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-6">
-              Vous n'avez pas encore généré de projet.
+              {t('projects.no_projects_desc')}
             </p>
           </div>
         ) : (
@@ -127,7 +129,7 @@ export const ProjectsPage: React.FC = () => {
             ))}
             {projects.filter(p => p.title.toLowerCase().includes(searchTerm.toLowerCase()) || new Date(p.created_at).toLocaleDateString().includes(searchTerm)).length === 0 && (
                <div className="text-center py-10 text-gray-500 dark:text-gray-400 text-sm">
-                 Aucun projet ne correspond à votre recherche "{searchTerm}".
+                 {t('projects.no_search_results')} "{searchTerm}".
                </div>
             )}
           </div>

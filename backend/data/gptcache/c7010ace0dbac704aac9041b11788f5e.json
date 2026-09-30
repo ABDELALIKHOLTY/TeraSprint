@@ -1,0 +1,48 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Tests Unitaires des Services Métiers avec Pytest et Mocking (MatchingService mocké)",
+      "description": Cette tâche consiste à concevoir et rédiger les tests unitaires pour la couche métier de l'architecture hexagonale, en mettant une emphasis particulier sur le `MatchingService`. L'objectif est d'isoler complètement la logique métier de ses dépendances extérieures (l'API OpenAI, les repositories de base de données, et le stockage S3) en utilisant des techniques de mock rigoureuses. Cela permet de valider la justesse algorithmique du calcul de score de correspondance et de s'assurer de la fiabilité du moteur de suggestion intelligent sans générer de coûts API réels ou d'appeler la base de données.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Configurer l'environnement de test Pytest avec le plugin `pytest-mock` pour isoler les dépendances et mock le client externe OpenAI ainsi que les repositories du `MatchingService`.",
+        "Rédiger des tests unitaires couvrant la conversion des critères bruts du client (stockés dans le champ `criteria` de la table `clients`) en requêtes sémantiques structurées pour l'API OpenAI.",
+        "Valider la logique de calcul du score de correspondance en pourcentage (stocké dans la colonne `match_score` de la table `ai_matches`) en comparant les attributs des biens avec les besoins clients.",
+        "Développer des cas de test vérifiant la génération et la cohérence du texte explicatif de l'IA (colonne `ai_rationale` dans la table `ai_matches`) pour divers scénarios de correspondance."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Tests d'Intégration des Endpoints API FastAPI avec TestClient",
+      "description": Cette tâche se concentre sur la couche d'exposition de l'architecture hexagonale en rédigeant des tests d'intégration pour les endpoints REST de l'application FastAPI. En utilisant le `TestClient` de FastAPI, nous allons simuler des requêtes HTTP réelles pour valider le contrat API global, les mécanismes de protection par token JWT, et la correction des opérations CRUD sur les ressources. L'objectif est de garantir que les contrôleurs répondent correctement aux codes statuts HTTP et respectent les schémas de données définis pour l'ensemble des routes de l'application.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Configurer le client de test FastAPI (`TestClient`) dans un fixture Pytest pour exécuter des requêtes HTTP contre une base de données PostgreSQL temporaire isolée ou une session SQLAlchemy mockée.",
+        "Écrire des tests d'intégration pour les routes d'authentification (comme `POST /api/v1/auth/login`) afin de valider la génération des tokens JWT, le hachage bcrypt, et le contrôle d'accès basé sur les rôles (`Agent` ou `Manager` dans la table `users`).",
+        "Créer des tests d'intégration pour les endpoints CRUD de l'API `/api/v1/properties` en vérifiant la création de biens, les filtres avancés (prix, surface, classement `dpe`) et la génération d'URLs pré-signées S3.",
+        "Mettre en place des tests de transition du pipeline de vente sur l'endpoint `/api/v1/clients` pour s'assurer que le déplacement dans le tableau Kanban met à jour correctement les champs `pipeline_status` et `kanban_position`."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Tests de Persistance et d'Infrastructure (Repositories SQLAlchemy et Adaptateurs AWS/OpenAI)",
+      "description": Cette tâche cible la couche persistence et les adaptateurs d'infrastructure de l'architecture hexagonale. Il s'agit de valider la fiabilité des accès à la base de données PostgreSQL via l'ORM SQLAlchemy, ainsi que l'interaction avec les services externes (AWS S3 pour l'upload d'images, et l'API OpenAI pour le matching). Nous rédigerons des tests techniques pour les repositories complexes et mockons les clients externes afin de vérifier le comportement de la plateforme en cas d'erreurs de communication ou de timeouts.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Réaliser des tests d'intégration pour les repositories SQLAlchemy (comme `PropertyRepository`) en utilisant une base de données temporaire pour valider les requêtes complexes de filtrage sur la table `properties`.",
+        "Vérifier l'intégrité relationnelle et le comportement des opérations de création/mise à jour dans la table `visits` en testant les clés étrangères vers `clients` et `properties`.",
+        "Mock le client AWS S3 (`boto3`) pour tester la génération d'URLs pré-signées et valider le stockage correct des clés S3 dans le champ `s3_image_paths`.",
+        "Tester l'adaptateur d'API OpenAI en mockant les réponses de l'API pour évaluer la robustesse du système face aux timeouts, erreurs de rate-limiting ou formats de réponses inattendus."
+      ]
+    }
+  ]
+}

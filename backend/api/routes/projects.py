@@ -1,13 +1,13 @@
-# pyrefly: ignore [missing-import]
+
 from fastapi import APIRouter, HTTPException, Depends
-# pyrefly: ignore [missing-import]
+
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from db.postgres import get_db
-from models.project_db import Project, EpicDB, UserStoryDB, TaskDB
+from models.project_db import Project, EpicDB, UserStoryDB, TaskDB, ProjectMemberDB
 import uuid
 from schemas.project_schemas import Backlog
-# pyrefly: ignore [missing-import]
+
 import traceback
 from services.agents.conception.po_agent import generate_agile_backlog
 from api.routes.auth import get_current_user
@@ -24,14 +24,12 @@ class ProjectIdea(BaseModel):
 
 @router.post("/generate")
 async def generate_project(payload: ProjectIdea, current_user: User = Depends(get_current_user)):
-    """
-    Prend une idée de projet en entrée et génère un backlog structuré au format JSON.
-    """
+
     try:
         async def event_generator():
             try:
-                # Use the streaming generator
-                # Note: Assuming generate_agile_backlog_stream is imported instead of generate_agile_backlog
+
+
                 from services.agents.conception.po_agent import generate_agile_backlog_stream
                 async for event in generate_agile_backlog_stream(payload.idea, payload.ai_model, current_user.api_key_groq, current_user.api_key_openrouter, current_user.api_key_gemini):
                     yield json.dumps(event) + "\n"
@@ -48,10 +46,7 @@ async def generate_project(payload: ProjectIdea, current_user: User = Depends(ge
 
 @router.get("/models")
 async def get_available_models(current_user: User = Depends(get_current_user)):
-    """
-    Récupère dynamiquement les modèles d'IA disponibles depuis Ollama (local)
-    et Groq (si une clé API est fournie).
-    """
+
     models = []
     
     try:
@@ -180,9 +175,7 @@ async def get_available_models(current_user: User = Depends(get_current_user)):
 
 @router.post("/save")
 async def save_project(backlog: Backlog, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """
-    Sauvegarde un backlog généré par l'IA dans la base de données.
-    """
+
     try:
         db_project = Project(
             title=backlog.project_title,
@@ -239,22 +232,28 @@ async def save_project(backlog: Backlog, db: Session = Depends(get_db), current_
 
 @router.get("/")
 async def get_my_projects(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """
-    Récupère la liste des projets de l'utilisateur.
-    """
-    projects = db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).all()
-    return [{"id": p.id, "title": p.title, "created_at": p.created_at} for p in projects]
+
+    owned_projects = db.query(Project).filter(Project.user_id == current_user.id).all()
+    member_projects = db.query(Project).join(ProjectMemberDB).filter(ProjectMemberDB.user_id == current_user.id).all()
+    all_projects = list({p.id: p for p in (owned_projects + member_projects)}.values())
+    all_projects.sort(key=lambda p: p.created_at, reverse=True)
+    return [{"id": p.id, "title": p.title, "created_at": p.created_at} for p in all_projects]
 
 @router.get("/{project_id}")
 async def get_project(project_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """
-    Récupère un projet complet par son ID (pour le dashboard).
-    """
-    project = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
+
+    project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    is_member = db.query(ProjectMemberDB).filter(ProjectMemberDB.project_id == project_id, ProjectMemberDB.user_id == current_user.id).first()
+    if project.user_id != current_user.id and not is_member:
+        raise HTTPException(status_code=403, detail="Not authorized to access this project")
+
     epics = db.query(EpicDB).filter(EpicDB.project_id == project.id).all()
+
+    all_users = db.query(User).all()
+    user_dict = {str(u.id): {"id": str(u.id), "name": u.name, "first_name": u.first_name, "avatar_url": u.avatar_url} for u in all_users}
     
     epics_data = []
     for epic in epics:
@@ -272,7 +271,9 @@ async def get_project(project_id: str, db: Session = Depends(get_db), current_us
                 "subtasks": t.subtasks,
                 "estimated_hours": t.estimated_hours,
                 "start_date": t.start_date.isoformat() if t.start_date else None,
-                "end_date": t.end_date.isoformat() if t.end_date else None
+                "end_date": t.end_date.isoformat() if t.end_date else None,
+                "assignee_id": str(t.assignee_id) if t.assignee_id else None,
+                "assignee": user_dict.get(str(t.assignee_id)) if t.assignee_id else None, "chat_history": t.chat_history, "attachments": t.attachments, "history": t.history, "links": t.links, "time_logs": t.time_logs
             } for t in tasks]
             
             us_data.append({
@@ -283,12 +284,16 @@ async def get_project(project_id: str, db: Session = Depends(get_db), current_us
                 "priority": us.priority,
                 "story_points": us.story_points,
                 "acceptance_criteria": us.acceptance_criteria,
+                "assignee_id": str(us.assignee_id) if us.assignee_id else None,
+                "assignee": user_dict.get(str(us.assignee_id)) if us.assignee_id else None,
                 "tasks": tasks_data
             })
             
         epics_data.append({
             "id": epic.id,
             "title": epic.title,
+            "assignee_id": str(epic.assignee_id) if epic.assignee_id else None,
+            "assignee": user_dict.get(str(epic.assignee_id)) if epic.assignee_id else None,
             "user_stories": us_data
         })
         
@@ -301,9 +306,7 @@ async def get_project(project_id: str, db: Session = Depends(get_db), current_us
 
 @router.put("/{project_id}/columns")
 async def update_project_columns(project_id: str, payload: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """
-    Met à jour l'ordre ou la liste des colonnes Kanban d'un projet.
-    """
+
     try:
         project = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
         if not project:
@@ -321,9 +324,7 @@ async def update_project_columns(project_id: str, payload: dict, db: Session = D
 
 @router.put("/tasks/{task_id}")
 async def update_task(task_id: str, task_data: dict, db: Session = Depends(get_db)):
-    """
-    Met à jour une tâche dans la base de données.
-    """
+
     try:
         db_task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
         if not db_task:
@@ -336,6 +337,18 @@ async def update_task(task_id: str, task_data: dict, db: Session = Depends(get_d
         if "story_points" in task_data: db_task.story_points = task_data["story_points"]
         if "subtasks" in task_data: db_task.subtasks = task_data["subtasks"]
         if "estimated_hours" in task_data: db_task.estimated_hours = task_data["estimated_hours"]
+        if "assignee_id" in task_data:
+            try:
+                import uuid
+                db_task.assignee_id = uuid.UUID(task_data["assignee_id"]) if task_data["assignee_id"] else None
+            except ValueError:
+                pass
+                
+        if "chat_history" in task_data: db_task.chat_history = task_data["chat_history"]
+        if "attachments" in task_data: db_task.attachments = task_data["attachments"]
+        if "history" in task_data: db_task.history = task_data["history"]
+        if "links" in task_data: db_task.links = task_data["links"]
+        if "time_logs" in task_data: db_task.time_logs = task_data["time_logs"]
         
         from dateutil import parser
         if "start_date" in task_data and task_data["start_date"]:
@@ -354,3 +367,108 @@ async def update_task(task_id: str, task_data: dict, db: Session = Depends(get_d
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/tasks/{task_id}/negotiate")
+async def negotiate_task(task_id: str, data: dict, db: Session = Depends(get_db)):
+    db_task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    return {"updated_task": {"id": task_id}, "ai_message": "Negotiation placeholder"}
+
+@router.get("/{project_id}/members")
+async def get_project_members(project_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    members_data = []
+    owner = db.query(User).filter(User.id == project.user_id).first()
+    if owner:
+        members_data.append({"id": str(owner.id), "name": owner.name, "email": owner.email, "role": "Owner", "first_name": owner.first_name, "last_name": owner.last_name, "avatar_url": owner.avatar_url})
+        
+    members = db.query(ProjectMemberDB).filter(ProjectMemberDB.project_id == project_id).all()
+    for m in members:
+        user = db.query(User).filter(User.id == m.user_id).first()
+        if user and user.id != project.user_id:
+            members_data.append({"id": str(user.id), "name": user.name, "email": user.email, "role": m.role, "first_name": user.first_name, "last_name": user.last_name, "avatar_url": user.avatar_url})
+            
+    return members_data
+
+from pydantic import BaseModel
+class AddMemberRequest(BaseModel):
+    email: str
+    role: str = "Member"
+
+@router.post("/{project_id}/members")
+async def add_project_member(project_id: str, req: AddMemberRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    if project.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the project owner can add members")
+        
+    user_to_add = db.query(User).filter(User.email == req.email).first()
+    if not user_to_add:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user_to_add.id == project.user_id:
+        raise HTTPException(status_code=400, detail="User is already the owner of this project")
+        
+    existing_member = db.query(ProjectMemberDB).filter(ProjectMemberDB.project_id == project_id, ProjectMemberDB.user_id == user_to_add.id).first()
+    if existing_member:
+        raise HTTPException(status_code=400, detail="User is already a member of this project")
+        
+    new_member = ProjectMemberDB(project_id=project_id, user_id=user_to_add.id, role=req.role)
+    db.add(new_member)
+    db.commit()
+    
+    return {"message": "Member added successfully", "member": {"id": str(user_to_add.id), "name": user_to_add.name, "email": user_to_add.email, "role": req.role}}
+
+@router.put("/epics/{epic_id}")
+async def update_epic(epic_id: str, data: dict, db: Session = Depends(get_db)):
+    epic = db.query(EpicDB).filter(EpicDB.id == epic_id).first()
+    if not epic:
+        raise HTTPException(status_code=404, detail="Epic not found")
+        
+    if "assignee_id" in data:
+        try:
+            import uuid
+            new_assignee = uuid.UUID(data["assignee_id"]) if data["assignee_id"] else None
+            epic.assignee_id = new_assignee
+        except ValueError:
+            pass
+            
+    if "title" in data:
+        epic.title = data["title"]
+        
+    db.commit()
+    return {"message": "Epic updated"}
+
+@router.put("/user-stories/{us_id}")
+async def update_user_story(us_id: str, data: dict, db: Session = Depends(get_db)):
+    us = db.query(UserStoryDB).filter(UserStoryDB.id == us_id).first()
+    if not us:
+        raise HTTPException(status_code=404, detail="User story not found")
+        
+    if "assignee_id" in data:
+        try:
+            import uuid
+            new_assignee = uuid.UUID(data["assignee_id"]) if data["assignee_id"] else None
+            us.assignee_id = new_assignee
+        except ValueError:
+            pass
+            
+    if "title" in data:
+        us.title = data["title"]
+        
+    db.commit()
+    return {"message": "User story updated"}
+
+
+
+
+
+
+

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Logo } from '../../components/ui/Logo';
+import toast from 'react-hot-toast';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -9,8 +11,18 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
+  // Forgot password state
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotStep, setForgotStep] = useState<1 | 2 | 3>(1); // 1: Email, 2: OTP, 3: New Password
+  const [forgotError, setForgotError] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -26,6 +38,81 @@ export const LoginPage: React.FC = () => {
     window.location.href = 'http://localhost:8000/api/v1/auth/github/login';
   };
 
+  const handleSendForgotOtp = async () => {
+    if (!forgotEmail) {
+      setForgotError('Veuillez entrer votre email');
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Erreur lors de l\'envoi');
+      setForgotStep(2);
+    } catch (err: any) {
+      setForgotError(err.message);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleVerifyForgotOtp = async () => {
+    if (forgotOtp.length !== 6) {
+      setForgotError('Le code doit contenir 6 chiffres');
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail, otp: forgotOtp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Code invalide');
+      setForgotStep(3);
+    } catch (err: any) {
+      setForgotError(err.message);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (forgotNewPassword.length < 8) {
+      setForgotError('Le mot de passe doit contenir au moins 8 caractères');
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail, otp: forgotOtp, new_password: forgotNewPassword })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Erreur');
+      
+      toast.success(t('settings.password_success') || 'Mot de passe réinitialisé avec succès !');
+      setShowForgotModal(false);
+      setForgotStep(1);
+      setForgotEmail('');
+      setForgotOtp('');
+      setForgotNewPassword('');
+    } catch (err: any) {
+      setForgotError(err.message);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -34,8 +121,8 @@ export const LoginPage: React.FC = () => {
     try {
       await login(email, password);
       navigate('/');
-    } catch (err) {
-      setError('Invalid credentials. Try test@test.com / password');
+    } catch (err: any) {
+      setError(err.message || 'Identifiants invalides.');
     } finally {
       setIsLoading(false);
     }
@@ -74,23 +161,30 @@ export const LoginPage: React.FC = () => {
       </div>
 
       {/* Right Column (Auth Form) */}
-      <div className="w-full lg:w-2/5 flex flex-col justify-center px-8 sm:px-16 lg:px-24 bg-white/80 dark:bg-[#121214]/80 backdrop-blur-3xl border-l border-gray-200 dark:border-[#27272a] shadow-2xl dark:shadow-[-20px_0_40px_rgba(0,0,0,0.5)] z-10 relative transition-colors duration-300">
+      <div className="w-full lg:w-2/5 flex flex-col justify-center px-8 sm:px-16 lg:px-24 py-12 lg:py-0 overflow-y-auto bg-white/80 dark:bg-[#121214]/80 backdrop-blur-3xl border-l border-gray-200 dark:border-[#27272a] shadow-2xl dark:shadow-[-20px_0_40px_rgba(0,0,0,0.5)] z-10 relative transition-colors duration-300">
         <div className="hidden dark:block absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent opacity-50 pointer-events-none"></div>
 
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Bienvenue sur TeraSprint</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Connectez-vous pour accéder à votre espace de travail intelligent.</p>
+        {/* Mobile Logo */}
+        <div className="lg:hidden flex justify-center mb-8">
+          <Logo scale={1.2} />
         </div>
 
-        {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm text-center transition-colors duration-300">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t('auth.welcome')}</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">{t('auth.welcome_desc')}</p>
+        </div>
+
+        {error ? (
+          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm text-center transition-colors duration-300 animate-in fade-in slide-in-from-top-2">
             {error}
           </div>
+        ) : (
+          <div className="mb-6 h-[46px]"></div> // Placeholder to prevent layout shift
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6 relative">
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email Address</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('auth.email')}</label>
             <input
               type="email"
               required
@@ -102,7 +196,20 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Password</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">{t('auth.password')}</label>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowForgotModal(true);
+                  setForgotStep(1);
+                  setForgotError('');
+                }}
+                className="text-xs font-medium text-cyan-600 dark:text-cyan-400 hover:underline"
+              >
+                {t('auth.forgot_password')}
+              </button>
+            </div>
             <input
               type="password"
               required
@@ -119,7 +226,7 @@ export const LoginPage: React.FC = () => {
               disabled={isLoading}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 transition-colors disabled:opacity-50"
             >
-              {isLoading ? 'Connexion en cours...' : 'Se connecter'}
+              {isLoading ? t('common.loading') : t('auth.login_btn')}
             </button>
           </div>
         </form>
@@ -131,7 +238,7 @@ export const LoginPage: React.FC = () => {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-white dark:bg-[#121214] text-gray-500 dark:text-gray-400">
-                Ou continuer avec
+                {t('auth.or_continue')}
               </span>
             </div>
           </div>
@@ -164,15 +271,95 @@ export const LoginPage: React.FC = () => {
         </div>
 
         <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          Pas encore de compte ?{' '}
+          {t('auth.no_account')}{' '}
           <button 
             onClick={() => navigate('/register')}
             className="font-medium text-cyan-600 hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300"
           >
-            Créer un compte TeraSprint
+            {t('auth.register_btn')}
           </button>
         </p>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-[#27272a] rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+            <button 
+              onClick={() => setShowForgotModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('auth.forgot_password_title')}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              {forgotStep === 1 && t('auth.forgot_step1')}
+              {forgotStep === 2 && t('auth.forgot_step2')}
+              {forgotStep === 3 && t('auth.forgot_step3')}
+            </p>
+
+            {forgotError && <p className="text-sm text-red-500 mb-4 p-2 bg-red-50 dark:bg-red-950/30 rounded">{forgotError}</p>}
+
+            {forgotStep === 1 && (
+              <div className="space-y-4">
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  placeholder="votre@email.com"
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1f] border border-gray-200 dark:border-[#27272a] text-gray-900 dark:text-white px-4 py-3 rounded-xl focus:outline-none focus:border-cyan-500"
+                />
+                <button
+                  onClick={handleSendForgotOtp}
+                  disabled={forgotLoading || !forgotEmail}
+                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-3 rounded-xl font-medium transition-colors disabled:opacity-50"
+                >
+                  {forgotLoading ? t('auth.sending') : t('auth.send_otp')}
+                </button>
+              </div>
+            )}
+
+            {forgotStep === 2 && (
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={forgotOtp}
+                  onChange={e => setForgotOtp(e.target.value)}
+                  placeholder="000000"
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1f] border border-gray-200 dark:border-[#27272a] text-gray-900 dark:text-white px-4 py-3 rounded-xl focus:outline-none focus:border-cyan-500 font-mono tracking-widest text-center text-xl"
+                />
+                <button
+                  onClick={handleVerifyForgotOtp}
+                  disabled={forgotLoading || forgotOtp.length !== 6}
+                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-3 rounded-xl font-medium transition-colors disabled:opacity-50"
+                >
+                  {forgotLoading ? t('auth.verifying') : t('auth.verify_code')}
+                </button>
+              </div>
+            )}
+
+            {forgotStep === 3 && (
+              <div className="space-y-4">
+                <input
+                  type="password"
+                  value={forgotNewPassword}
+                  onChange={e => setForgotNewPassword(e.target.value)}
+                  placeholder="Nouveau mot de passe"
+                  className="w-full bg-gray-50 dark:bg-[#1a1a1f] border border-gray-200 dark:border-[#27272a] text-gray-900 dark:text-white px-4 py-3 rounded-xl focus:outline-none focus:border-cyan-500"
+                />
+                <button
+                  onClick={handleResetPassword}
+                  disabled={forgotLoading || forgotNewPassword.length < 8}
+                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-3 rounded-xl font-medium transition-colors disabled:opacity-50"
+                >
+                  {forgotLoading ? t('auth.modifying') : t('auth.modify_password')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

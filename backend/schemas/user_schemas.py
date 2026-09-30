@@ -16,12 +16,17 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     name: str
     email: EmailStr
+    first_name: str | None = None
+    last_name: str | None = None
+    avatar_url: str | None = None
+    saas_email: str | None = None
     role: str
     mfa_enabled: bool
     has_groq_key: bool = False
     has_openrouter_key: bool = False
     has_gemini_key: bool = False
     has_github_token: bool = False
+    needs_password_setup: bool = False
     class Config:
         from_attributes = True
 

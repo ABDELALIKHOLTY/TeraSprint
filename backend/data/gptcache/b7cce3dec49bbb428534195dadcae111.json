@@ -1,0 +1,48 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Développement du Dashboard Recruteur avec React et Material UI",
+      "description": "Ce composant constitue l'écran principal du recruteur et doit afficher une vue globale du recrutement avec des statistiques dynamiques (nombre d'offres actives, candidatures, entretiens, embauches) et un pipeline visuel Kanban. L'implémentation nécessite l'intégration des données via l'API ('GET /api/analytics/recruiter-dashboard') et la création de graphiques avec Chart.js pour visualiser les métriques. Le pipeline Kanban doit permettre le glisser-déposer des candidats entre les colonnes ('Applied', 'Screening', 'Shortlisted', 'Interview', 'Offer', 'Hired', 'Rejected') avec une mise à jour en temps réel via WebSocket. Le composant doit respecter le Design System TalentFlow avec la couleur principale bleue (#1976D2) et des états UI (Loading, Error, Empty) pour une expérience utilisateur fluide.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer le layout principal du Dashboard avec Material UI Grid et Box pour organiser les statistiques et le pipeline Kanban, en utilisant des Card avec bordures légères et une hiérarchie visuelle cohérente.",
+        "Implémenter la récupération des données statistiques via Axios en consommant l'endpoint ('GET /api/analytics/recruiter-dashboard') et afficher les résultats dans des graphiques Bar et Pie avec Chart.js, en gérant l'état Loading avec un Spinner Material UI.",
+        "Développer le composant Kanban (RecruitmentPipeline) avec react-beautiful-dnd pour le glisser-déposer, en créant des colonnes pour chaque étape ('Applied', 'Screening', etc.) et des Cartes pour chaque candidat (nom, score, étape actuelle) provenant de la table ('applications') avec ('id'), ('candidate_id'), ('status').",
+        "Intégrer les états UI (Loading, Error, Empty) pour gérer les scénarios de données manquantes ou d'erreur API, en affichant un message vierge ('Aucune candidature à afficher') et un Toast Material UI pour les erreurs, tout en appliquant les couleurs d'alerte (Warning: Orange #FF9800, Danger: Rouge #F44336)."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Développement de la page JobsList avec Recherche, Filtres et Formulaire Multi-Étapes",
+      "description": "Cette page permet au recruteur de consulter, filtrer et créer des offres d'emploi. Elle doit intégrer une barre de recherche avec autocomplétion, des filtres par statut ('Active/Closed'), département et type de contrat, ainsi qu'un bouton 'Créer une offre' déclenchant un formulaire en 7 étapes. L'implémentation nécessite la consommation des endpoints ('GET /api/jobs', 'POST /api/jobs') et la gestion d'états complexes pour les champs dynamiques (compétences, responsabilités). Le formulaire doit utiliser React Hook Form avec validation Zod et Material UI Dialog pour une expérience utilisateur professionnelle.",
+      "description": "Cette page permet au recruteur de consulter, filtrer et créer des offres d'emploi. Elle doit intégrer une barre de recherche avec autocomplétion, des filtres par statut ('Active/Closed'), département et type de contrat, ainsi qu'un bouton 'Créer une offre' déclenchant un formulaire en 7 étapes. L'implémentation nécessite la consommation des endpoints ('GET /api/jobs', 'POST /api/jobs') et la gestion d'états complexes pour les champs dynamiques (compétences, responsabilités). Le formulaire doit utiliser React Hook Form avec validation Zod et Material UI Dialog pour une expérience utilisateur professionnelle.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Construire la liste des offres avec Material UI Table, incluant les colonnes ('Titre', 'Département', 'Localisation', 'Mode de travail', 'Statut', 'Candidatures'), en intégrant un système de pagination serveur et des filtres dynamiques (Dropdown Material UI pour le statut, département, type de contrat) connectés à l'API ('GET /api/jobs?status=Active&department=IT').",
+        "Implémenter la barre de recherche avec autocomplétion via Material UI Autocomplete, en consommant l'endpoint ('GET /api/jobs/search?q=python') et en affichant les résultats dans une liste déroulante avec les champs ('title', 'department', 'location') de la table ('jobs').",
+        "Développer le formulaire de création d'offre en 7 étapes (Informations générales, Description du poste, Responsabilités, Compétences requises, Expérience, Processus de recrutement, Publication) avec React Hook Form, Zod pour la validation, et Material UI Stepper pour la navigation entre les étapes, en stockant les données dans un état local avant l'envoi final.",
+        "Gérer les états UI (Loading, Error, Empty) pour les listes et formulaires, en utilisant un Spinner Material UI pendant le chargement, un message 'Aucune offre trouvée' pour les résultats vides, et des Toasts pour les erreurs API, tout en appliquant les styles du Design System (boutons primaires bleus, badges de statut)."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Développement du composant CandidateProfile avec Tabs et Vue Détails",
+      "description": "Ce composant affiche le profil complet d'un candidat avec un header interactif (avatar, nom, poste, score) et des onglets pour naviguer entre Overview, Resume, Interviews, Evaluations et Activity. L'implémentation nécessite la consommation des endpoints ('GET /api/candidates/{id}', 'GET /api/applications/candidate/{id}') et l'intégration de fichiers PDF pour le CV. Les onglets doivent utiliser Material UI Tabs avec un comportement responsive, et chaque section doit afficher des données structurées (expérience, compétences, entretiens passés/futurs) avec des badges et listes Material UI.",
+      "description": "Ce composant affiche le profil complet d'un candidat avec un header interactif (avatar, nom, poste, score) et des onglets pour naviguer entre Overview, Resume, Interviews, Evaluations et Activity. L'implémentation nécessite la consommation des endpoints ('GET /api/candidates/{id}', 'GET /api/applications/candidate/{id}') et l'intégration de fichiers PDF pour le CV. Les onglets doivent utiliser Material UI Tabs avec un comportement responsive, et chaque section doit afficher des données structurées (expérience, compétences, entretiens passés/futurs) avec des badges et listes Material UI.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le header du profil avec Material UI Avatar, Typography et Button, en affichant les champs ('name', 'position', 'location', 'email', 'score') de la table ('candidates') et un bouton 'Move to Interview' déclenchant une Modal Material UI avec sélection d'étape via un Dropdown.",
+        "Développer l'onglet Overview avec des sections pour le résumé professionnel, l'expérience (liste des postes avec dates), les compétences (tags Material UI Chip) et la formation, en récupérant les données depuis ('candidates', 'candidate_skills', 'skills') via ('GET /api/candidates/{id}/overview').",
+        "Implémenter l'onglet Resume avec un aperçu PDF intégré via react-pdf, un bouton de téléchargement ('GET /api/candidates/{id}/resume') et un état Loading pour gérer le chargement du fichier, tout en appliquant un style responsive.",
+        "Construire les onglets Interviews, Evaluations et Activity avec des listes Material UI List et Table, en affichant les données de ('interviews', 'evaluations', 'activity_logs') via ('GET /api/candidates/{id}/interviews', 'GET /api/candidates/{id}/evaluations', 'GET /api/candidates/{id}/activity'), et en utilisant des Badges pour les statuts (Interview, Hired, etc.) avec les couleurs du Design System."
+      ]
+    }
+  ]
+}

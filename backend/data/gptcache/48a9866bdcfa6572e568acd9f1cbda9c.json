@@ -1,0 +1,118 @@
+
+
+{
+  "$defs": {
+    "Task": {
+      "properties": {
+        "id": {
+          "description": "ID façon Jira (ex: TERA-23)",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "description": "Titre de la tâche technique",
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description détaillée. Expliquer l'architecture, les technos, le but exact et le détail des sous-tâches.",
+          "title": "Description",
+          "type": "string"
+        },
+        "status": {
+          "description": "Statut : DOIT TOUJOURS être 'TO DO'",
+          "title": "Status",
+          "type": "string"
+        },
+        "priority": {
+          "description": "Priorité : 'Highest', 'High', 'Medium', 'Low'",
+          "title": "Priority",
+          "type": "string"
+        },
+        "story_points": {
+          "description": "Estimation (Fibonacci: 1, 2, 3, 5, 8...)",
+          "title": "Story Points",
+          "type": "integer"
+        },
+        "subtasks": {
+          "default": [],
+          "description": "Liste de sous-tâches LONGUES (minimum 15-20 mots par sous-tâche) détaillant l'implémentation technique.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Subtasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "status",
+        "priority",
+        "story_points"
+      ],
+      "title": "Task",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "tasks": {
+      "description": "Liste des Tâches techniques pour une User Story",
+      "items": {
+        "$ref": "#/$defs/Task"
+      },
+      "title": "Tasks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "tasks"
+  ],
+  "title": "TasksList",
+  "type": "object",
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Rédaction de la documentation technique API (FastAPI / OpenAPI / Swagger)",
+      "description": "Cette tâche vise à produire une documentation technique exhaustive, précise et exécutable pour l'API REST de la plateforme ImmoSync AI, en utilisant les standards OpenAPI 3.0 et l'interface Swagger UI intégrée à FastAPI. La documentation doit couvrir tous les endpoints critiques (authentification, gestion des biens, clients, visites, matching IA) en précisant les schémas de requêtes, de réponses, les codes d'erreurs HTTP standard, et les mécanismes de sécurité basés sur les tokens JWT. Une attention particulière doit être portée à la documentation des schémas JSON complexes, notamment les objets de critères clients en JSON brut pour l'analyse IA, et les tableaux de chemins S3 pour les images, assurant ainsi une intégration fluide et compréhensible pour les développeurs tiers ou futurs mainteneurs.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Configuration du spécification OpenAPI (dans le fichier `main.py` de FastAPI) pour décrire les schémas de sécurité HTTP de type Bearer JWT (schéma `HTTPBearer`) et les globaux security definitions requises pour protéger les endpoints sensibles.",
+        "Rédaction des descriptions détaillées des schémas de données pour les endpoints de gestion des biens immobiliers (Route: `GET /api/v1/properties`), en précisant les filtres avancés en query parameters (ex: `price`, `surface`, `dpe`) et la structure du champ `s3_image_paths` (tableau de chaînes de caractères représentant les clés S3).",
+        "Documenter technique et schématiquement l'endpoint de l'IA de matching (Route: `POST /api/v1/matching`) en détaillant l'objet JSON d'entrée contenant les critères sémantiques du client (champ `criteria`) et les schémas de réponse renvoyant les scores de correspondance (`match_score`) et les explications textuelles de l'IA (`ai_rationale`).",
+        "Générer et valider la documentation interactive Swagger UI pour les endpoints de gestion des rôles (`Agent`, `Manager`) et du pipeline de vente (Route: `PUT /api/v1/clients/{id}/status`), en s'assurant de la cohérence des schémas décrivant la table `clients` avec son champ `pipeline_status` (ENUM: 'prospect', 'visit_scheduled', 'offer_submitted', 'contract_signed')."
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Configuration du pipeline de déploiement automatisé CI/CD (Docker / GitHub Actions)",
+      "description": "L'objectif de cette tâche est d'automatiser le cycle de vie complet du logiciel, de la validation initiale du code jusqu'au déploiement en production, en utilisant une approche de conteneurisation Docker associée à un pipeline CI/CD sur GitHub Actions. Il s'agit de configurer un environnement de build reproductible pour l'application backend FastAPI et l'application frontend React.js (Vite). Le pipeline doit inclure des étapes de tests unitaires, d'analyse de code statique (linting), de build d'images Docker, de push vers un registre d'images (comme AWS ECR), et de déploiement déclenché par un événement de merge sur la branche principale, garantissant une livraison continue et de qualité.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 8,
+      "subtasks": [
+        "Création et configuration d'un Dockerfile optimisé pour le backend FastAPI, divisé en étapes pour installer les dépendances Python (via un `requirements.txt` contenant FastAPI, SQLAlchemy, Alembic, etc.) et copier l'ensemble des fichiers sources de l'architecture hexagonale (dossiers `api`, `services`, `repositories`).",
+        "Configuration d'un workflow CI/CD GitHub Actions (fichier `.yml` placé dans le répertoire `.github/workflows/`) déclenché par les événements `push` ou `pull_request` pour exécuter automatiquement la suite de tests unitaires Pytest, le linting du code Python, et la validation de la structure de l'architecture.",
+        "Mise en place d'un job de build automatisé d'image Docker, push de celle-ci vers le registre de conteneurs cloud (AWS ECR) en l'étiquetant avec le hash du commit Git (`git_commit_hash`) et le nom de l'environnement cible (`staging` ou `production`).",
+        "Configuration de l'automatisation du build et du déploiement de l'application frontend React.js (Vite) via un script de compilation, upload des fichiers statiques générés vers un bucket de stockage d'objets (AWS S3) ou un CDN, en utilisant les variables d'environnement pour l'hydratation des endpoints d'API."
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Déploiement de la plateforme SaaS en production, infrastructure cloud (AWS / PostgreSQL / Docker)",
+      "description": "Cette tâche concerne le déploiement effectif de la plateforme ImmoSync AI en environnement de production, en assurant une architecture multi-locataire (multi-agences) robuste et sécurisée. Elle implique la configuration de l'infrastructure cloud AWS pour héberger les services (conteneurs Docker sur ECS ou EKS, base de données PostgreSQL gérée via Amazon RDS), la configuration des politiques de sécurité, et la gestion des secrets. Il faut également s'assurer de la cohérence des variables d'environnement, de la mise en place de la sauvegarde automatisée de la base de données relationnelle, et de la configuration des permissions d'accès au stockage S3 pour les images immobilières via des URLs pré-signées, assurant la disponibilité et la scalabilité du système.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Configuration de l'environnement de base de données relationnelle PostgreSQL gérée (Amazon RDS) en production, application des migrations Alembic pour créer et maintenir les schémas des tables `users`, `properties`, `clients`, `visits`, et `ai_matches` dans un ordre de dépendance strict.",
+        "Configuration de la gestion centralisée et sécurisée des secrets sensibles (JWT secrets, clés API OpenAI, credentials AWS) via le service AWS Secrets Manager ou le SSM Parameter Store, pour un injection dynamique des variables d'environnement dans les conteneurs de déploiement.",
+        "Configuration du service de stockage d'objets AWS S3 pour l'hébergement des images des biens immobiliers, définition des politiques de bucket pour restreindre l'accès en lecture/écriture, et génération d'URLs pré-signées à expiration limitée pour l'upload direct depuis le frontend TypeScript.",
+        "Configuration du déploiement des conteneurs FastAPI sur le service de conteneurs géré (AWS ECS ou équivalent) derrière un Load Balancer applicatif, configuration de la mise à l'échelle automatique (Auto-scaling) pour gérer les pics de charge des calculs de matching IA, et exposition des routes API (comme `GET /api/v1/dashboard`)."
+      ]
+    }
+  ]
+}

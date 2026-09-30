@@ -5,6 +5,7 @@ import { Send, FileText, ChevronDown, ChevronUp, Box, Layers, Calculator, Bot, X
 import { generateProjectBacklogStream, fetchModels, fetchFilteredModels, apiCall, updateApiKeys } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 
 type ChatMessage = {
@@ -28,6 +29,7 @@ export const ProjectGeneratorPage: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState('qwen2.5:14b');
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const { user, token } = useAuth();
+  const { t } = useLanguage();
   
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   
@@ -227,9 +229,9 @@ export const ProjectGeneratorPage: React.FC = () => {
       <div className="flex items-end px-3 pb-2 pt-1">
         <textarea
           ref={textareaRef}
-          className="flex-1 bg-transparent outline-none text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-[15px] resize-none overflow-y-auto"
+          className="flex-1 bg-transparent outline-none text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-none overflow-y-auto"
           style={{ minHeight: '44px' }}
-          placeholder="Décrivez l'application que vous souhaitez construire..."
+          placeholder={t('generator.placeholder')}
           value={idea}
           onChange={(e) => setIdea(e.target.value)}
           onKeyDown={(e) => {
@@ -252,11 +254,11 @@ export const ProjectGeneratorPage: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#fcfcfc] dark:bg-[#09090b] transition-colors duration-300 relative">
+    <div className="flex flex-col h-full w-full font-sans bg-[#fcfcfc] dark:bg-[#09090b] transition-colors duration-300 relative">
       
       {messages.length === 0 ? (
         // --- EMPTY STATE (ChatGPT Style) ---
-        <div className="flex-1 flex flex-col items-center justify-center px-4 pb-20 animate-in fade-in zoom-in duration-700">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 pb-20 animate-in fade-in duration-700">
           <div className="w-full max-w-3xl flex flex-col items-center">
             
             <div className="relative w-16 h-16 mb-6 flex items-center justify-center group">
@@ -265,7 +267,7 @@ export const ProjectGeneratorPage: React.FC = () => {
             </div>
             
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-200 mb-8 text-center tracking-tight">
-              Bonjour <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-500">{user?.name ? user.name.split(' ')[0] : 'Opérateur'}</span>
+              {t('generator.hello')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-500">{user?.name ? user.name.split(' ')[0] : t('generator.operator')}</span>
             </h1>
 
             {/* Input Form Centered */}
@@ -286,16 +288,16 @@ export const ProjectGeneratorPage: React.FC = () => {
                     <p className="text-sm font-bold text-gray-900 dark:text-gray-200 truncate w-full" title={project.title}>
                       {project.title}
                     </p>
-                    <p className="text-[11px] text-gray-400 mt-2">Dernier projet généré</p>
+                    <p className="text-[11px] text-gray-400 mt-2">{t('generator.last_project')}</p>
                   </button>
                 ))
               ) : (
                 <>
-                  <button onClick={() => handleSuggestionClick("Un système ERP complet de gestion d'entrepôt et de logistique avec suivi GPS.")} className="p-4 bg-white dark:bg-[#121214]/60 rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-cyan-500/50 hover:bg-gray-50 dark:hover:bg-[#1a1a1f] transition-all text-left shadow-sm">
-                    <p className="text-sm text-gray-600 dark:text-gray-300">"Un système ERP complet de gestion d'entrepôt et de logistique avec suivi GPS."</p>
+                  <button onClick={() => handleSuggestionClick(t('generator.suggestion1'))} className="p-4 bg-white dark:bg-[#121214]/60 rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-cyan-500/50 hover:bg-gray-50 dark:hover:bg-[#1a1a1f] transition-all text-left shadow-sm">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">"{t('generator.suggestion1')}"</p>
                   </button>
-                  <button onClick={() => handleSuggestionClick("Une plateforme SaaS de télémédecine avec consultations vidéo WebRTC.")} className="p-4 bg-white dark:bg-[#121214]/60 rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-cyan-500/50 hover:bg-gray-50 dark:hover:bg-[#1a1a1f] transition-all text-left shadow-sm">
-                    <p className="text-sm text-gray-600 dark:text-gray-300">"Une plateforme SaaS de télémédecine avec consultations vidéo WebRTC."</p>
+                  <button onClick={() => handleSuggestionClick(t('generator.suggestion2'))} className="p-4 bg-white dark:bg-[#121214]/60 rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-cyan-500/50 hover:bg-gray-50 dark:hover:bg-[#1a1a1f] transition-all text-left shadow-sm">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">"{t('generator.suggestion2')}"</p>
                   </button>
                 </>
               )}
@@ -315,7 +317,7 @@ export const ProjectGeneratorPage: React.FC = () => {
                   
                   {/* User Bubble */}
                   {msg.role === 'user' && (
-                    <div className="max-w-[80%] bg-gray-100 dark:bg-[#27272a] text-gray-900 dark:text-gray-100 px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm text-[15px] leading-relaxed">
+                    <div className="max-w-[80%] bg-gray-100 dark:bg-[#27272a] text-gray-900 dark:text-gray-100 px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm text-sm leading-relaxed">
                       {msg.content}
                     </div>
                   )}

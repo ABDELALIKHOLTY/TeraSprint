@@ -1,6 +1,7 @@
 import React from 'react';
 import { Settings, X, Key, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface GlobalSettingsDrawerProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface GlobalSettingsDrawerProps {
 
 export const GlobalSettingsDrawer: React.FC<GlobalSettingsDrawerProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   if (!isOpen) return null;
 
@@ -25,7 +27,7 @@ export const GlobalSettingsDrawer: React.FC<GlobalSettingsDrawerProps> = ({ isOp
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-[#27272a]">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
             <Settings className="w-5 h-5 mr-2 text-cyan-500" />
-            Parametres
+            {t('sidebar.configuration')}
           </h2>
           <button onClick={onClose} className="p-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-[#1e1e24] transition-colors">
             <X className="w-5 h-5" />
@@ -42,7 +44,7 @@ export const GlobalSettingsDrawer: React.FC<GlobalSettingsDrawerProps> = ({ isOp
             </div>
             <div className="text-left">
               <h3 className="text-sm font-bold text-amber-900 dark:text-amber-500">TeraSprint Pro</h3>
-              <p className="text-xs text-amber-700/70 dark:text-amber-500/70">Unlock AI advanced features.</p>
+              <p className="text-xs text-amber-700/70 dark:text-amber-500/70">{t('sidebar.pro_desc')}</p>
             </div>
           </div>
 
@@ -55,8 +57,8 @@ export const GlobalSettingsDrawer: React.FC<GlobalSettingsDrawerProps> = ({ isOp
               <Key className="w-5 h-5 text-cyan-500" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Configuration des Providers</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Gérer les clés API (Groq, OpenRouter...)</p>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('sidebar.configuration')}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('sidebar.config_desc')}</p>
             </div>
           </button>
 

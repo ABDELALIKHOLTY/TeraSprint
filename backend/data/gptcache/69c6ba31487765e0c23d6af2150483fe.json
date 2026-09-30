@@ -1,0 +1,75 @@
+{
+  "tasks": [
+    {
+      "id": "TERA-1",
+      "title": "Documentation Technique API (Swagger/OpenAPI)",
+      "description": "La rédaction de la documentation technique API est cruciale pour faciliter l'intégration des clients et des équipes internes. Cette tâche implique la création d'un schéma OpenAPI 3.0 complet couvrant toutes les routes backend, avec des exemples de requêtes et réponses, des schémas de données détaillés, et des descriptions des erreurs. La documentation doit être générée automatiquement via Swagger UI intégré au projet NestJS, en utilisant les décorateurs @ApiOperation, @ApiResponse, et @ApiProperty pour chaque endpoint. Les routes critiques comme ('POST /api/auth/login'), ('GET /api/jobs'), ('PUT /api/applications/{id}/status') seront documentées avec leurs paramètres, réponses attendues et exemples concrets.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Configurer le module Swagger dans le fichier principal du backend (main.ts) avec les décorateurs nécessaires pour activer l'interface Swagger UI accessible via ('/api/docs')",
+        "Documenter toutes les routes d'authentification ('POST /api/auth/login', 'POST /api/auth/refresh') avec les champs requis ('email', 'password') et les réponses JWT incluant ('accessToken', 'refreshToken')",
+        "Rédiger les schémas OpenAPI pour les entités principales ('Job', 'Candidate', 'Application') en détaillant leurs champs (ex: 'job_id', 'title', 'department', 'status') et leurs relations (FK vers 'companies', 'users')",
+        "Ajouter des exemples de requêtes et réponses pour les endpoints critiques comme ('GET /api/analytics/recruitment-stats') avec des données mockées illustrant les statistiques (taux de conversion, candidatures, embauches)"
+      ]
+    },
+    {
+      "id": "TERA-2",
+      "title": "Architecture Technique (Diagrammes UML et DFD)",
+      "description": "La documentation architecturale doit fournir une vision globale du système TalentFlow, incluant les diagrammes de composants, de séquence, et les flux de données. Cette tâche implique la création de diagrammes UML (component, sequence, class) illustrant l'architecture backend (NestJS, PostgreSQL, Redis, BullMQ) et frontend (React, Socket.IO). Les flux de données critiques (ex: création d'une offre, mouvement d'un candidat dans le pipeline) seront modélisés via des DFD (Data Flow Diagrams) pour montrer les interactions entre les microservices et les bases de données. Les table et champs comme ('users', 'applications', 'interviews') seront explicitement liés aux diagrammes pour une traçabilité complète.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer un diagramme de composants UML montrant les modules NestJS ('AuthModule', 'JobsModule', 'ApplicationsModule') et leurs dépendances externes (PostgreSQL, Redis, AWS S3)",
+        "Dessiner un diagramme de séquence pour le scénario 'Création d'une offre d'emploi' depuis le dashboard recruteur, incluant les appels API ('POST /api/jobs'), la validation par le service ('JobsService'), et la persistance dans la table ('jobs')",
+        "Modéliser un DFD niveau 1 pour le processus de recrutement, illustrant les flux entre ('Recruiter Dashboard'), ('Candidate Application'), ('Interview Scheduler') et les systèmes externes (AWS S3 pour les CV, SendGrid pour les notifications)",
+        "Documenter les séquences critiques comme 'Mouvement d'un candidat dans le pipeline' avec les tables ('applications', 'activity_logs') impliquées et les événements déclenchés (notifications, historique)"
+      ]
+    },
+    {
+      "id": "TERA-3",
+      "title": "Déploiement Kubernetes (YAML et GitHub Actions)",
+      "description": "La configuration du déploiement sur Kubernetes via GitHub Actions est essentielle pour automatiser le CI/CD et garantir une mise en production fiable. Cette tâche implique la création de fichiers YAML Kubernetes pour les déploiements ('deployment.yaml'), services ('service.yaml'), et ingress ('ingress.yaml'), en intégrant les variables d'environnement (DB_HOST, JWT_SECRET). Le workflow GitHub Actions ('ci-cd.yml') doit automatiser la construction des images Docker, le déploiement sur un cluster EKS, et les tests de santé. Les étapes incluent la génération d'images multi-arch (amd64/arm64), la gestion des secrets AWS, et la validation des manifests Kubernetes avant déploiement.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 13,
+      "subtasks": [
+        "Écrire les fichiers Kubernetes ('deployment.yaml', 'service.yaml', 'ingress.yaml') avec les ressources nécessaires (CPU/memory limits, liveness/readiness probes) et les variables d'environnement ('DB_HOST', 'JWT_SECRET', 'AWS_ACCESS_KEY_ID')",
+        "Configurer le workflow GitHub Actions ('ci-cd.yml') avec les jobs 'build', 'test', et 'deploy' incluant les étapes de build Docker multi-arch, push vers AWS ECR, et déploiement sur EKS via 'kubectl apply'",
+        "Intégrer les secrets GitHub ('AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'JWT_SECRET') dans le workflow pour les utiliser lors du déploiement sans les exposer dans le code",
+        "Ajouter des étapes de validation post-déploiement dans le workflow pour vérifier la disponibilité des services ('kubectl get pods', 'kubectl get svc') et tester les endpoints critiques ('curl -f http://talentflow.local/api/health')",
+        "Créer un fichier 'kustomize' pour gérer les environnements ('base', 'overlays/dev', 'overlays/prod') avec des modifications ciblées (replicas, image tags, resources)"
+      ]
+    },
+    {
+      "id": "TERA-4",
+      "title": "Sécurisation Nginx et Let's Encrypt",
+      "description": "La sécurisation de l'application avec Nginx en tant que reverse proxy et Let's Encrypt pour les certificats SSL est cruciale pour la conformité et la protection des données. Cette tâche implique la configuration de Nginx avec les règles de redirection HTTP vers HTTPS, la gestion des certificats via Certbot, et l'implémentation des headers de sécurité (CSP, HSTS, X-Frame-Options). Le fichier de configuration Nginx ('nginx.conf') doit rediriger les requêtes vers le backend NestJS ('localhost:3000') et servir les fichiers statiques React. Les certificats seront automatiquement renouvelés via un cron job intégré au conteneur Nginx.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Configurer Nginx en tant que reverse proxy avec les règles de redirection HTTP vers HTTPS, les headers de sécurité (Strict-Transport-Security, X-Content-Type-Options, X-Frame-Options) et le proxy_pass vers le backend ('localhost:3000')",
+        "Installer Certbot dans le conteneur Nginx pour générer et gérer les certificats SSL Let's Encrypt avec les commandes ('certbot certonly --standalone -d talentflow.local')",
+        "Mettre en place un cron job dans le conteneur Nginx pour renouveler automatiquement les certificats SSL avant expiration ('0 0 * * * certbot renew --quiet')",
+        "Configurer les règles de sécurité CORS dans Nginx pour autoriser les requêtes depuis les domaines autorisés ('talentflow.local', 'api.talentflow.local') et bloquer les requêtes non autorisées"
+      ]
+    },
+    {
+      "id": "TERA-5",
+      "title": "README et Guide de Démarrage Rapide",
+      "description": "Le fichier README doit servir de guide d'onboarding pour les développeurs et les administrateurs, expliquant comment cloner le projet, configurer les environnements, et démarrer l'application localement. Cette tâche inclut la rédaction des instructions détaillées pour l'installation des dépendances (npm install, pip install), la configuration des variables d'environnement ('DB_HOST', 'JWT_SECRET', 'AWS_ACCESS_KEY_ID'), et le lancement des services (Docker Compose, Kubernetes). Les sections 'Architecture', 'API Endpoints', et 'Déploiement' seront intégrées pour fournir une vue d'ensemble du système. Les étapes pour accéder à l'interface Swagger UI ('/api/docs') et aux logs Kubernetes seront également documentées.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Rédiger la section 'Prérequis' avec les versions requises (Node.js 18+, Docker 20.10+, Kubernetes 1.22+) et les commandes d'installation",
+        "Documenter les étapes pour configurer les variables d'environnement dans un fichier '.env' avec les clés ('DB_HOST', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET', 'AWS_ACCESS_KEY_ID')",
+        "Expliquer comment lancer l'application localement avec Docker Compose ('docker-compose up -d') et accéder aux services (Frontend sur 'http://localhost:3000', Backend sur 'http://localhost:8080')",
+        "Inclure des captures d'écran des écrans clés (Dashboard recruteur, Pipeline Kanban) et des liens vers les documents API Swagger et les diagrammes d'architecture"
+      ]
+    }
+  ]
+}

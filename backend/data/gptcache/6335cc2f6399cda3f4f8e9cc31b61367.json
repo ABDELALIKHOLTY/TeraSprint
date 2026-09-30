@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "NEXUS-101",
+      "title": "Initialisation des dépôts Git et configuration du monorepo (frontend + backend)",
+      "description": "Cette tâche consiste à créer les dépôts Git centralisés qui hébergeront le code source du frontend Next.js et du backend FastAPI, afin d'assurer une gestion de version unifiée et une collaboration fluide entre les équipes. Nous établirons un monorepo sur GitHub avec des dossiers distincts '/frontend' et '/backend', appliquerons des règles de protection de branche pour la branche 'main' et configurerons les hooks de commit pour garantir la qualité du code dès le push. Un fichier README détaillé sera ajouté pour décrire les conventions de commit, les procédures de pull‑request et les instructions de démarrage du projet, facilitant ainsi l'onboarding des nouveaux développeurs. Enfin, nous créerons des fichiers .gitignore spécifiques à chaque technologie afin d'exclure les artefacts de build, les dépendances locales et les secrets, garantissant un dépôt propre et sécurisé.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Créer un nouveau repository privé nommé ('nexus-platform') sur GitHub, puis initialiser un monorepo local avec les dossiers ('frontend') et ('backend') et pousser le premier commit contenant le fichier README et les .gitignore respectifs.",
+        "Configurer les règles de protection de branche sur la branche ('main') du repository afin d'exiger les revues de code, les checks CI réussis et l'interdiction du push direct, garantissant ainsi la qualité et la sécurité du code intégré.",
+        "Ajouter un fichier (.gitignore) dédié pour le projet Next.js incluant les dossiers ('node_modules'), ('.next'), ('out') et les fichiers de configuration locaux, ainsi qu'un .gitignore pour FastAPI contenant ('__pycache__'), ('*.pyc'), ('venv') et les fichiers de secrets.",
+        "Rédiger un README complet décrivant la structure du monorepo, les conventions de nommage des branches, le processus de pull‑request, les scripts de démarrage pour le frontend et le backend, ainsi que les liens vers la documentation interne et les bonnes pratiques de contribution."
+      ]
+    },
+    {
+      "id": "NEXUS-102",
+      "title": "Mise en place des pipelines CI/CD GitHub Actions pour le frontend Next.js et le backend FastAPI",
+      "description": "Cette tâche vise à automatiser les processus de linting, de test, de build et de déploiement pour les deux parties de l'application via GitHub Actions, assurant ainsi une livraison continue fiable et reproductible. Deux workflows distincts seront créés : l'un pour le frontend (frontend.yml) et l'autre pour le backend (backend.yml), chacun incluant les étapes d'installation des dépendances, d'exécution des tests unitaires, de génération d'artefacts Docker et de publication vers le registre d'images. Les secrets nécessaires (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DOCKERHUB_USERNAME, DOCKERHUB_TOKEN, OPENAI_API_KEY) seront stockés de façon sécurisée dans les paramètres du repository et référencés dans les jobs. Enfin, les pipelines déclencheront le déploiement Helm vers l'environnement de staging en utilisant les charts pré‑configurés, garantissant que chaque commit validé passe par le même processus de validation et de mise à jour.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer le fichier de workflow ('/.github/workflows/frontend.yml') qui installe Node.js 20, exécute 'npm ci', lance les tests avec 'npm test', effectue le lint avec 'npm run lint', construit l'image Docker multi‑stage et la pousse vers Docker Hub sous le tag ('nexus-frontend:${{ github.sha }}').",
+        "Créer le fichier de workflow ('/.github/workflows/backend.yml') qui installe Python 3.11, utilise Poetry pour installer les dépendances, exécute les tests PyTest, lance MyPy pour le typage, construit l'image Docker FastAPI et la publie sur Docker Hub avec le tag ('nexus-backend:${{ github.sha }}').",
+        "Configurer les secrets du repository GitHub pour inclure ('AWS_ACCESS_KEY_ID'), ('AWS_SECRET_ACCESS_KEY'), ('DOCKERHUB_USERNAME'), ('DOCKERHUB_TOKEN'), ('OPENAI_API_KEY') et les référencer dans les étapes de login Docker et de déploiement Helm afin de sécuriser les accès aux services externes.",
+        "Ajouter une étape de déploiement Helm dans chaque workflow qui applique le chart ('helm/nexus') sur le cluster EKS de staging en utilisant les valeurs ('image.tag=${{ github.sha }}') et en déclenchant un rollback automatique en cas d'échec du health‑check."
+      ]
+    },
+    {
+      "id": "NEXUS-103",
+      "title": "Création des images Docker multi‑stage et configuration des environnements de développement local (Docker Compose)",
+      "description": "Cette tâche a pour objectif de fournir des images Docker optimisées pour le frontend Next.js et le backend FastAPI, ainsi qu'un fichier Docker‑Compose permettant de lancer l'ensemble de l'écosystème (frontend, backend, Redis, PostgreSQL, Pinecone mock) en local. Les Dockerfiles seront construits en deux étapes : une première phase de build avec toutes les dépendances, suivie d'une phase runtime minimale afin de réduire la taille de l'image et d'améliorer la sécurité. Le docker‑compose.yml définira les réseaux, les volumes persistants et les variables d'environnement nécessaires, incluant les scripts d'initialisation de la base de données et les migrations Alembic. Des scripts npm et make seront ajoutés pour simplifier le démarrage du stack local, garantissant une expérience de développement cohérente pour tous les contributeurs.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Écrire le Dockerfile pour le frontend ('frontend/Dockerfile') en utilisant une image de base Node.js 20, incluant une étape de build qui exécute 'npm run build' puis une étape runtime qui copie uniquement le dossier '.next' et les fichiers statiques dans une image Alpine légère, avec le point d'entrée 'npm start'.",
+        "Écrire le Dockerfile pour le backend ('backend/Dockerfile') basé sur Python 3.11‑slim, installer Poetry, copier le code source, installer les dépendances en mode production, puis définir le point d'entrée 'uvicorn app.main:app --host 0.0.0.0 --port 8000' pour lancer le serveur FastAPI.",
+        "Créer le fichier Docker Compose ('docker-compose.yml') qui orchestre les services 'frontend', 'backend', 'redis', 'postgres' (image postgres:15) et un conteneur mock pour Pinecone, en définissant les variables d'environnement comme ('POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB'), les volumes persistants et les dépendances de démarrage entre les services.",
+        "Ajouter des scripts npm ('npm run dev:docker') et Makefile ('make up') qui exécutent 'docker-compose up --build' avec les options de rechargement automatique, ainsi qu'un script d'initialisation ('scripts/init_db.sh') qui applique les migrations Alembic et charge les données de démonstration dans PostgreSQL."
+      ]
+    }
+  ]
+}

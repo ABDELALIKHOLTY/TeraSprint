@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: terasprint
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -52,5 +52,35 @@ services:
       - "4318:4318"
     restart: always
 
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: terasprint_minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  minio-setup:
+    image: quay.io/minio/mc:latest
+    container_name: terasprint_minio_setup
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5 &&
+      mc alias set teraminio http://minio:9000 minioadmin minioadmin &&
+      mc mb teraminio/avatars --ignore-existing &&
+      mc anonymous set public teraminio/avatars &&
+      mc mb teraminio/project-files --ignore-existing &&
+      mc anonymous set public teraminio/project-files
+      "
+
 volumes:
   postgres_data:
+  minio_data:

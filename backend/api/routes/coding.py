@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from backend.db.postgres import get_db
-from backend.models.project_db import TaskDB
-from backend.services.agents.coding.orchestrator import start_coding_workflow
+from db.postgres import get_db
+from models.project_db import TaskDB
+from services.agents.coding.orchestrator import start_coding_workflow
 
 router = APIRouter()
 

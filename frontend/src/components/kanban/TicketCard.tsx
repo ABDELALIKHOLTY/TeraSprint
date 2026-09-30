@@ -1,3 +1,4 @@
+import { useAuth } from '../../context/AuthContext';
 import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import type { Task } from '../../types/backlog';
@@ -24,6 +25,7 @@ const getPriorityColor = (priority: string) => {
 };
 
 export const TicketCard: React.FC<Props> = ({ task, index, taskNumber, onClick }) => {
+  const { user } = useAuth();
   return (
     <Draggable draggableId={task.id} index={index}>
       {(provided, snapshot) => (
@@ -48,12 +50,30 @@ export const TicketCard: React.FC<Props> = ({ task, index, taskNumber, onClick }
             </span>
           </div>
 
-          <h4 className="text-xs font-semibold text-gray-900 dark:text-gray-200 mb-1 line-clamp-2 leading-tight transition-colors duration-300">
-            {task.title}
-          </h4>
+          <div className="flex items-start justify-between gap-2">
+            <h4 className="text-xs font-semibold text-gray-900 dark:text-gray-200 mb-1 line-clamp-2 leading-tight transition-colors duration-300">
+              {task.title}
+            </h4>
+            
+            {/* Assignee Avatar */}
+            {task.assignee && (
+              <div 
+                className="shrink-0 w-6 h-6 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center cursor-default"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {task.assignee.avatar_url ? (
+                  <img src={task.assignee.avatar_url} alt={task.assignee.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[9px] font-bold text-gray-600 dark:text-gray-300">
+                    {task.assignee.first_name ? task.assignee.first_name.charAt(0).toUpperCase() : task.assignee.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
 
           {task.us_title && (
-            <div className="mb-1.5 px-1 py-0.5 rounded bg-gray-50 dark:bg-[#121214] border border-gray-100 dark:border-[#27272a] transition-colors duration-300">
+            <div className="mb-1.5 px-1 py-0.5 rounded bg-gray-50 dark:bg-[#121214] border border-gray-100 dark:border-[#27272a] transition-colors duration-300 mt-1">
               <span className="text-[8px] text-gray-500 dark:text-gray-400 line-clamp-1 leading-tight">
                 {task.us_title}
               </span>
@@ -90,3 +110,4 @@ export const TicketCard: React.FC<Props> = ({ task, index, taskNumber, onClick }
     </Draggable>
   );
 };
+

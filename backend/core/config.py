@@ -22,6 +22,17 @@ class Settings(BaseSettings):
     LANGCHAIN_PROJECT: str | None = None
     LANGCHAIN_API_KEY: str | None = None
 
+    # Gmail SMTP (sends to ANY email, no domain verification needed)
+    SMTP_USER: str | None = None
+    SMTP_PASS: str | None = None
+
+    MINIO_ENDPOINT: str = "minio:9000"
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_SECURE: bool = False
+    MINIO_BUCKET_AVATARS: str = "avatars"
+    MINIO_BUCKET_PROJECT_FILES: str = "project-files"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

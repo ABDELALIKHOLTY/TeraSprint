@@ -1,0 +1,98 @@
+**Rapport d'Architecture**
+
+**Setup & Stack Technique**
+
+* **Frontend** : React, Redux, React Router
+* **Backend** : Node.js, Express.js, MongoDB
+* **BDD** : Cucumber, BDD Framework
+* **Déploiement/DevOps** : Docker, Kubernetes, Jenkins
+
+**Schéma Relationnel de la Base de Données**
+
+### Entités principales
+
+| Entité | Table | Clés Primaires | Clés Étrangères | Relations |
+| --- | --- | --- | --- | --- |
+| **users** | users | id, username, email | - | - |
+| **orders** | orders | id, user_id, order_date | - | - |
+| **products** | products | id, name, description | - | - |
+| **order_items** | order_items | id, order_id, product_id, quantity | - | - |
+
+### Tables
+
+| Table | Clés Primaires | Clés Étrangères | Relations |
+| --- | --- | --- | --- |
+| **users** | id, username, email | - | - |
+| **orders** | id, user_id, order_date | - | - |
+| **products** | id, name, description | - | - |
+| **order_items** | id, order_id, product_id, quantity | - | - |
+
+### Clés Primaires
+
+| Clé Primaire | Type | Description |
+| --- | --- | --- |
+| id | int | Identifiant unique de l'entité |
+| username | varchar(50) | Nom d'utilisateur |
+| email | varchar(100) | Adresse e-mail |
+| id | int | Identifiant unique de l'entité |
+
+### Clés Étrangères
+
+| Clé Étrangère | Type | Description |
+| --- | --- | --- |
+| id | foreign key | Id de l'entité 'users' |
+| user_id | foreign key | Id de l'entité 'users' |
+
+### Relations
+
+| Relation | Type | Description |
+| --- | --- | --- |
+| users | one-to-many | Les utilisateurs peuvent avoir plusieurs ordres |
+| orders | many-to-one | Les ordres sont liés à un utilisateur |
+| products | one-to-many | Les produits peuvent être associés à plusieurs ordres |
+| order_items | many-to-one | Les produits sont associés à plusieurs ordres |
+
+**Architecture Backend & APIs**
+
+### Contrôleurs
+
+* **users**: `UserController` (CRUD)
+* **orders**: `OrderController` (CRUD)
+* **products**: `ProductController` (CRUD)
+* **order_items**: `OrderItemController` (CRUD)
+
+### Services
+
+* **users**: `UserService` (authentification, stockage de données)
+* **orders**: `OrderService` (gestion des ordres)
+* **products**: `ProductService` (gestion des produits)
+* **order_items**: `OrderItemService` (gestion des produits dans les ordres)
+
+### API
+
+* **GET /users**: Liste des utilisateurs
+* **GET /users/:id**: Détails d'un utilisateur
+* **POST /users**: Création d'un nouveau utilisateur
+* **GET /orders**: Liste des ordres
+* **GET /orders/:id**: Détails d'un ordre
+* **POST /orders**: Création d'un nouveau ordre
+* **GET /orders/:id**: Détails d'un ordre
+* **PUT /orders/:id**: Mise à jour d'un ordre
+* **DELETE /orders/:id**: Suppression d'un ordre
+
+**Architecture Frontend et Intégration**
+
+### Outils UI
+
+* **React**: Framework de base
+* **Redux**: State management
+* **React Router**: Navigation
+
+### Sécurité
+
+* **JWT**: Token de sécurité pour les utilisateurs
+* **Authentification**: Authentification des utilisateurs avant de pouvoir accéder aux ressources
+
+### Mécanismes de communication
+
+* **WebSockets**: Communication en temps réel entre le client et le serveur

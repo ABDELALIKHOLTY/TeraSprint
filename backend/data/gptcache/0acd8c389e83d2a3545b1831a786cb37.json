@@ -1,0 +1,90 @@
+
+
+{
+  "tasks": [
+    {
+      "id": "IMMO-API-1",
+      "title": "Développement des endpoints d'authentification et de gestion des rôles FastAPI (JWT)",
+      "description": Cette tâche concentre la conception des routes d'authentification cruciales pour la sécurité de l'application SaaS ImmoSync AI. En respectant l'architecture hexagonale, nous allons séparer le contrôleur de route (API) du service métier et du repository de persistance pour gérer l'identification des utilisateurs. Le système utilise des tokens JWT pour authentifier les rôles 'Agent' et 'Manager', assurant ainsi un contrôle d'accès basé sur les rôles (RBAC) rigoureux sur les endpoints critiques.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Implémenter la route FastAPI de connexion (`POST /api/v1/auth/login`) en définissant un schéma Pydantic `LoginRequest` pour valider l'arrivée des champs `email` et `password` depuis le frontend React TypeScript.",
+        "Créer le service métier `AuthService` chargé de vérifier le mot de passe haché dans la table `users` (colonne `password_hash`) à l'aide de bcrypt, puis de générer un token JWT signé contenant l'identifiant de l'utilisateur et son rôle (`role` de type 'Agent' ou 'Manager').",
+        "Développer le repository `UserRepository` pour interroger de manière sécurisée la table `users` sur les colonnes `email` (unique) et `id` (UUID), en s'assurant de ne jamais renvoyer le mot de passe haché dans l'objet de retour JSON.",
+        "Mettre en place la dépendance FastAPI `get_current_user` pour décoder les tokens JWT envoyés dans l'en-tête `Authorization: Bearer`, bloquant l'accès non autorisé et injectant les informations de rôle pour les routes réservées aux managers."
+      ]
+    },
+    {
+      "id": "IMMO-API-2",
+      "title": "Développement des endpoints de CRUD pour les biens immobiliers (Properties API)",
+      "description": Cette tâche vise à exposer les endpoints REST pour la gestion complète de l'inventaire immobilier sous l'URL `/api/v1/properties`. Nous utilisons une architecture hexagonale pour gérer la création, la lecture, la mise à jour et la suppression de biens, tout en intégrant un mécanisme d'upload d'images sur AWS S3 via des URLs pré-signées. Les filtres avancés (prix, surface, DPE) seront gérés dynamiquement au niveau du repository pour optimiser les performances de recherche.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Créer les routes FastAPI pour le CRUD des biens (ex: `GET /api/v1/properties`, `POST /api/v1/properties`) en appliquant les schémas Pydantic stricts pour valider les champs obligatoires comme le `price`, la `surface`, et le classement énergétique `dpe`.",
+        "Implémenter le service `PropertyService` pour orchestrer la logique métier, y compris la génération d'URLs pré-signées AWS S3 destinées à l'upload direct des images depuis le frontend, ces chemins étant stockés dans le champ `s3_image_paths` (table `properties`).",
+        "Développer le repository `PropertyRepository` utilisant SQLAlchemy pour exécuter des requêtes complexes avec pagination, filtrage dynamique sur les colonnes `price`, `surface`, `dpe`, et jointure N-1 avec la table `users` sur la clé `agent_id`.",
+        "Structurer les schémas de réponse Pydantic `PropertyResponse` pour normaliser le renvoi des données, incluant les listes de chemins S3 et les métadonnées de l'agent associé, assurant une serialization propre pour le client React."
+      ]
+    },
+    {
+      "id": "IMMO-API-3",
+      "title": "Développement des endpoints de gestion des clients et du pipeline Kanban (Clients API)",
+      "description": Cette tâche permet de gérer les profils des acheteurs/prospects et leur progression dans le pipeline de vente. Le cœur de l'US est de fournir une API pour déplacer les clients dans le tableau Kanban (Prospect -> Visite -> Offre -> Contrat) et stocker leurs critères d'achat pour l'IA. L'architecture sépare les routes API des services métiers et des repositories pour assurer une évolutivité propre du système de CRM.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 5,
+      "subtasks": [
+        "Implémenter les endpoints REST FastAPI pour le CRUD de la ressource `clients` (ex: `GET /api/v1/clients`, `PATCH /api/v1/clients/{id}`) en gérant les transitions d'états du pipeline.",
+        "Créer le service `ClientService` pour appliquer les règles de métier du pipeline, notamment la mise à jour du champ `kanban_position` (INTEGER) et du statut `pipeline_status` (ENUM: 'prospect', 'visit_scheduled', 'offer_submitted', 'contract_signed') lors des actions de glâtre-déposer du frontend.",
+        "Développer le repository `ClientRepository` pour gérer les requêtes sur la table `clients`, en permettant un filtrage optionnel par `agent_id` (clé étrangère vers `users`) et une pagination efficace des grands listes de contacts.",
+        "Définir les schémas Pydantic `ClientRequest` et `ClientResponse` pour capter et valider le champ JSON `criteria` (contenant les exigences textuelles du client pour le matching IA) ainsi que les coordonnées comme le `email` et le `phone`."
+      ]
+    },
+    {
+      "id": "IMMO-API-4",
+      "title": "Développement des endpoints de gestion des visites et du calendrier (Visits API)",
+      "description": Cette tâche consiste à concevoir les routes REST pour planifier, modifier et consulter les visites immobilières, assurant la coordination entre les clients et les biens. L'API doit valider les coïncidences de planning et exposer les données nécessaires à l'affichage calendrier du tableau de bord et de l'agenda des agents. Nous suivons les principes de l'architecture hexagonale pour garantir une indépendance entre les couches techniques.",
+      "status": "TO DO",
+      "priority": "High",
+      "story_points": 5,
+      "subtasks": [
+        "Implémenter les routes FastAPI sous le préfixe `/api/v1/visits` (ex: `POST /api/v1/visits`, `GET /api/v1/visits`) pour créer et lire les rendez-vous planifiés dans la table `visits`.",
+        "Créer le service `VisitService` pour valider la cohérence transactionnelle des clés étrangères (`client_id` dans la table `clients` et `property_id` dans la table `properties`) avant d'enregistrer une visite dans la base de données PostgreSQL.",
+        "Développer le repository `VisitRepository` écrivant des requêtes SQLAlchemy utilisant des jointures pour charger les détails associés (client et propriété) afin de simplifier la sérialisation des événements calendrier pour l'application React.",
+        "Ajouter des endpoints de filtrage par intervalle de dates (ex: `GET /api/v1/visits?start_date=...&end_date=...`) pour renvoyer les visites planifiées sur une période spécifique, facilitant l'affichage graphique interactif dans le dashboard."
+      ]
+    },
+    {
+      "id": "IMMO-API-5",
+      "title": "Développement des endpoints d'analyse et de matching IA (Matching API)",
+      "description": Cette tâche représente le cœur technique de l'automatisation par l'IA dans ImmoSync AI. L'objectif est d'exposer des endpoints déclenchant le calcul sémantique des correspondances entre les critères des clients (stockés dans la table `clients`) et les caractéristiques des biens (stockés dans la table `properties`). Nous intégrons l'API OpenAI pour analyser les demandes et générer des scores de pertinence, stockés de manière structurée dans la table `ai_matches`.",
+      "status": "TO DO",
+      "priority": "Highest",
+      "story_points": 8,
+      "subtasks": [
+        "Implémenter l'endpoint FastAPI de déclenchement (`POST /api/v1/matching/generate/{client_id}`) pour lancer le processus de recommandation automatique pour un client spécifique.",
+        "Créer le service `MatchingService` pour orchestrer l'appel à l'API OpenAI, analyser les critères textuels du client (champ `criteria` de la table `clients`) et générer un score de similarité (`match_score`) ainsi qu'une explication textuelle (`ai_rationale`).",
+        "Développer le repository `MatchRepository` pour persister les résultats de correspondance dans la table `ai_matches` (colonnes `client_id`, `property_id`, `match_score`) et effectuer des lectures optimisées pour retrouver les suggestions par client.",
+        "Exposer un endpoint de lecture (`GET /api/v1/matching/client/{client_id}`) pour renvoyant les biens les mieux classés (les 3 meilleurs scores) dans un format JSON structuré, prêt à être consommé par le module de visualisation 'Smart Suggest' de l'interface React."
+      ]
+    },
+    {
+      "id": "IMMO-API-6",
+      "title": "Développement des endpoints d'agrégation et de KPIs pour le Dashboard (Dashboard API)",
+      "description": Cette tâche a pour objectif de fournir au frontend React les données d'agrégation nécessaires à la visualisation graphique des performances de l'agence immobilière (graphiques de ventes, volume de visites, alertes et conversions). Les endpoints d'API sous `/api/v1/dashboard` utilisent des requêtes d'agrégation SQL complexes sur les tables `properties`, `clients`, et `visits` pour calculer les indicateurs clés de performance (KPIs) de manière performante et sécurisée.",
+      "status": "TO DO",
+      "priority": "Medium",
+      "story_points": 5,
+      "subtasks": [
+        "Créer les routes FastAPI sous le préfixe `/api/v1/dashboard` (ex: `GET /api/v1/dashboard/stats`) pour renvoyer les métriques globales de l'agence pour l'affichage visuel des graphiques interactifs (Recharts).",
+        "Implémenter le service `DashboardService` pour calculer les indicateurs clés comme le nombre de visites planifiées, le volume des ventes du mois et le taux de conversion de chaque étape du pipeline de vente (table `clients`).",
+        "Développer le repository `DashboardRepository` pour exécuter des requêtes d'agrégation avancées en SQL (utilisant des fonctions comme `COUNT`, `SUM` et `GROUP BY`) sur les tables `visits`, `properties` et `clients`, en gérant les jointures nécessaires.",
+        "Structurer les schémas Pydantic de réponse (ex: `DashboardStatsResponse`) pour organiser les données de manière typée et hiérarchisée, facilitant l'intégration avec les bibliothèques de graphiques JavaScript et assurant une UX de tableau de bord dense et professionnelle."
+      ]
+    }
+  ]
+}

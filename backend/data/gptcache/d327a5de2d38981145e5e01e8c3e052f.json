@@ -1,0 +1,161 @@
+# Rapport d'Architecture – TalentFlow  
+
+## 1. Setup & Stack Technique  
+**Frontend** :  
+- React.js (TypeScript)  
+- React Router v6  
+- Material UI v5  
+- Axios (API client)  
+- JWT (Authentification)  
+- WebSockets (Messagerie temps réel)  
+- Chart.js (Graphiques Analytics)  
+
+**Backend** :  
+- Node.js (v18+)  
+- NestJS (Framework MVC)  
+- PostgreSQL (ORM: TypeORM)  
+- Redis (Cache/Sessions)  
+- JWT (Authentification)  
+- Socket.IO (WebSocket)  
+- BullMQ (File d’attente pour notifications)  
+
+**BDD** :  
+- PostgreSQL 14  
+- Tables principales : `users`, `companies`, `jobs`, `candidates`, `applications`, `interviews`, `evaluations`, `skills`, `notifications`, `activity_logs`  
+
+**Déploiement/DevOps** :  
+- Docker (Conteneurisation)  
+- Kubernetes (Orchestration)  
+- GitHub Actions (CI/CD)  
+- Nginx (Reverse Proxy)  
+- Let’s Encrypt (SSL)  
+- AWS S3 (Stockage fichiers)  
+- AWS RDS (Base de données)  
+
+---
+
+## 2. Schéma Relationnel de la Base de Données  
+**Entités principales** :  
+- **Users** : `user_id` (PK), `email`, `password_hash`, `role_id` (FK → Roles), `created_at`  
+- **Roles** : `role_id` (PK), `name` (Admin, Recruiter, Hiring Manager, Candidate)  
+- **Companies** : `company_id` (PK), `name`, `industry`, `location`, `created_at`  
+- **Jobs** : `job_id` (PK), `title`, `department`, `location`, `work_mode`, `status` (Active/Closed), `company_id` (FK), `created_at`  
+- **Candidates** : `candidate_id` (PK), `user_id` (FK → Users), `resume_url`, `score`, `created_at`  
+- **Applications** : `application_id` (PK), `job_id` (FK → Jobs), `candidate_id` (FK → Candidates), `status` (Applied/Screening/Shortlisted/Interview/Offer/Hired/Rejected), `created_at`  
+- **Interviews** : `interview_id` (PK), `application_id` (FK → Applications), `scheduled_at`, `duration`, `type` (Technical/Phone/Video), `meeting_link`, `created_at`  
+- **Evaluations** : `evaluation_id` (PK), `interview_id` (FK → Interviews), `interviewer_id` (FK → Users), `technical_skills` (1-5), `communication` (1-5), `problem_solving` (1-5), `culture_fit` (1-5), `recommendation` (Strong Hire/Hire/Maybe/No Hire), `comments`, `created_at`  
+- **Skills** : `skill_id` (PK), `name` (ex: Python, React)  
+- **Candidate_Skills** : `candidate_id` (FK → Candidates), `skill_id` (FK → Skills) (Relation N-N)  
+- **Notifications** : `notification_id` (PK), `user_id` (FK → Users), `message`, `is_read`, `created_at`  
+- **Activity_Logs** : `log_id` (PK), `user_id` (FK → Users), `action` (ex: "Moved candidate to Interview"), `candidate_id` (FK → Candidates), `timestamp`  
+
+**Relations** :  
+- `Users` → `Roles` (1-N)  
+- `Companies` → `Jobs` (1-N)  
+- `Jobs` → `Applications` (1-N)  
+- `Candidates` → `Applications` (1-N)  
+- `Applications` → `Interviews` (1-N)  
+- `Interviews` → `Evaluations` (1-N)  
+- `Candidates` ↔ `Skills` (N-N via `Candidate_Skills`)  
+- `Users` → `Notifications` (1-N)  
+- `Users` → `Activity_Logs` (1-N)  
+
+---
+
+## 3. Architecture Backend & APIs  
+**API REST principales** :  
+- `/auth` (Login, Register, JWT Refresh)  
+- `/users` (Gestion utilisateurs, rôles)  
+- `/companies` (CRUD entreprises)  
+- `/jobs` (CRUD offres, recherche/filtres)  
+- `/candidates` (Gestion candidats, compétences)  
+- `/applications` (Pipeline candidature, mouvement étapes)  
+- `/interviews` (Planification, modification)  
+- `/evaluations` (Soumission notes, commentaires)  
+- `/notifications` (Lecture, marquage lu)  
+- `/analytics` (Statistiques recrutement)  
+
+**Contrôleurs** :  
+- `AuthController`  
+- `UsersController`  
+- `CompaniesController`  
+- `JobsController`  
+- `CandidatesController`  
+- `ApplicationsController`  
+- `InterviewsController`  
+- `EvaluationsController`  
+- `NotificationsController`  
+- `AnalyticsController`  
+
+**Services** :  
+- `AuthService` (JWT, hashing mots de passe)  
+- `UsersService`  
+- `CompaniesService`  
+- `JobsService`  
+- `CandidatesService`  
+- `ApplicationsService` (Gestion pipeline)  
+- `InterviewsService`  
+- `EvaluationsService`  
+- `NotificationsService`  
+- `AnalyticsService`  
+
+---
+
+## 4. Architecture Frontend et Intégration  
+**Outils UI** :  
+- React Components :  
+  - `Dashboard` (Graphiques, statistiques)  
+  - `JobsList` (Recherche, filtres, création offre)  
+  - `CandidateProfile` (Tabs: Overview, Resume, Interviews, Evaluations, Activity)  
+  - `RecruitmentPipeline` (Kanban : Colonnes Applied → Screening → Shortlisted → Interview → Offer → Hired + Rejected)  
+  - `InterviewScheduler` (Calendrier, liste, création/modif)  
+  - `EvaluationForm` (Grille notes, sélection recommandation)  
+  - `CandidateSearch` (Filtres compétences, statut, expérience)  
+  - `Messaging` (WebSocket pour messagerie)  
+  - `NotificationsCenter` (Liste, marquage lu)  
+
+**Sécurité** :  
+- JWT (Stocké en HttpOnly Cookie)  
+- Refresh Tokens (Renouvellement session)  
+- CORS (Contrôle accès API)  
+- Rate Limiting (Prévention abus)  
+
+**Communication** :  
+- REST API (Axios)  
+- WebSockets (Socket.IO pour messagerie temps réel)  
+- Polling (Mise à jour étapes candidature)  
+
+**Design System** :  
+- Couleurs :  
+  - Primaire : Bleu (#1976D2)  
+  - Success : Vert (#4CAF50)  
+  - Warning : Orange (#FF9800)  
+  - Danger : Rouge (#F44336)  
+- Typographie : Roboto (Titres), Open Sans (Corps)  
+- Composants :  
+  - Cards (Bordures légères)  
+  - Boutons cohérents (Primaire, Secondaire, Danger)  
+  - Badges (Statut candidature)  
+  - Modals (Création offre, édition candidat)  
+  - Tooltips (Infos supplémentaires)  
+  - Tabs (Navigation Candidate Profile)  
+  - Tables (Liste candidats/offres)  
+
+**États UI** :  
+- Loading (Spinners)  
+- Empty (Message "Aucune donnée")  
+- Error (Toast notifications)  
+- Success (Confirmation actions)  
+
+---
+
+## 5. Flux Navigation  
+**Recruteur** :  
+`Dashboard` → `Jobs` → `Job Details` → `Candidates` → `Candidate Profile` → `Schedule Interview` → `Evaluation` → `Move Candidate` → `Offer` → `Hired`  
+
+**Candidat** :  
+`Home` → `Jobs` → `Job Details` → `Apply` → `My Applications` → `Application Tracking` → `Interview` → `Final Decision`  
+
+--- 
+
+**Remarque** : Architecture conçue pour modularité, scalabilité et conformité RGPD (chiffrement données sensibles).

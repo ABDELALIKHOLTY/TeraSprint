@@ -1,0 +1,124 @@
+# Rapport d'Architecture – Module **Nexus**  
+
+---  
+
+## 1. Setup & Stack Technique  
+
+| Côté | Technologie | Version / Détails |
+|------|--------------|-------------------|
+| **Frontend** | Next.js | 14 (App Router) |
+|  | TailwindCSS | 3.x |
+|  | Zustand | 4.x (state store) |
+|  | Recharts | 2.x (graphes) |
+|  | D3.js | 7.x (fallback) |
+| **Backend** | FastAPI | 0.115 (Python 3.11) |
+|  | Uvicorn | 0.30 (ASGI) |
+|  | WebSockets (Starlette) | native |
+| **IA / LLM** | OpenAI API (GPT‑4o) | Tool‑calling, Text‑to‑SQL |
+| **Base de données** | PostgreSQL | 15 (read‑only role `nexus_reader`) |
+|  | Pinecone | Vector DB (RAG) |
+| **Cache / Rate‑limit** | Redis | 7.x (TTL, token bucket) |
+| **Infrastructure** | Docker | multi‑stage images |
+|  | Kubernetes | 1.30 (EKS) |
+|  | Helm charts | custom (frontend, backend, redis, postgres, pinecone) |
+|  | Terraform | IaC (VPC, RDS, EKS, IAM) |
+|  | CI/CD | GitHub Actions (lint, test, build, push, helm upgrade) |
+|  | Monitoring | Prometheus + Grafana (metrics) |
+|  | Logging | Loki + Grafana (log aggregation) |
+|  | Secrets | AWS Secrets Manager (DB creds, OpenAI key) |
+|  | TLS | ACM (HTTPS) |
+|  | Auth | JWT (HS256) + OAuth2 password flow |
+
+---  
+
+## 2. Schéma Relationnel de la Base de Données  
+
+| Table | PK | FK | Colonnes principales | Relation |
+|-------|----|----|----------------------|----------|
+| `users` | `id` (UUID) | – | `email`, `hashed_pwd`, `created_at` | 1‑N → `dashboards` |
+| `dashboards` | `id` (UUID) | `user_id` → `users.id` | `name`, `layout`, `created_at` | 1‑N → `widgets` |
+| `widgets` | `id` (UUID) | `dashboard_id` → `dashboards.id` | `type`, `config_json`, `position`, `created_at` | 1‑N → `widget_history` |
+| `widget_history` | `id` (UUID) | `widget_id` → `widgets.id` | `snapshot_json`, `timestamp` | – |
+| `saved_widgets` | `id` (UUID) | `user_id` → `users.id` | `type`, `config_json`, `created_at` | – |
+| `ai_sessions` | `id` (UUID) | `user_id` → `users.id` | `started_at`, `ended_at` | 1‑N → `ai_queries` |
+| `ai_queries` | `id` (UUID) | `session_id` → `ai_sessions.id` | `prompt`, `sql_generated`, `response_json`, `duration_ms` | – |
+| `rate_limits` | `user_id` (UUID) | – | `window_start`, `counter` | – |
+| `pines_vectors` *(Pinecone collection, non‑relational)* | – | – | `vector_id`, `metadata_json` | – |
+
+**Relations clés**  
+- `users.id` 1‑N `dashboards.user_id`  
+- `dashboards.id` 1‑N `widgets.dashboard_id`  
+- `widgets.id` 1‑N `widget_history.widget_id`  
+- `users.id` 1‑N `saved_widgets.user_id`  
+- `users.id` 1‑N `ai_sessions.user_id`  
+- `ai_sessions.id` 1‑N `ai_queries.session_id`  
+
+---  
+
+## 3. Architecture Backend & APIs  
+
+### API Families  
+- **REST** – CRUD sur `users`, `dashboards`, `widgets`, `saved_widgets`.  
+- **WebSocket** – Canal `ws://…/chat` pour streaming IA (token‑by‑token).  
+- **SSE (option)** – Endpoint `/stream/sql` (fallback).  
+
+### Routers / Contrôleurs (FastAPI)  
+| Router | Endpoint(s) | Contrôleur | Service(s) appelés |
+|--------|-------------|------------|--------------------|
+| `auth_router` | `/auth/login`, `/auth/refresh` | `AuthController` | `AuthService`, `JWTService` |
+| `user_router` | `/users/*` | `UserController` | `UserService` |
+| `dashboard_router` | `/dashboards/*` | `DashboardController` | `DashboardService` |
+| `widget_router` | `/widgets/*` | `WidgetController` | `WidgetService`, `ExportService` |
+| `saved_widget_router` | `/saved-widgets/*` | `SavedWidgetController` | `SavedWidgetService` |
+| `chat_router` | `/chat/ws` (WebSocket) | `ChatController` | `ChatService`, `LLMService`, `SQLGenService`, `RateLimitService` |
+| `sql_router` | `/sql/generate` (POST) | `SQLController` | `SQLGenService`, `SecurityService` |
+| `rate_limit_router` | `/rate-limit/*` | `RateLimitController` | `RateLimitService` |
+| `monitor_router` | `/metrics` | – | Prometheus exporter |
+
+### Services (Business Logic)  
+- `AuthService` – vérification credentials, création JWT.  
+- `UserService` – gestion profil, récupération.  
+- `DashboardService` – création, mise à jour, suppression.  
+- `WidgetService` – persistance, génération dynamique, validation JSON.  
+- `SavedWidgetService` – épinglage, liste personnelle.  
+- `ChatService` – orchestration du dialogue, gestion session IA.  
+- `LLMService` – appel OpenAI, tool‑calling, filtrage PII.  
+- `SQLGenService` – conversion LLM → SQL, validation syntaxe, timeout (5 s).  
+- `SecurityService` – exécution SQL via rôle `nexus_reader`, sandbox.  
+- `RateLimitService` – token bucket dans Redis (50 req/h/user).  
+- `ExportService` – sérialisation widget, téléchargement CSV/PNG.  
+- `VectorSearchService` – requêtes Pinecone pour RAG.  
+
+---  
+
+## 4. Architecture Frontend et Intégration  
+
+### Outils UI  
+- **Next.js 14** – pages, API routes (proxy minimal).  
+- **TailwindCSS** – utility‑first styling, glassmorphism via `backdrop-blur`.  
+- **Zustand** – store `user`, `dashboard`, `widget`, `chatSession`.  
+- **Recharts** – composants graphiques (Bar, Line, Pie).  
+- **D3.js** – fallback pour visualisations complexes.  
+
+### Sécurité Frontend  
+- **JWT** – stocké en HttpOnly cookie, rafraîchi via `/auth/refresh`.  
+- **CSRF** – SameSite=Lax, double‑submit token sur POST.  
+- **Input sanitisation** – client‑side escape avant envoi au backend.  
+
+### Mécanismes de Communication  
+| Canal | Protocole | Usage |
+|------|-----------|-------|
+| HTTP/REST | HTTPS | CRUD, auth, rate‑limit checks. |
+| WebSocket | wss://…/chat/ws | Streaming IA (token‑by‑token), session keep‑alive. |
+| SSE (fallback) | https://…/stream/sql | Streaming SQL generation si WS indisponible. |
+| GraphQL (non‑utilisé) | – | – |
+
+### Integration Points  
+- **OpenAI SDK** – appelé depuis `LLMService` (backend).  
+- **PostgreSQL driver** – `asyncpg` (async execution, timeout).  
+- **Redis client** – `aioredis` (rate‑limit, session cache).  
+- **Pinecone client** – `pinecone-client` (vector lookup).  
+
+---  
+
+*Fin du rapport.*  

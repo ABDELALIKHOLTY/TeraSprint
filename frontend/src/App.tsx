@@ -8,12 +8,15 @@ import { ProjectsPage } from './pages/dashboard/ProjectsPage';
 import { ProjectDashboardPage } from './pages/dashboard/ProjectDashboardPage';
 import { ProvidersPage } from './pages/dashboard/ProvidersPage';
 import { CodingWorkspacePage } from './pages/workspace/CodingWorkspacePage';
+import { BacklogPage } from './pages/dashboard/BacklogPage';
+import { SprintsPage } from './pages/dashboard/SprintsPage';
 
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { SplashScreen } from './components/ui/SplashScreen';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { Toaster } from 'react-hot-toast';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -82,6 +85,26 @@ function AppRoutes() {
         } 
       />
       <Route 
+        path="/projects/:id/backlog" 
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <BacklogPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/projects/:id/sprints" 
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <SprintsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
         path="/workspace/:id" 
         element={
           <ProtectedRoute>
@@ -100,6 +123,7 @@ function App() {
       <LanguageProvider>
         <AuthProvider>
         <Router>
+          <Toaster position="top-right" />
           <SplashScreen />
           <AppRoutes />
         </Router>

@@ -17,6 +17,9 @@ export interface Task {
   start_date?: string;
   end_date?: string;
   taskNumber?: number;
+  assignee_id?: string | null;
+  assignee?: any;
+  attachments?: { id: string, filename: string, file_url: string }[];
 }
 
 export interface UserStory {
