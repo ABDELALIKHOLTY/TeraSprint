@@ -166,6 +166,11 @@ GITHUB_CLIENT_SECRET=...
 GROQ_API_KEY=...
 E2B_API_KEY=...   # Indispensable pour exécuter le code dans la sandbox
 HF_TOKEN=...      # Optionnel (HuggingFace)
+LANGCHAIN_PROJECT="TeraSprint" # Optionnel (Arize Phoenix)
+
+# Configuration de l'E-mail (SMTP)
+SMTP_USER=contact@terasprint.com
+SMTP_PASS=votre_mot_de_passe_app
 ```
 
 ## 🚀 Lancement Rapide

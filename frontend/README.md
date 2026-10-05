@@ -85,6 +85,21 @@ sequenceDiagram
 
 ---
 
+## ⚙️ Configuration (`.env` / API)
+
+Le frontend communique avec le backend via des appels REST et WebSockets. Actuellement, l'URL de base est configurée par défaut dans `src/services/api.ts` et `src/services/socket.ts` sur `http://localhost:8000`.
+
+Si vous avez besoin de changer l'URL de l'API (par exemple pour la production), vous pouvez créer un fichier `.env` ou `.env.local` à la racine de `frontend/` avec :
+
+```env
+VITE_API_URL=http://votre-backend.com/api/v1
+VITE_WS_URL=ws://votre-backend.com/api/v1
+```
+
+*(Assurez-vous d'adapter le code dans `api.ts` et `socket.ts` pour utiliser `import.meta.env.VITE_API_URL` si vous souhaitez utiliser ces variables d'environnement).*
+
+---
+
 ## 🚀 Installation & Démarrage
 
 1. **Prérequis** : Avoir `Node.js` (v18+) installé.
