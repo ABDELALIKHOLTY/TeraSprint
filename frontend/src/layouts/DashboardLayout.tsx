@@ -47,7 +47,7 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
   const isProjectPage = location.pathname.includes('/backlog') || location.pathname.includes('/sprints') || location.pathname.includes('/board') || /\/projects\/[^/]+/.test(location.pathname);
 
   return (
-    <div className="flex h-screen bg-[#f3f4f6] dark:bg-[#09090b] font-sans text-gray-900 dark:text-gray-100 overflow-hidden relative transition-colors duration-300">
+    <div className="flex h-full w-full bg-[#f3f4f6] dark:bg-[#09090b] font-sans text-gray-900 dark:text-gray-100 overflow-hidden relative transition-colors duration-300">
       
       {/* Dark Mode Ambient Neon Cyan Lights */}
       <div className="hidden dark:block absolute top-[-20%] left-[20%] w-[40%] h-[40%] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none z-0"></div>
@@ -77,11 +77,11 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
       <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
         
         {/* We wrap the main content in a white background for light mode, dark mode has its own bg */}
-        <div className="flex-1 flex flex-col h-full bg-[#fafafa] dark:bg-[#09090b] overflow-hidden transition-colors duration-300 relative z-10">
+        <div className="flex-1 flex flex-col h-full bg-[#fafafa] dark:bg-transparent overflow-hidden transition-colors duration-300 relative z-10">
           
           {/* Top Header - Only on non-project pages (dashboard home, projects list, settings...) */}
           {!isProjectPage ? (
-            <header className="h-[52px] bg-white dark:bg-[#121214] flex items-center justify-between px-4 sm:px-8 z-20 shrink-0 border-b border-gray-200 dark:border-[#27272a] shadow-sm dark:shadow-none transition-colors duration-300">
+            <header className="h-[52px] bg-white dark:bg-[#121214]/50 backdrop-blur-md flex items-center justify-between px-4 sm:px-8 z-20 shrink-0 border-b border-gray-200 dark:border-[#27272a]/50 shadow-sm dark:shadow-none transition-colors duration-300">
               <div className="flex items-center space-x-4">
                 <button 
                   onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -106,7 +106,7 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
           )}
 
           {/* Dynamic Content */}
-          <main className="flex-1 overflow-hidden relative z-10">
+          <main className="flex-1 overflow-hidden relative z-10 flex flex-col">
             {children}
           </main>
 

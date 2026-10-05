@@ -7,21 +7,29 @@ import models.project_db
 from api.routes import auth, ai, projects, graph, websockets, debug, workspace_persistence, sprints, coding, users, files
 import models.workspace_session
 import logging
-import openlit
 from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Désactiver les logs verbeux
-logging.getLogger("openlit").setLevel(logging.ERROR)
-logging.getLogger("opentelemetry").setLevel(logging.CRITICAL)
-logging.getLogger("opentelemetry.instrumentation.instrumentor").setLevel(logging.CRITICAL)
-
 try:
-    openlit.init(otlp_endpoint="http://phoenix:4318")
+    from openinference.instrumentation.langchain import LangChainInstrumentor
+    from openinference.instrumentation.openai import OpenAIInstrumentor
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry import trace as trace_api
+
+    endpoint = "http://phoenix:6006/v1/traces"
+    tracer_provider = TracerProvider()
+    tracer_provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(endpoint)))
+    trace_api.set_tracer_provider(tracer_provider)
+    LangChainInstrumentor().instrument()
+    OpenAIInstrumentor().instrument()
+    logger.info("✅ Phoenix OTLP (LangChain + OpenAI) configuré avec succès sur port 6006 !")
 except Exception as e:
-    logger.error(f"Erreur lors de l'initialisation de OpenLIT : {e}")
+    logger.error(f"Erreur lors de l'initialisation de Phoenix : {e}")
 
 # Initialisation de la BDD
 Base.metadata.create_all(bind=engine)

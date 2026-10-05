@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Backlog } from '../types/backlog';
-import { Send, FileText, ChevronDown, ChevronUp, Box, Layers, Calculator, Bot, X, Cloud, ArrowRight, CheckCircle2, Settings, ToggleLeft, ToggleRight, SlidersHorizontal, Key } from 'lucide-react';
+import { Send, FileText, ChevronDown, ChevronUp, Box, Layers, Calculator, Bot, X, Cloud, ArrowRight, CheckCircle2, Settings, ToggleLeft, ToggleRight, SlidersHorizontal, Key, Zap, RefreshCcw, Cpu } from 'lucide-react';
 import { generateProjectBacklogStream, fetchModels, fetchFilteredModels, apiCall, updateApiKeys } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +20,40 @@ type ChatMessage = {
     backlog: Backlog;
   };
   error?: string;
+};
+
+const renderLog = (log: string, t: any) => {
+  let text = log;
+  let Icon = <div className="w-3.5 h-3.5 mr-2 rounded-full border border-gray-400 bg-gray-100 dark:bg-gray-800" />;
+  
+  if (log.includes("Initialisation")) {
+     text = t('generator.log_init');
+     Icon = <Cpu className="w-3.5 h-3.5 mr-2 animate-pulse text-cyan-600 dark:text-cyan-500 shrink-0" />;
+  } else if (log.includes("Génération du Rapport")) {
+     text = t('generator.log_report');
+     Icon = <FileText className="w-3.5 h-3.5 mr-2 text-blue-600 dark:text-blue-500 shrink-0" />;
+  } else if (log.includes("Génération de l'Outli") || log.includes("Génération de l'Outline")) {
+     text = t('generator.log_outline');
+     Icon = <Layers className="w-3.5 h-3.5 mr-2 text-indigo-600 dark:text-indigo-500 shrink-0" />;
+  } else if (log.includes("Génération des tâches pour la US :")) {
+     const usName = log.replace("🔄 Génération des tâches pour la US :", "").replace("Génération des tâches pour la US :", "").trim();
+     text = `${t('generator.log_tasks_us')} ${usName}`;
+     Icon = <RefreshCcw className="w-3.5 h-3.5 mr-2 animate-spin text-amber-600 dark:text-amber-500 shrink-0" />;
+  } else if (log.includes("[GPTCache] Tâches pour US")) {
+     const usName = log.replace("⚡ [GPTCache] Tâches pour US", "").replace("récupérées depuis le cache !", "").replace(/'/g, "").trim();
+     text = `${t('generator.log_cache_us')} ${usName}`;
+     Icon = <Zap className="w-3.5 h-3.5 mr-2 text-purple-600 dark:text-purple-500 shrink-0" />;
+  } else if (log.includes("Génération parallèle")) {
+     text = t('generator.log_parallel');
+     Icon = <Layers className="w-3.5 h-3.5 mr-2 text-indigo-600 dark:text-indigo-500 shrink-0" />;
+  }
+  
+  return (
+    <div className="flex items-center text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#1e1e20] px-3 py-2 rounded-lg border border-gray-200 dark:border-[#27272a] shadow-sm mb-2 w-max max-w-[95%]">
+      {Icon}
+      <span className="truncate">{text}</span>
+    </div>
+  );
 };
 
 export const ProjectGeneratorPage: React.FC = () => {
@@ -222,7 +256,18 @@ export const ProjectGeneratorPage: React.FC = () => {
           )}
         </div>
         
-        {/* Removed local settings button, it is now globally handled by the sidebar */}
+        {/* Right side Actions (Restored Settings Button) */}
+        <div className="flex items-center space-x-2">
+          <button 
+            type="button" 
+            onClick={() => navigate('/providers')}
+            className="p-1.5 text-gray-400 hover:text-cyan-500 rounded-md transition-colors flex items-center space-x-1" 
+            title="Configurer les clés API"
+          >
+            <Settings className="w-4 h-4" />
+            <span className="text-[10px] font-medium uppercase tracking-wider hidden sm:block">{t('generator.api_keys')}</span>
+          </button>
+        </div>
       </div>
 
       {/* Input Box */}
@@ -254,7 +299,7 @@ export const ProjectGeneratorPage: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col h-full w-full font-sans bg-[#fcfcfc] dark:bg-[#09090b] transition-colors duration-300 relative">
+    <div className="flex flex-col absolute inset-0 font-sans bg-[#fcfcfc] dark:bg-transparent transition-colors duration-300">
       
       {messages.length === 0 ? (
         // --- EMPTY STATE (ChatGPT Style) ---
@@ -308,7 +353,7 @@ export const ProjectGeneratorPage: React.FC = () => {
       ) : (
         // --- CHAT STATE ---
         <>
-          <section className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-8 pt-8">
+          <section className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-40 pt-8">
             <div className="max-w-3xl mx-auto space-y-8 flex flex-col items-center">
               
               {/* Messages */}
@@ -333,7 +378,7 @@ export const ProjectGeneratorPage: React.FC = () => {
                         {/* Error State */}
                         {msg.error && (
                           <div className="text-red-500 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 p-4 rounded-xl text-sm">
-                            <p className="font-bold mb-1">Erreur de l'Architecte</p>
+                            <p className="font-bold mb-1">{t('generator.agent_error')}</p>
                             <p>{msg.error}</p>
                           </div>
                         )}
@@ -343,13 +388,13 @@ export const ProjectGeneratorPage: React.FC = () => {
                           <div className="w-full">
                             <div className="flex items-center space-x-3 mb-2 text-gray-500 dark:text-gray-400">
                               <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-                              <span className="text-sm font-medium">L'Architecte réfléchit...</span>
+                              <span className="text-sm font-medium">{t('generator.agent_thinking')}</span>
                             </div>
                             {msg.logs && msg.logs.length > 0 && (
-                              <div className="pl-7 border-l-2 border-gray-200 dark:border-[#27272a] ml-2 space-y-2 mt-3">
+                              <div className="pl-7 border-l-2 border-gray-200 dark:border-[#27272a] ml-2 space-y-2 mt-3 flex flex-col items-start">
                                 {msg.logs.map((log, i) => (
-                                  <div key={i} className="text-sm text-gray-600 dark:text-gray-400 animate-in fade-in slide-in-from-left-1">
-                                    {log}
+                                  <div key={i} className="animate-in fade-in slide-in-from-left-1">
+                                    {renderLog(log, t)}
                                   </div>
                                 ))}
                               </div>
@@ -361,9 +406,9 @@ export const ProjectGeneratorPage: React.FC = () => {
                         {!msg.isGenerating && !msg.error && msg.projectData && (
                           <div className="w-full animate-in zoom-in-95 duration-300">
                             <div className="prose dark:prose-invert prose-sm max-w-none mb-6">
-                              <p>J'ai terminé la conception de votre projet <strong>{msg.projectData.title}</strong>.</p>
-                              <p>J'ai généré <strong>{msg.projectData.backlog.epics.length} Epics</strong> et un total de <strong>{msg.projectData.backlog.epics.reduce((acc, epic) => acc + epic.user_stories.length, 0)} User Stories</strong> prêtes pour l'implémentation.</p>
-                              <p>Vous pouvez consulter l'architecture détaillée et gérer vos tickets dans l'espace Kanban.</p>
+                              <p>{t('generator.success_title')} <strong>{msg.projectData.title}</strong>.</p>
+                              <p>{t('generator.success_epics')} <strong>{msg.projectData.backlog.epics.length} Epics</strong> {t('generator.success_and')} <strong>{msg.projectData.backlog.epics.reduce((acc, epic) => acc + epic.user_stories.length, 0)} {t('generator.success_us')}</strong></p>
+                              <p>{t('generator.success_desc')}</p>
                             </div>
                             
                             <button 
@@ -374,7 +419,7 @@ export const ProjectGeneratorPage: React.FC = () => {
                               }}
                               className="group inline-flex items-center justify-center bg-transparent border border-cyan-600 dark:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 text-cyan-700 dark:text-cyan-400 font-semibold px-6 py-2.5 rounded-full transition-all text-sm"
                             >
-                              <span>Ouvrir l'Espace de Travail (Kanban)</span>
+                              <span>{t('generator.open_kanban')}</span>
                               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                             </button>
                           </div>
@@ -384,16 +429,17 @@ export const ProjectGeneratorPage: React.FC = () => {
                   )}
                 </div>
               ))}
-              <div ref={messagesEndRef} />
+              {/* Padding at the bottom so the last message doesn't touch the input box */}
+              <div ref={messagesEndRef} className="h-8 w-full shrink-0" />
             </div>
           </section>
 
           {/* 2. Input Area (Chat Mode Only) */}
-          <section className="shrink-0 bg-[#fcfcfc] dark:bg-[#09090b] pt-4 pb-6 px-4 border-t border-transparent dark:border-transparent">
-            <div className="max-w-3xl mx-auto w-full">
+          <section className="absolute bottom-0 left-0 right-0 z-50 flex flex-col items-center pb-6 px-4 pointer-events-none pt-12">
+            <div className="max-w-3xl mx-auto w-full pointer-events-auto">
               {inputFormElement}
-              <div className="text-center mt-3">
-                <p className="text-[11px] text-gray-400 dark:text-gray-500">L'IA peut faire des erreurs. Vérifiez le Backlog généré dans le Kanban.</p>
+              <div className="text-center mt-3 bg-white/50 dark:bg-black/30 rounded-full px-4 py-1 backdrop-blur-md inline-block">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">{t('generator.disclaimer')}</p>
               </div>
             </div>
           </section>

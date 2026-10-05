@@ -3,6 +3,7 @@ import { Editor, useMonaco } from '@monaco-editor/react';
 import { Eye, Code2 } from 'lucide-react';
 import type { FileNode } from './IDEFileExplorer';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { useLanguage } from '../../../context/LanguageContext';
 
 interface Props {
   file: FileNode | null;
@@ -12,6 +13,7 @@ interface Props {
 
 export const IDECodeEditor: React.FC<Props> = ({ file, theme, onChange }) => {
   const [isPreview, setIsPreview] = useState(false);
+  const { t } = useLanguage();
 
   // Map file extension to monaco language
   let language = 'plaintext';
@@ -77,7 +79,7 @@ export const IDECodeEditor: React.FC<Props> = ({ file, theme, onChange }) => {
             <polyline points="13 2 13 9 20 9" />
           </svg>
         </div>
-        <p className="text-sm font-medium tracking-wide">Sélectionnez un fichier pour l'afficher</p>
+        <p className="text-sm font-medium tracking-wide">{t('ide.select_file')}</p>
       </div>
     );
   }

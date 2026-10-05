@@ -432,19 +432,24 @@ github_sso = GithubSSO(
 )
 
 @router.get("/github/login")
-async def github_login():
+async def github_login(returnTo: str = None):
     async with github_sso:
-        return await github_sso.get_login_redirect()
+        response = await github_sso.get_login_redirect()
+        if returnTo:
+            response.set_cookie("github_return_to", returnTo, max_age=300, httponly=True, samesite="lax")
+        return response
 
 @router.get("/github/callback")
 async def github_callback(request: Request, db: Session = Depends(get_db)):
-    async with github_sso:
-        user_info = await github_sso.verify_and_process(request)
-        
-    code = request.query_params.get("code")
-    github_access_token = None
-    if code:
+    try:
+        code = request.query_params.get("code")
+        if not code:
+            raise Exception("No code provided by GitHub")
+            
+        import httpx
+        github_access_token = None
         async with httpx.AsyncClient() as client:
+            # 1. Obtenir le token
             resp = await client.post(
                 "https://github.com/login/oauth/access_token",
                 data={
@@ -457,6 +462,33 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
             )
             token_data = resp.json()
             github_access_token = token_data.get("access_token")
+            
+            if not github_access_token:
+                raise Exception(f"Failed to get access token: {token_data}")
+                
+            # 2. Obtenir les infos utilisateur
+            user_resp = await client.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {github_access_token}", "Accept": "application/json"}
+            )
+            user_info = user_resp.json()
+            
+            class DummyUserInfo:
+                pass
+            u = DummyUserInfo()
+            u.email = user_info.get("email") or f"{user_info.get('login')}@users.noreply.github.com"
+            u.display_name = user_info.get("name") or user_info.get("login")
+            u.first_name = u.display_name.split(' ')[0] if u.display_name else ""
+            u.last_name = u.display_name.split(' ')[1] if u.display_name and len(u.display_name.split(' ')) > 1 else ""
+            u.picture = user_info.get("avatar_url")
+            
+            user_info = u
+
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Github SSO Error: {e}", exc_info=True)
+        FRONTEND_URL = "http://localhost:5173"
+        return RedirectResponse(f"{FRONTEND_URL}/login?error=github_sso_failed")
     
     user = db.query(User).filter(User.email == user_info.email).first()
     if not user:
@@ -504,7 +536,16 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
     access_token = create_access_token(data={"sub": str(user.id), "sid": str(user_session.id)})
     
     FRONTEND_URL = "http://localhost:5173"
-    return RedirectResponse(f"{FRONTEND_URL}/?token={access_token}")
+    
+    return_to = request.cookies.get("github_return_to")
+    target_url = f"{FRONTEND_URL}/?token={access_token}"
+    if return_to:
+        target_url += f"&returnTo={return_to}"
+        
+    response = RedirectResponse(target_url)
+    if return_to:
+        response.delete_cookie("github_return_to")
+    return response
 
 @router.get("/sessions")
 async def get_sessions(current_user: User = Depends(get_current_user), current_session: UserSession = Depends(get_current_session), db: Session = Depends(get_db)):

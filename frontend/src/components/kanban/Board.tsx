@@ -125,7 +125,7 @@ export const Board: React.FC<Props> = ({ initialBacklog }) => {
           {/* Table Header (Columns) */}
           <div className="flex bg-gray-50 dark:bg-[#1a1a1f] border-b border-gray-200 dark:border-[#27272a] sticky top-0 z-10 text-sm font-semibold text-gray-700 dark:text-gray-300">
             <div className="w-[300px] shrink-0 p-3 border-r border-gray-200 dark:border-[#27272a]">
-              {t('sprints.user_story')} (Swimlane)
+              {t('sprints.user_story')}
             </div>
             {columns.map(col => {
               const mappedCol = 

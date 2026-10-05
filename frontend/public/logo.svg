@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="tGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="40%" stop-color="#ffffff" />
+      
+      <!-- Bleu (au lieu de Noir) -->
+      <stop offset="80%" stop-color="#2563eb" />
+      
+      <!-- Le reste en Bleu foncé / Cyan -->
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </linearGradient>
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-opacity="0.3" />
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="blur" />
+      <feOffset dy="1" dx="1" />
+      <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadowDiff" />
+      <feFlood flood-color="white" flood-opacity="0.5" />
+      <feComposite in2="shadowDiff" operator="in" />
+      <feComposite in2="SourceGraphic" operator="over" />
+    </filter>
+  </defs>
+  <rect width="100" height="100" rx="20" fill="transparent"/>
+  <text 
+    x="50%" 
+    y="52%" 
+    dominant-baseline="central" 
+    text-anchor="middle" 
+    font-family="system-ui, -apple-system, sans-serif" 
+    font-weight="900" 
+    font-size="110" 
+    fill="url(#tGradient)" 
+    letter-spacing="-4"
+    filter="url(#dropShadow)"
+  >
+    T
+  </text>
+</svg>

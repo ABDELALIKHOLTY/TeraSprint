@@ -48,12 +48,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
+    const returnTo = params.get('returnTo');
     
     let currentToken = token;
     
     if (urlToken) {
-      // Just clean up the URL visually now that we captured it in useState
-      window.history.replaceState({}, document.title, window.location.pathname);
+      if (returnTo) {
+        window.location.href = returnTo;
+        return;
+      } else {
+        // Just clean up the URL visually now that we captured it in useState
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
     
     // Always fetch /me if we have a token (to validate it and refresh data)

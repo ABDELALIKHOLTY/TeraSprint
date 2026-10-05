@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Code, GitBranch, Download, PanelLeft, PanelBottom, PanelRight, Search, Key, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { TeraSprintChatWindow } from './components/TeraSprintChatWindow';
@@ -9,6 +9,7 @@ import { IDECodeEditor } from './components/IDECodeEditor';
 import { FileSearchModal } from './components/FileSearchModal';
 import { fetchModels, fetchFilteredModels } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 // GitHub icon SVG (not available in all lucide-react versions)
 const GithubIcon = ({ className }: { className?: string }) => (
@@ -20,7 +21,9 @@ const GithubIcon = ({ className }: { className?: string }) => (
 export const CodingWorkspacePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   
   const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
@@ -36,7 +39,17 @@ export const CodingWorkspacePage = () => {
   const { user, token } = useAuth();
   const [isGitModalOpen, setIsGitModalOpen] = useState(false);
   const [repoName, setRepoName] = useState("");
+  const [branchName, setBranchName] = useState("main");
   const [isPushing, setIsPushing] = useState(false);
+  const [githubRepos, setGithubRepos] = useState<string[]>([]);
+  const [isFetchingRepos, setIsFetchingRepos] = useState(false);
+  const [isCreatingNewRepo, setIsCreatingNewRepo] = useState(false);
+  const [isRepoDropdownOpen, setIsRepoDropdownOpen] = useState(false);
+  const [githubBranches, setGithubBranches] = useState<string[]>([]);
+  const [isFetchingBranches, setIsFetchingBranches] = useState(false);
+  const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
+  const [gitLog, setGitLog] = useState<string | null>(null);
+  const [pushStatus, setPushStatus] = useState<"idle" | "success" | "error">("idle");
 
   // Global Ctrl+Shift+F shortcut
   useEffect(() => {
@@ -49,6 +62,19 @@ export const CodingWorkspacePage = () => {
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
+
+  // Check URL params for git_push
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('git_push') === 'true') {
+      // Remove it from URL so it doesn't reopen on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Wait a tiny bit to ensure user is loaded
+      setTimeout(() => {
+        handleGitPushClick();
+      }, 500);
+    }
+  }, [location.search, user?.has_github_token]);
 
   const handleSelectSearchedFile = (path: string, content: string) => {
     const name = path.split('/').pop() || '';
@@ -355,13 +381,66 @@ export const CodingWorkspacePage = () => {
     };
   }, []);
 
-  const handleGitPushClick = () => {
+  useEffect(() => {
+    if (isGitModalOpen && repoName && !isCreatingNewRepo && user?.has_github_token) {
+      setIsFetchingBranches(true);
+      fetch(`http://localhost:8000/api/v1/workspace/github/repos/${repoName}/branches`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success") {
+          setGithubBranches(data.branches || []);
+          if (data.branches && data.branches.length > 0 && !data.branches.includes(branchName)) {
+            setBranchName(data.branches[0]);
+          }
+        }
+      })
+      .catch(console.error)
+      .finally(() => setIsFetchingBranches(false));
+    }
+  }, [repoName, isCreatingNewRepo, isGitModalOpen, user?.has_github_token, token]);
+
+  const handleGitPushClick = async () => {
     setIsGitModalOpen(true);
+    setPushStatus("idle");
+    setGitLog(null);
+    
+    // Load saved preferences if any
+    const savedPrefs = localStorage.getItem(`github_prefs_${id}`);
+    if (savedPrefs) {
+      try {
+        const prefs = JSON.parse(savedPrefs);
+        if (prefs.repoName) setRepoName(prefs.repoName);
+        if (prefs.branchName) setBranchName(prefs.branchName);
+        if (prefs.isCreatingNewRepo !== undefined) setIsCreatingNewRepo(prefs.isCreatingNewRepo);
+      } catch(e) {}
+    }
+
+    if (user?.has_github_token) {
+      setIsFetchingRepos(true);
+      try {
+        const res = await fetch("http://localhost:8000/api/v1/workspace/github/repos", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          setGithubRepos(data.repos || []);
+        }
+      } catch(e) {
+        console.error(e);
+      } finally {
+        setIsFetchingRepos(false);
+      }
+    }
   };
 
   const submitGitPush = async () => {
     if (!repoName.trim()) return alert("Veuillez entrer un nom de dépôt");
+    if (!branchName.trim()) return alert("Veuillez entrer un nom de branche");
     setIsPushing(true);
+    setGitLog(null);
+    setPushStatus("idle");
     try {
       const res = await fetch("http://localhost:8000/api/v1/workspace/git-push", { 
         method: "POST",
@@ -369,16 +448,21 @@ export const CodingWorkspacePage = () => {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ repo_name: repoName })
+        body: JSON.stringify({ repo_name: repoName, task_id: id, branch_name: branchName })
       });
       const data = await res.json();
-      if (res.ok && data.status === "success") {
-          alert("Git push effectué avec succès !");
-          setIsGitModalOpen(false);
-      } else {
+      if (data.logs) {
+        setGitLog(data.logs);
+      }
+      if (!res.ok || data.status !== "success") {
+          setPushStatus("error");
           alert("Echec du Git push: " + (data.message || "Erreur inconnue"));
+      } else {
+          setPushStatus("success");
+          localStorage.setItem(`github_prefs_${id}`, JSON.stringify({ repoName, branchName, isCreatingNewRepo }));
       }
     } catch(e) {
+      setPushStatus("error");
       alert("Erreur: " + e);
     } finally {
       setIsPushing(false);
@@ -398,12 +482,12 @@ export const CodingWorkspacePage = () => {
             onClick={() => navigate(-1)}
             className="flex items-center text-gray-500 hover:text-cyan-600 transition-colors text-sm font-medium"
           >
-            <ArrowLeft className="w-4 h-4 mr-1" /> Retour au projet
+            <ArrowLeft className="w-4 h-4 mr-1" /> {t('ide.back_to_project')}
           </button>
           <div className="flex items-center space-x-2 border-l border-gray-200 dark:border-[#27272a] pl-4">
             <Code className="w-4 h-4 text-cyan-500" />
             <span className="text-xs font-mono bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400 px-2 py-1 rounded">
-              {taskContext?.project?.title ? `${taskContext.project.title} - IDE` : 'TeraSprint IDE'}
+              {taskContext?.project?.title ? `${taskContext.project.title} - ${t('ide.ide_title')}` : `TeraSprint ${t('ide.ide_title')}`}
             </span>
           </div>
         </div>
@@ -485,14 +569,14 @@ export const CodingWorkspacePage = () => {
             className="flex items-center px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded text-xs font-medium transition-colors"
           >
             <GitBranch className="w-3.5 h-3.5 mr-1.5" />
-            Git Push
+            {t('ide.push_github')}
           </button>
           <button 
             onClick={handleExportZip} 
             className="flex items-center px-3 py-1.5 bg-gray-200 dark:bg-[#27272a] hover:bg-gray-300 dark:hover:bg-[#323236] text-gray-800 dark:text-gray-200 rounded text-xs font-medium transition-colors border border-gray-300 dark:border-[#3f3f46]"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" />
-            Export ZIP
+            {t('ide.export_zip')}
           </button>
         </div>
       </div>
@@ -563,12 +647,12 @@ export const CodingWorkspacePage = () => {
 
       {/* Git Push Modal */}
       {isGitModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#27272a] rounded-xl shadow-2xl w-[450px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-[#27272a] bg-gray-50/50 dark:bg-[#1a1a1f]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-[#27272a] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-[#27272a] bg-gray-50/50 dark:bg-[#1a1a1f] shrink-0">
               <div className="flex items-center text-gray-800 dark:text-gray-200 font-semibold">
                 <GithubIcon className="w-5 h-5 mr-2" />
-                Pousser vers GitHub
+                {t('ide.push_github')}
               </div>
               <button 
                 onClick={() => setIsGitModalOpen(false)}
@@ -578,52 +662,175 @@ export const CodingWorkspacePage = () => {
               </button>
             </div>
             
-            <div className="p-5">
+            <div className="p-8 overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style>{`
+                .scrollbar-hide::-webkit-scrollbar {
+                  display: none;
+                }
+              `}</style>
               {!user?.has_github_token ? (
                 <div className="text-center py-4">
                   <div className="w-16 h-16 bg-gray-100 dark:bg-[#27272a] rounded-full flex items-center justify-center mx-auto mb-4">
                     <GithubIcon className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Compte non connecté</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">{t('ide.not_connected')}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 px-4">
-                    Vous devez vous connecter avec GitHub pour pouvoir créer des dépôts et pousser votre code automatiquement.
+                    {t('ide.github_desc')}
                   </p>
                   <a 
-                    href="http://localhost:8000/api/v1/auth/github/login"
+                    href={`http://localhost:8000/api/v1/auth/github/login?returnTo=/workspace/${id}?git_push=true`}
                     className="inline-flex items-center justify-center px-4 py-2.5 bg-[#24292F] hover:bg-[#24292F]/90 text-white rounded-lg font-medium transition-colors w-full"
                   >
                     <GithubIcon className="w-4 h-4 mr-2" />
-                    Se connecter avec GitHub
+                    {t('ide.connect_github')}
                   </a>
                 </div>
               ) : (
                 <div className="py-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Nom du nouveau dépôt GitHub
-                  </label>
-                  <input
-                    type="text"
-                    value={repoName}
-                    onChange={(e) => setRepoName(e.target.value)}
-                    placeholder="ex: mon-super-projet"
-                    className="w-full bg-white dark:bg-[#121214] border border-gray-300 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block p-2.5 outline-none"
-                    autoFocus
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Le dépôt sera créé en mode <strong>privé</strong> sur votre compte.
-                  </p>
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      {t('ide.github_repo')}
+                    </label>
+                    <div className="flex bg-gray-100 dark:bg-[#121214] p-1.5 rounded-lg mb-4">
+                      <button
+                        onClick={() => { setIsCreatingNewRepo(false); setRepoName(githubRepos[0] || ""); }}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${!isCreatingNewRepo ? 'bg-white dark:bg-[#27272a] shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                      >
+                        {t('ide.existing')}
+                      </button>
+                      <button
+                        onClick={() => { setIsCreatingNewRepo(true); setRepoName(""); }}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${isCreatingNewRepo ? 'bg-white dark:bg-[#27272a] shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                      >
+                        {t('ide.new')}
+                      </button>
+                    </div>
+
+                    {!isCreatingNewRepo ? (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setIsRepoDropdownOpen(!isRepoDropdownOpen)}
+                          className="w-full bg-white dark:bg-[#121214] border border-gray-300 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 rounded-xl focus:ring-cyan-500 focus:border-cyan-500 flex justify-between items-center p-3 outline-none text-left text-sm"
+                        >
+                          <span className="truncate">{repoName || t('ide.select_repo')}</span>
+                          <span className="text-gray-400">▼</span>
+                        </button>
+                        
+                        {isRepoDropdownOpen && (
+                          <div className="w-full mt-2 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#3f3f46] rounded-xl shadow-inner max-h-48 overflow-y-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                            {githubRepos.length === 0 ? (
+                              <div className="p-4 text-sm text-gray-500">{t('ide.no_repo_found')}</div>
+                            ) : (
+                              githubRepos.map((repo, i) => (
+                                <div
+                                  key={i}
+                                  onClick={() => { setRepoName(repo); setIsRepoDropdownOpen(false); }}
+                                  className="p-3 m-2 rounded-lg cursor-pointer hover:bg-cyan-50 dark:hover:bg-[#27272a] hover:ring-1 hover:ring-cyan-500/30 transition-all text-gray-800 dark:text-gray-200 border border-transparent dark:hover:border-[#3f3f46] flex items-center bg-gray-50 dark:bg-[#121214] mb-2 shadow-sm"
+                                >
+                                  <div className="bg-white dark:bg-[#1e1e1e] p-2.5 rounded-md shadow-sm border border-gray-100 dark:border-[#3f3f46] mr-4 shrink-0">
+                                    <GithubIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                                  </div>
+                                  <div className="flex flex-col overflow-hidden">
+                                    <span className="font-semibold text-sm truncate text-gray-900 dark:text-gray-100">{repo}</span>
+                                    <span className="text-xs text-gray-500 mt-1 font-medium flex items-center">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 mr-2"></span>
+                                      {t('ide.remote_repo')}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          value={repoName}
+                          onChange={(e) => setRepoName(e.target.value)}
+                          placeholder="ex: mon-super-projet"
+                          className="w-full bg-white dark:bg-[#121214] border border-gray-300 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block p-2.5 outline-none"
+                          autoFocus
+                        />
+                        <p className="text-xs text-gray-500 mt-2">
+                          {t('ide.private_repo_notice2')}
+                        </p>
+                      </>
+                    )}
+                  </div>
                   
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('ide.branch')}
+                    </label>
+                    
+                    {!isCreatingNewRepo && githubBranches.length > 0 ? (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setIsBranchDropdownOpen(!isBranchDropdownOpen)}
+                          className="w-full bg-white dark:bg-[#121214] border border-gray-300 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 rounded-xl focus:ring-cyan-500 focus:border-cyan-500 flex justify-between items-center p-3 outline-none text-left text-sm"
+                        >
+                          <span className="truncate">{branchName || "Sélectionner une branche..."}</span>
+                          <span className="text-gray-400">▼</span>
+                        </button>
+                        
+                        {isBranchDropdownOpen && (
+                          <div className="w-full mt-2 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#3f3f46] rounded-xl shadow-inner max-h-48 overflow-y-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                            {githubBranches.map((branch, i) => (
+                              <div
+                                key={i}
+                                onClick={() => { setBranchName(branch); setIsBranchDropdownOpen(false); }}
+                                className="px-4 py-3 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-[#27272a] text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-[#27272a] last:border-0 truncate flex items-center"
+                              >
+                                <GitBranch className="w-4 h-4 mr-2 text-gray-500" />
+                                {branch}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={branchName}
+                        onChange={(e) => setBranchName(e.target.value)}
+                        placeholder="ex: main ou master"
+                        className="w-full bg-white dark:bg-[#121214] border border-gray-300 dark:border-[#3f3f46] text-gray-900 dark:text-gray-100 rounded-xl focus:ring-cyan-500 focus:border-cyan-500 block p-3 outline-none"
+                      />
+                    )}
+                  </div>
+
+                  {pushStatus === "success" && (
+                    <div className="mt-4 mb-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center text-green-700 dark:text-green-400">
+                      <svg className="w-5 h-5 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-sm font-medium">{t('ide.push_success')}</span>
+                    </div>
+                  )}
+
+                  {gitLog && (
+                    <div className="mt-4 p-3 bg-[#1e1e1e] rounded-lg border border-[#3f3f46] max-h-56 overflow-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                      <pre className="text-xs font-mono text-green-400 whitespace-pre-wrap">
+                        {gitLog}
+                      </pre>
+                    </div>
+                  )}
+
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
                       onClick={() => setIsGitModalOpen(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#27272a] rounded-lg transition-colors"
+                      className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#27272a] rounded-xl transition-colors"
                     >
-                      Annuler
+                      {pushStatus === "success" ? t('ide.close') : t('ide.cancel')}
                     </button>
                     <button
                       onClick={submitGitPush}
                       disabled={isPushing}
-                      className="px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors flex items-center disabled:opacity-50"
+                      className="px-4 py-2.5 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl transition-colors flex items-center disabled:opacity-50"
                     >
                       {isPushing ? (
                         <>
@@ -631,12 +838,12 @@ export const CodingWorkspacePage = () => {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Création...
+                          {t('ide.creating')}
                         </>
                       ) : (
                         <>
                           <GitBranch className="w-4 h-4 mr-2" />
-                          Créer et Pousser
+                          {pushStatus === "success" ? t('ide.push_again') : t('ide.create_and_push')}
                         </>
                       )}
                     </button>

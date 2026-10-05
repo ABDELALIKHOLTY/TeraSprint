@@ -39,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isCollapsed = false, 
 
   return (
     <>
-      <aside className={`${isCollapsed ? 'w-20' : 'w-72'} bg-gray-50/80 dark:bg-[#121214]/80 backdrop-blur-xl border-r border-gray-200 dark:border-[#27272a]/50 flex flex-col h-screen font-sans text-gray-700 dark:text-gray-300 shrink-0 z-20 m-0 sm:m-2 rounded-r-none sm:rounded-2xl shadow-none sm:shadow-2xl relative transition-all duration-300`}>
+      <aside className={`${isCollapsed ? 'w-20' : 'w-72'} bg-gray-50/80 dark:bg-[#121214]/80 backdrop-blur-xl border-r border-gray-200 dark:border-[#27272a]/50 flex flex-col h-full font-sans text-gray-700 dark:text-gray-300 shrink-0 z-20 m-0 sm:m-2 rounded-r-none sm:rounded-2xl shadow-none sm:shadow-2xl relative transition-all duration-300`}>
       
       {/* Dark Mode Glow top left */}
       <div className="hidden dark:block absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-cyan-900/20 to-transparent pointer-events-none rounded-t-2xl"></div>
@@ -74,8 +74,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isCollapsed = false, 
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className={`flex-1 overflow-y-auto custom-scrollbar ${isCollapsed ? 'px-2' : 'px-4'}`}>
+      {/* Scrollable Content Area */}
+      <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+        {/* Navigation */}
+        <nav className={`flex-1 ${isCollapsed ? 'px-2' : 'px-4'}`}>
         
         <div className="mb-8">
           <div className="space-y-1">
@@ -165,78 +167,79 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isCollapsed = false, 
             )}
           </div>
         </div>
-
       </nav>
 
-
-
-      {/* Configuration des Providers Button */}
-      <div className={`mx-2 sm:mx-4 mb-4 ${isCollapsed ? 'flex justify-center' : ''}`}>
-        <button
-          onClick={() => {
-            navigate('/providers');
-            if (onClose) onClose();
-          }}
-          className={`p-3 sm:p-4 bg-gray-50 dark:bg-[#1a1a1f] hover:bg-gray-100 dark:hover:bg-[#27272a] border border-gray-200 dark:border-[#27272a] rounded-xl flex items-center transition-colors group ${isCollapsed ? 'w-auto' : 'w-full text-left'}`}
-          title={isCollapsed ? "Configuration des Providers" : undefined}
-        >
-          <div className={`rounded-full bg-cyan-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform ${isCollapsed ? 'w-8 h-8' : 'w-10 h-10 mr-4'}`}>
-            <Key className="w-5 h-5 text-cyan-500" />
-          </div>
-          {!isCollapsed && (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Configuration</h3>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400">Gérer les clés API</p>
+      {/* Bottom Actions Area */}
+      <div className="mt-auto pt-4 pb-2">
+        {/* Configuration des Providers Button */}
+        <div className={`mx-2 sm:mx-4 mb-4 ${isCollapsed ? 'flex justify-center' : ''}`}>
+          <button
+            onClick={() => {
+              navigate('/providers');
+              if (onClose) onClose();
+            }}
+            className={`p-3 sm:p-4 bg-gray-50 dark:bg-[#1a1a1f] hover:bg-gray-100 dark:hover:bg-[#27272a] border border-gray-200 dark:border-[#27272a] rounded-xl flex items-center transition-colors group ${isCollapsed ? 'w-auto' : 'w-full text-left'}`}
+            title={isCollapsed ? "Configuration des Providers" : undefined}
+          >
+            <div className={`rounded-full bg-cyan-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform ${isCollapsed ? 'w-8 h-8' : 'w-10 h-10 mr-4'}`}>
+              <Key className="w-5 h-5 text-cyan-500" />
             </div>
-          )}
-        </button>
-      </div>
-
-      {/* Subscription/Unlock Area */}
-      {!isCollapsed && (
-        <div className="mx-4 mb-4 p-4 rounded-xl bg-gradient-to-b from-white to-gray-50 dark:from-[#1a1e24] dark:to-[#121214] border border-gray-200 dark:border-[#27272a] shadow-sm relative overflow-hidden group cursor-pointer transition-colors">
-          <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="text-cyan-500 dark:text-cyan-400 text-xs">🔒</span>
-            <span className="text-gray-800 dark:text-gray-200 text-sm font-semibold">TeraSprint Pro</span>
-          </div>
-          <p className="text-xs text-gray-500">Unlock AI advanced features.</p>
+            {!isCollapsed && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Configuration</h3>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">Gérer les clés API</p>
+              </div>
+            )}
+          </button>
         </div>
-      )}
 
-      {/* User Profile */}
-      <div 
-        onClick={() => { navigate('/settings'); if (onClose) onClose(); }}
-        className={`mx-2 sm:mx-4 mb-4 rounded-xl bg-white dark:bg-[#1a1a1f] hover:bg-gray-50 dark:hover:bg-[#27272a] border border-gray-200 dark:border-[#27272a] hover:border-cyan-500/50 shadow-sm flex items-center transition-colors cursor-pointer ${isCollapsed ? 'p-2 justify-center' : 'p-4 justify-between'}`}
-        title={isCollapsed ? user?.name : undefined}
-      >
-        <div className="flex items-center space-x-3 overflow-hidden">
-          <div className="w-8 h-8 rounded-full bg-cyan-50 dark:bg-cyan-900/50 border border-cyan-200 dark:border-cyan-500/30 flex items-center justify-center text-xs font-bold text-cyan-600 dark:text-cyan-400 overflow-hidden shrink-0">
-            {user?.avatar_url ? (
-              <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
-            ) : (
-              user?.first_name ? getInitials(user.first_name) : getInitials(user?.name || 'U')
+        {/* Subscription/Unlock Area */}
+        {!isCollapsed && (
+          <div className="mx-4 mb-4 p-4 rounded-xl bg-gradient-to-b from-white to-gray-50 dark:from-[#1a1e24] dark:to-[#121214] border border-gray-200 dark:border-[#27272a] shadow-sm relative overflow-hidden group cursor-pointer transition-colors">
+            <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="flex items-center space-x-2 mb-1">
+              <span className="text-cyan-500 dark:text-cyan-400 text-xs">🔒</span>
+              <span className="text-gray-800 dark:text-gray-200 text-sm font-semibold">TeraSprint Pro</span>
+            </div>
+            <p className="text-xs text-gray-500">Unlock AI advanced features.</p>
+          </div>
+        )}
+
+        {/* User Profile */}
+        <div 
+          onClick={() => { navigate('/settings'); if (onClose) onClose(); }}
+          className={`mx-2 sm:mx-4 mb-4 rounded-xl bg-white dark:bg-[#1a1a1f] hover:bg-gray-50 dark:hover:bg-[#27272a] border border-gray-200 dark:border-[#27272a] hover:border-cyan-500/50 shadow-sm flex items-center transition-colors cursor-pointer ${isCollapsed ? 'p-2 justify-center' : 'p-4 justify-between'}`}
+          title={isCollapsed ? user?.name : undefined}
+        >
+          <div className="flex items-center space-x-3 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-cyan-50 dark:bg-cyan-900/50 border border-cyan-200 dark:border-cyan-500/30 flex items-center justify-center text-xs font-bold text-cyan-600 dark:text-cyan-400 overflow-hidden shrink-0">
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                user?.first_name ? getInitials(user.first_name) : getInitials(user?.name || 'U')
+              )}
+            </div>
+            {!isCollapsed && (
+              <div className="overflow-hidden">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+                  {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.name || 'Utilisateur'}
+                </p>
+              </div>
             )}
           </div>
           {!isCollapsed && (
-            <div className="overflow-hidden">
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-                {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.name || 'Utilisateur'}
-              </p>
-            </div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                logout();
+              }}
+              className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-400/10 rounded-lg transition-colors shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           )}
         </div>
-        {!isCollapsed && (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              logout();
-            }}
-            className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-400/10 rounded-lg transition-colors shrink-0"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        )}
+      </div>
       </div>
       </aside>
 

@@ -7,6 +7,11 @@ from langgraph.graph import StateGraph, END
 from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from mem0 import Memory
+from opentelemetry import trace
+from openinference.semconv.trace import SpanAttributes
+from openinference.instrumentation import using_session
+
+tracer = trace.get_tracer(__name__)
 
 global_semantic_memory = None
 
@@ -231,13 +236,17 @@ export const MonComposant = () => <div>Hello</div>;
                     
             formatted_messages.append({"role": role, "content": content})
 
-        print(f"[DEBUG] Appel LLM Agent avec modele: {actual_model}", flush=True)
+        project_id = str(kanban.get("project", {}).get("id")) if kanban and kanban.get("project", {}).get("id") else "default-session"
+        session_id = project_id
+
+        print(f"[DEBUG] Appel LLM Agent avec modele: {actual_model} - Session: {session_id}", flush=True)
         try:
-            response = await client.chat.completions.create(
-                model=actual_model,
-                messages=formatted_messages,
-                temperature=0.3
-            )
+            with using_session(session_id):
+                response = await client.chat.completions.create(
+                    model=actual_model,
+                    messages=formatted_messages,
+                    temperature=0.3
+                )
             print("[DEBUG] Reponse LLM Agent recue", flush=True)
         except Exception as e:
             print(f"[ERROR] Echec LLM Agent: {e}", flush=True)

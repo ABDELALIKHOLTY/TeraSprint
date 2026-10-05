@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import shutil
+import tempfile
 from fastapi.responses import FileResponse
 from services.agents.coding.orchestrator import DevOrchestrator
 from langchain_core.messages import HumanMessage
@@ -122,9 +123,56 @@ def _load_files(db, task_id: str, user_id):
 
 class GitPushRequest(BaseModel):
     repo_name: str
+    task_id: str
+    branch_name: str = "main"
+
+@router.get("/workspace/github/repos")
+async def get_github_repos(current_user: User = Depends(get_current_user)):
+    github_token = current_user.github_access_token
+    if not github_token:
+        return {"status": "error", "message": "Veuillez connecter votre compte GitHub."}
+    import httpx
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            "https://api.github.com/user/repos?sort=updated&per_page=100",
+            headers={
+                "Authorization": f"token {github_token}",
+                "Accept": "application/vnd.github.v3+json"
+            }
+        )
+        if resp.status_code != 200:
+            return {"status": "error", "message": f"Erreur GitHub API: {resp.text}"}
+        repos = resp.json()
+        return {"status": "success", "repos": [repo["name"] for repo in repos]}
+
+@router.get("/workspace/github/repos/{repo_name}/branches")
+async def get_github_branches(repo_name: str, current_user: User = Depends(get_current_user)):
+    github_token = current_user.github_access_token
+    if not github_token:
+        return {"status": "error", "message": "Veuillez connecter votre compte GitHub."}
+    import httpx
+    async with httpx.AsyncClient() as client:
+        # Get username
+        user_resp = await client.get("https://api.github.com/user", headers={"Authorization": f"token {github_token}"})
+        if user_resp.status_code != 200:
+            return {"status": "error", "message": "Erreur lors de la récupération de l'utilisateur."}
+        username = user_resp.json().get("login")
+
+        resp = await client.get(
+            f"https://api.github.com/repos/{username}/{repo_name}/branches",
+            headers={
+                "Authorization": f"token {github_token}",
+                "Accept": "application/vnd.github.v3+json"
+            }
+        )
+        if resp.status_code == 200:
+            return {"status": "success", "branches": [b["name"] for b in resp.json()]}
+        elif resp.status_code == 404:
+            return {"status": "success", "branches": []}
+        return {"status": "error", "message": f"Erreur: {resp.text}"}
 
 @router.post("/workspace/git-push")
-async def workspace_git_push(req: GitPushRequest, current_user: User = Depends(get_current_user)):
+async def workspace_git_push(req: GitPushRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         github_token = current_user.github_access_token
         if not github_token:
@@ -149,28 +197,52 @@ async def workspace_git_push(req: GitPushRequest, current_user: User = Depends(g
 
         repo_url = f"https://{github_username}:{github_token}@github.com/{github_username}/{req.repo_name}.git"
 
-        # 2. Git configuration and push
-        workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../scratch"))
-        if not os.path.exists(workspace_dir):
-            workspace_dir = "/app/scratch"
+        # 2. Extract files to a temporary directory
+        files = _load_files(db, req.task_id, current_user.id)
+        if not files:
+            return {"status": "error", "message": "Aucun fichier à pousser pour ce projet."}
+
+        with tempfile.TemporaryDirectory() as workspace_dir:
+            git_logs = []
+            def run_git(args):
+                res = subprocess.run(args, cwd=workspace_dir, capture_output=True, text=True)
+                cmd_str = " ".join(args)
+                git_logs.append(f"$ {cmd_str}\n{res.stdout}{res.stderr}")
+                return res
+
+            # A. Configurer Git et récupérer le dépôt existant
+            run_git(["git", "init"])
+            run_git(["git", "remote", "add", "origin", repo_url])
+            run_git(["git", "config", "user.name", "TeraSprint AI"])
+            run_git(["git", "config", "user.email", "ai@terasprint.app"])
+            run_git(["git", "fetch", "origin"])
+
+            # Essayer de se placer sur la branche existante
+            res_checkout = run_git(["git", "checkout", req.branch_name])
+            if res_checkout.returncode != 0:
+                # La branche n'existe pas encore, on la crée
+                run_git(["git", "checkout", "-b", req.branch_name])
+            else:
+                # Si elle existe, on s'assure d'être à jour (merge)
+                run_git(["git", "merge", f"origin/{req.branch_name}", "--allow-unrelated-histories"])
+
+            # B. Écrire les fichiers (ça va écraser les anciens et conserver ceux qui ne sont pas touchés)
+            for file_path, content in files.items():
+                full_path = os.path.join(workspace_dir, file_path)
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                with open(full_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+
+            # C. Ajouter, commit et Push standard (sans force)
+            run_git(["git", "add", "."])
+            run_git(["git", "commit", "-m", "Auto-commit from TeraSprint"])
             
-        subprocess.run(["git", "init"], cwd=workspace_dir, check=True)
-        subprocess.run(["git", "branch", "-M", "main"], cwd=workspace_dir, check=False)
-        subprocess.run(["git", "remote", "remove", "origin"], cwd=workspace_dir, check=False, stderr=subprocess.DEVNULL)
-        subprocess.run(["git", "remote", "add", "origin", repo_url], cwd=workspace_dir, check=True)
-        
-        # Identity
-        subprocess.run(["git", "config", "user.name", "TeraSprint AI"], cwd=workspace_dir, check=False)
-        subprocess.run(["git", "config", "user.email", "ai@terasprint.app"], cwd=workspace_dir, check=False)
+            res = run_git(["git", "push", "-u", "origin", req.branch_name])
+            
+            if res.returncode != 0:
+                return {"status": "error", "message": f"Erreur lors du push: {res.stderr}", "logs": "\n".join(git_logs)}
 
-        subprocess.run(["git", "add", "."], cwd=workspace_dir, check=True)
-        subprocess.run(["git", "commit", "-m", "Auto-commit from TeraSprint"], cwd=workspace_dir, check=False)
-        
-        res = subprocess.run(["git", "push", "-u", "origin", "main", "--force"], cwd=workspace_dir, capture_output=True, text=True)
-        if res.returncode != 0:
-            return {"status": "error", "message": f"Erreur lors du push: {res.stderr}"}
-
-        return {"status": "success", "message": "Code poussé avec succès vers GitHub !"}
+        return {"status": "success", "message": "Code poussé avec succès vers GitHub !", "logs": "\n".join(git_logs)}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
