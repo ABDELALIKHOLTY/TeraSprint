@@ -83,7 +83,7 @@ L'application repose sur un fichier `.env` situé dans le dossier `backend/`. Vo
 
 1. **Cloner le projet** : 
    ```bash
-   git clone https://github.com/votre_profil/TeraSprint.git
+   git clone https://github.com/ABDELALIKHOLTY/TeraSprint.git
    cd TeraSprint
    ```
 
