@@ -1,4 +1,4 @@
-# 🚀 TeraSprint
+#  TeraSprint
 
 **TeraSprint** est une plateforme innovante propulsée par l'Intelligence Artificielle pour la gestion de projets Agile et la génération automatisée de code. Elle permet de passer d'une simple idée à un backlog complet et à du code exécutable via des agents autonomes et un environnement de bac à sable (sandbox) sécurisé.
 
