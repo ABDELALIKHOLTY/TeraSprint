@@ -159,12 +159,20 @@ docker-compose up --build
 
 ## 📄 License
 
-MIT License — free for personal and commercial use.
+**Proprietary Software** — All rights reserved by **TeraByte Software**.
+
+This project was developed as part of an end-of-studies internship. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited without explicit permission from TeraByte Software. See the [LICENSE](./LICENSE) file for more details.
+
+---
+
+## 🙏 Acknowledgments
+
+This project was realized during an internship at **TeraByte Software** (Kénitra, Morocco), under the supervision of **Mr. Mouhcine Karbach**. I thank the entire team for their guidance and expertise in SDaaS and Agile methodologies.
 
 ---
 
 <p align="center">
-  <strong>Built by Abdelali Kholty with ❤️ for developers, product owners, and AI enthusiasts</strong>
+  <strong>Built by Abdelali Kholty with ❤️ for TeraByte Software</strong>
   <br>
   <sub>Version 1.0.0 | Last Updated: October 2026</sub>
 </p>
