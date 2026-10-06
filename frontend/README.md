@@ -1,39 +1,39 @@
 # 🎨 TeraSprint - Frontend
 
-Bienvenue dans la section **Frontend** de TeraSprint. L'interface utilisateur est pensée pour être dynamique, fluide et hautement réactive afin d'offrir la meilleure expérience de gestion de projet (Kanban) et de développement automatisé (Workspace).
+Welcome to the **Frontend** section of TeraSprint. The user interface is designed to be dynamic, fluid, and highly responsive to offer the best experience in project management (Kanban) and automated development (Workspace).
 
-## 🛠️ Technologies Utilisées
+## 🛠️ Technologies Used
 
-- **Framework UI** : [React](https://react.dev/) 18+.
-- **Bundler** : [Vite](https://vitejs.dev/) pour un rechargement à chaud (HMR) ultra-rapide.
-- **Langage** : **TypeScript** pour la sécurité et l'autocomplétion.
-- **Styling** : **TailwindCSS** pour un design moderne, épuré et entièrement responsive.
-- **Communication Temps Réel** : **WebSockets** natifs pour le streaming de la génération de code par l'IA.
+- **UI Framework**: [React](https://react.dev/) 18+.
+- **Bundler**: [Vite](https://vitejs.dev/) for ultra-fast Hot Module Replacement (HMR).
+- **Language**: **TypeScript** for type safety and autocompletion.
+- **Styling**: **TailwindCSS** for a modern, clean, and fully responsive design.
+- **Real-Time Communication**: Native **WebSockets** for streaming AI code generation.
 
 ---
 
-## 🏗️ Architecture et Composants
+## 🏗️ Architecture and Components
 
-L'application suit une structure classique par "Vues" (Pages) qui appellent des composants réutilisables.
+The application follows a classic "Views" (Pages) structure that calls reusable components.
 
-### Diagramme de Navigation
+### Navigation Diagram
 
 ```mermaid
 graph TD
-    Auth[Page de Connexion SSO] -->|JWT Token| Dashboard[Dashboard - Liste des Projets]
+    Auth[SSO Login Page] -->|JWT Token| Dashboard[Dashboard - Project List]
     
-    Dashboard --> CreateProject[Générateur IA de Backlog]
-    CreateProject -->|L'IA génère les tâches| Kanban[Vue Kanban du Projet]
+    Dashboard --> CreateProject[AI Backlog Generator]
+    CreateProject -->|AI generates tasks| Kanban[Project Kanban View]
     
     Dashboard --> Kanban
     
-    Kanban -->|Clic sur 'Start Dev'| Workspace[Coding Workspace]
+    Kanban -->|Click on 'Start Dev'| Workspace[Coding Workspace]
     
-    subgraph Workspace Composants
-        Chat[Chat IA]
-        FileTree[Arborescence des Fichiers]
-        Editor[Éditeur de Code]
-        Preview[Aperçu / Logs Sandbox]
+    subgraph Workspace Components
+        Chat[AI Chat]
+        FileTree[File Explorer]
+        Editor[Code Editor]
+        Preview[Preview / Sandbox Logs]
         
         Workspace --> Chat
         Workspace --> FileTree
@@ -42,80 +42,80 @@ graph TD
     end
 ```
 
-### Le Cycle de Vie du "Coding Workspace"
+### The "Coding Workspace" Lifecycle
 
-Le cœur innovant du frontend est le **Workspace**. C'est ici que l'utilisateur dialogue avec l'orchestrateur de code.
+The innovative core of the frontend is the **Workspace**. This is where the user interacts with the code orchestrator.
 
 ```mermaid
 sequenceDiagram
     participant UI as React Workspace
     participant WS as WebSocket Backend
-    participant Agent as IA Orchestrateur
+    participant Agent as Orchestrator AI
 
-    UI->>WS: Connexion WSS & Envoi du Contexte Tâche
-    UI->>WS: "Créé-moi le bouton de connexion"
+    UI->>WS: WSS Connection & Sends Task Context
+    UI->>WS: "Create a login button for me"
     WS->>Agent: Transmission
     
-    Agent-->>WS: Stream de la réponse (Texte)
-    WS-->>UI: Mise à jour du Chat UI en temps réel
+    Agent-->>WS: Response stream (Text)
+    WS-->>UI: Real-time UI Chat update
     
-    Agent-->>WS: JSON des fichiers générés
-    WS-->>UI: Met à jour l'arborescence et l'éditeur
+    Agent-->>WS: JSON of generated files
+    WS-->>UI: Updates file tree and editor
     
-    Agent-->>WS: Résultat de la Sandbox E2B (Succès/Erreur)
-    WS-->>UI: Affiche les logs dans le terminal
+    Agent-->>WS: E2B Sandbox Result (Success/Error)
+    WS-->>UI: Displays logs in the terminal
 ```
 
 ---
 
-## 📁 Structure du Projet
+## 📁 Project Structure
 
 - **`src/`**
-  - **`assets/`** : Images, fonts, et CSS globaux.
-  - **`components/`** : 
-    - `ui/` : Composants de base (Boutons, Inputs, Modals, Badges).
-    - `kanban/` : Cartes de tâches, colonnes glisser-déposer.
-    - `workspace/` : Éditeur de code (souvent avec Monaco Editor ou similaire), Terminal, File Explorer.
-  - **`pages/`** : Les grandes vues de l'application (Auth, Dashboard, ProjectBoard, WorkspacePage).
-  - **`services/`** : 
-    - `api.ts` : Fonctions pour interagir avec l'API REST via `fetch` ou `axios`.
-    - `socket.ts` : Gestionnaire de la connexion WebSocket.
-  - **`App.tsx`** : Le routeur principal (React Router).
-  - **`main.tsx`** : Point de montage React.
+  - **`assets/`**: Images, fonts, and global CSS.
+  - **`components/`**: 
+    - `ui/`: Base components (Buttons, Inputs, Modals, Badges).
+    - `kanban/`: Task cards, drag-and-drop columns.
+    - `workspace/`: Code editor (often with Monaco Editor or similar), Terminal, File Explorer.
+  - **`pages/`**: Main application views (Auth, Dashboard, ProjectBoard, WorkspacePage).
+  - **`services/`**: 
+    - `api.ts`: Functions to interact with the REST API via `fetch` or `axios`.
+    - `socket.ts`: WebSocket connection manager.
+  - **`App.tsx`**: Main router (React Router).
+  - **`main.tsx`**: React mount point.
 
 ---
 
 ## ⚙️ Configuration (`.env` / API)
 
-Le frontend communique avec le backend via des appels REST et WebSockets. Actuellement, l'URL de base est configurée par défaut dans `src/services/api.ts` et `src/services/socket.ts` sur `http://localhost:8000`.
+The frontend communicates with the backend via REST calls and WebSockets. Currently, the base URL is configured by default in `src/services/api.ts` and `src/services/socket.ts` to `http://localhost:8000`.
 
-Si vous avez besoin de changer l'URL de l'API (par exemple pour la production), vous pouvez créer un fichier `.env` ou `.env.local` à la racine de `frontend/` avec :
+If you need to change the API URL (for example, for production), you can create a `.env` or `.env.local` file at the root of `frontend/` with:
 
 ```env
-VITE_API_URL=http://votre-backend.com/api/v1
-VITE_WS_URL=ws://votre-backend.com/api/v1
+VITE_API_URL=http://your-backend.com/api/v1
+VITE_WS_URL=ws://your-backend.com/api/v1
 ```
 
-*(Assurez-vous d'adapter le code dans `api.ts` et `socket.ts` pour utiliser `import.meta.env.VITE_API_URL` si vous souhaitez utiliser ces variables d'environnement).*
+*(Be sure to adapt the code in `api.ts` and `socket.ts` to use `import.meta.env.VITE_API_URL` if you wish to use these environment variables).*
 
 ---
 
-## 🚀 Installation & Démarrage
+## 🚀 Installation & Startup
 
-1. **Prérequis** : Avoir `Node.js` (v18+) installé.
+1. **Prerequisites**: Ensure `Node.js` (v18+) is installed.
 
-2. **Installer les dépendances** :
-   Depuis le dossier `frontend/`, exécutez :
+2. **Install Dependencies**:
+   From the `frontend/` folder, run:
    ```bash
    npm install
    ```
 
-3. **Lancer le serveur Vite** :
+3. **Start the Vite Server**:
    ```bash
    npm run dev
    ```
 
-4. **Accéder à l'application** :
-   Le serveur démarre généralement sur `http://localhost:5173`. 
+4. **Access the Application**:
+   The server usually starts on `http://localhost:5173`. 
    
-   *(Attention : le frontend est configuré pour communiquer avec l'API du backend. Assurez-vous que le backend FastAPI tourne bien sur `http://localhost:8000` ou ajustez les variables d'environnement dans un fichier `.env.local` du frontend si nécessaire).*
+   *(Note: The frontend is configured to communicate with the backend API. Ensure the FastAPI backend is running on `http://localhost:8000` or adjust the environment variables in a `.env.local` file in the frontend if necessary).*

@@ -1,88 +1,88 @@
 # 🧠 TeraSprint - Backend
 
-Bienvenue dans la section **Backend** de TeraSprint. Ce service est le cerveau de l'application, gérant à la fois la logique métier traditionnelle, la base de données, et l'orchestration des agents d'intelligence artificielle.
+Welcome to the **Backend** section of TeraSprint. This service is the brain of the application, managing traditional business logic, the database, and the orchestration of artificial intelligence agents.
 
-## 🛠️ Technologies Utilisées
+## 🛠️ Technologies Used
 
-- **Framework Web** : [FastAPI](https://fastapi.tiangolo.com/) (Python) pour sa rapidité et sa gestion native de l'asynchrone.
-- **Base de données** : PostgreSQL via **SQLAlchemy** (ORM).
-- **IA & Agents** : 
-  - **LangChain & LangGraph** : Pour l'orchestration des workflows complexes (Code Agent).
-  - **GPTCache** : Pour optimiser les coûts et le temps de réponse en mettant en cache les réponses des modèles.
-- **Modèles LLM Supportés** : Ollama (Local), Groq (Llama 3), OpenRouter, Google Gemini.
-- **Exécution Sécurisée** : [E2B Sandbox](https://e2b.dev/) pour exécuter le code généré par l'IA de façon isolée et sécurisée.
+- **Web Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python) for its speed and native async support.
+- **Database**: PostgreSQL via **SQLAlchemy** (ORM).
+- **AI & Agents**: 
+  - **LangChain & LangGraph**: For orchestrating complex workflows (Code Agent).
+  - **GPTCache**: To optimize costs and response time by caching model responses.
+- **Supported LLM Models**: Ollama (Local), Groq (Llama 3), OpenRouter, Google Gemini.
+- **Secure Execution**: [E2B Sandbox](https://e2b.dev/) to execute AI-generated code in an isolated and secure environment.
 
 ---
 
-## 🏗️ Architecture et Flux de Travail (Workflows)
+## 🏗️ Architecture and Workflows
 
-Voici comment les différents composants interagissent lorsqu'un utilisateur interagit avec l'IA.
+Here is how the different components interact when a user engages with the AI.
 
-### 1. Génération Agile (PO Agent)
+### 1. Agile Generation (PO Agent)
 
-L'Agent Product Owner (PO) prend une simple idée en entrée et génère un rapport d'architecture complet ainsi qu'un backlog structuré.
+The Product Owner (PO) Agent takes a simple idea as input and generates a complete architecture report along with a structured backlog.
 
 ```mermaid
 sequenceDiagram
-    participant User as Utilisateur
+    participant User as User
     participant API as FastAPI (PO Agent)
     participant Cache as GPTCache
     participant LLM as LLM (Groq/Ollama)
     participant DB as PostgreSQL
 
-    User->>API: Soumet une idée (ex: "App de gestion de tâches")
-    API->>Cache: Vérifie si l'idée existe déjà
+    User->>API: Submits an idea (e.g., "Task management app")
+    API->>Cache: Checks if idea already exists
     alt Cache Hit
-        Cache-->>API: Retourne le rapport d'architecture
+        Cache-->>API: Returns architecture report
     else Cache Miss
-        API->>LLM: Demande la génération de l'architecture
-        LLM-->>API: Retourne le rapport
-        API->>Cache: Sauvegarde
+        API->>LLM: Requests architecture generation
+        LLM-->>API: Returns report
+        API->>Cache: Saves
     end
-    API->>LLM: Génère le Backlog (Epics > User Stories > Tâches)
-    LLM-->>API: Retourne le JSON structuré
-    API->>DB: Sauvegarde le Projet et les Tâches
-    API-->>User: Affiche le Kanban
+    API->>LLM: Generates Backlog (Epics > User Stories > Tasks)
+    LLM-->>API: Returns structured JSON
+    API->>DB: Saves Project and Tasks
+    API-->>User: Displays Kanban
 ```
 
-### 2. Orchestrateur de Code (Coding Agent)
+### 2. Code Orchestrator (Coding Agent)
 
-Lorsque l'utilisateur demande à coder une tâche depuis le workspace, un workflow LangGraph complexe se met en route.
+When the user requests to code a task from the workspace, a complex LangGraph workflow initiates.
 
 ```mermaid
 stateDiagram-v2
     [*] --> Init
-    Init --> Agent_Coding : Demande de l'utilisateur
-    Agent_Coding --> Parser : L'IA génère le code
+    Init --> Agent_Coding : User request
+    Agent_Coding --> Parser : AI generates code
     
-    Parser --> Validation_AST : Vérifie la syntaxe
-    Validation_AST --> Sweep : Erreur de syntaxe détectée
-    Validation_AST --> Exécution_Sandbox : Syntaxe OK
+    Parser --> Validation_AST : Syntax check
+    Validation_AST --> Sweep : Syntax error detected
+    Validation_AST --> Execution_Sandbox : Syntax OK
     
-    Exécution_Sandbox --> Sweep : Erreur d'exécution (dépendances, logique)
-    Sweep --> Agent_Coding : Analyse l'erreur et regénère
+    Execution_Sandbox --> Sweep : Execution error (dependencies, logic)
+    Sweep --> Agent_Coding : Analyzes error and regenerates
     
-    Exécution_Sandbox --> Succès : Code fonctionnel
-    Succès --> [*]
+    Execution_Sandbox --> Success : Functional code
+    Success --> [*]
 ```
 
 ---
 
-## 🗄️ Schéma de Base de Données (Database Schema)
+## 🗄️ Database Schema
 
-Le backend gère une base de données **PostgreSQL** relationnelle. Voici le schéma Entité-Relation :
+The backend manages a relational **PostgreSQL** database. Here is the Entity-Relationship schema:
 
 ```mermaid
 erDiagram
-    USER ||--o{ PROJECT : "crée"
-    USER ||--o{ WORKSPACE_SESSION : "participe à"
+    USER ||--o{ PROJECT : "creates"
+    USER ||--o{ WORKSPACE_SESSION : "participates in"
     
-    PROJECT ||--o{ EPIC : "contient"
-    EPIC ||--o{ USER_STORY : "se divise en"
-    USER_STORY ||--o{ TASK : "est composée de"
+    PROJECT ||--o{ EPIC : "contains"
+    EPIC ||--o{ USER_STORY : "is divided into"
+    USER_STORY ||--o{ TASK : "is composed of"
     
-    TASK ||--o{ WORKSPACE_FILE : "génère (Code)"
-    TASK ||--o{ WORKSPACE_MESSAGE : "historique chat IA"
+    TASK ||--o{ WORKSPACE_FILE : "generates (Code)"
+    TASK ||--o{ WORKSPACE_MESSAGE : "AI chat history"
 
     USER {
         uuid id PK
@@ -125,71 +125,71 @@ erDiagram
 
 ---
 
-## 📁 Structure Détaillée des Dossiers
+## 📁 Detailed Folder Structure
 
-- **`api/routes/`** : Les points d'entrée de l'API.
-  - `auth.py` : Gestion SSO (Google, GitHub) et JWT.
-  - `projects.py` : Création et récupération des backlogs.
-  - `websockets.py` : Connexion temps réel pour streamer la réponse de l'IA vers le frontend (très utilisé par l'orchestrateur).
-  - `workspace_persistence.py` : Sauvegarde des fichiers générés.
+- **`api/routes/`**: API endpoints.
+  - `auth.py`: SSO Management (Google, GitHub) and JWT.
+  - `projects.py`: Creation and retrieval of backlogs.
+  - `websockets.py`: Real-time connection to stream AI responses to the frontend (heavily used by the orchestrator).
+  - `workspace_persistence.py`: Saving generated files.
 
-- **`models/` & `schemas/`** : 
-  - `models/` contient la définition SQL (Project, Epic, UserStory, Task, WorkspaceFile).
-  - `schemas/` contient la validation Pydantic (vérification stricte des JSON entrants).
+- **`models/` & `schemas/`**: 
+  - `models/` contains the SQL definitions (Project, Epic, UserStory, Task, WorkspaceFile).
+  - `schemas/` contains Pydantic validation (strict verification of incoming JSONs).
 
-- **`services/agents/`** : Le cœur de l'intelligence.
-  - **`conception/po_agent.py`** : Générateur de Backlog et Architecture.
-  - **`coding/orchestrator.py`** : La machine à état (StateGraph) qui gère l'écriture, le test et la correction de code.
-  - **`coding/sandbox.py`** : L'interface avec l'API E2B pour instancier un conteneur Linux éphémère.
+- **`services/agents/`**: The core of the intelligence.
+  - **`conception/po_agent.py`**: Backlog and Architecture generator.
+  - **`coding/orchestrator.py`**: The state machine (StateGraph) that manages code writing, testing, and correction.
+  - **`coding/sandbox.py`**: Interface with the E2B API to instantiate an ephemeral Linux container.
 
 ---
 
 ## ⚙️ Configuration (`.env`)
 
-Pour fonctionner correctement, TeraSprint a besoin d'un fichier `.env` à la racine de `backend/`.
+To function correctly, TeraSprint needs a `.env` file at the root of `backend/`.
 
 ```env
-# URL de la base de données PostgreSQL
+# PostgreSQL Database URL
 DATABASE_URL=postgresql://user:password@localhost:5432/terasprint
 
-# Sécurité (Générez une chaîne aléatoire)
-JWT_SECRET=votre_cle_secrete_tres_complexe
+# Security (Generate a random string)
+JWT_SECRET=your_very_complex_secret_key
 JWT_ALGORITHM=HS256
 
-# Configuration OAuth (SSO)
+# OAuth Configuration (SSO)
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 GITHUB_CLIENT_ID=...
 GITHUB_CLIENT_SECRET=...
 
-# Clés IA (Obligatoires pour la génération)
+# AI Keys (Mandatory for generation)
 GROQ_API_KEY=...
-E2B_API_KEY=...   # Indispensable pour exécuter le code dans la sandbox
-HF_TOKEN=...      # Optionnel (HuggingFace)
-LANGCHAIN_PROJECT="TeraSprint" # Optionnel (Arize Phoenix)
+E2B_API_KEY=...   # Essential for executing code in the sandbox
+HF_TOKEN=...      # Optional (HuggingFace)
+LANGCHAIN_PROJECT="TeraSprint" # Optional (Arize Phoenix)
 
-# Configuration de l'E-mail (SMTP)
+# E-mailing Configuration (SMTP)
 SMTP_USER=contact@terasprint.com
-SMTP_PASS=votre_mot_de_passe_app
+SMTP_PASS=your_app_password
 ```
 
-## 🚀 Lancement Rapide
+## 🚀 Quick Start
 
-1. **Environnement Virtuel** :
+1. **Virtual Environment**:
    ```bash
    python -m venv venv
    source venv/bin/activate  # Windows: venv\Scripts\activate
    ```
 
-2. **Installation** :
+2. **Installation**:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Migrations & Lancement** :
-   *(Assurez-vous que PostgreSQL tourne sur le port spécifié)*
+3. **Migrations & Startup**:
+   *(Ensure PostgreSQL is running on the specified port)*
    ```bash
    python migrate.py
    fastapi dev main.py
    ```
-   L'API écoute sur `http://localhost:8000`. Documentation Swagger accessible via `http://localhost:8000/docs`.
+   The API listens on `http://localhost:8000`. Swagger Documentation is available at `http://localhost:8000/docs`.
