@@ -152,27 +152,27 @@ docker-compose up --build
 
 | Document | Description |
 |----------|-------------|
-| **[📘 Backend Documentation](./backend/README.md)** | FastAPI architecture, Agent orchestrators, DB schemas, LLM implementations |
-| **[🎨 Frontend Documentation](./frontend/README.md)** | React components, WebSocket streaming, Vite configuration, UI/UX |
+| **[📘 Backend Documentation](https://github.com/ABDELALIKHOLTY/TeraSprint/blob/main/backend/README.md)** | FastAPI architecture, Agent orchestrators, DB schemas, LLM implementations |
+| **[🎨 Frontend Documentation](https://github.com/ABDELALIKHOLTY/TeraSprint/blob/main/frontend/README.md)** | React components, WebSocket streaming, Vite configuration, UI/UX |
 
 ---
 
 ## 📄 License
 
-**Proprietary Software** — All rights reserved by **TeraByte Software**.
+**Proprietary Software** — All rights reserved by **[TeraByte Software](https://terabyte-software.com/)**.
 
-This project was developed as part of an end-of-studies internship. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited without explicit permission from TeraByte Software. See the [LICENSE](./LICENSE) file for more details.
+This project was developed as part of an end-of-studies internship. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited without explicit permission from [TeraByte Software](https://terabyte-software.com/). See the [LICENSE](https://github.com/ABDELALIKHOLTY/TeraSprint/blob/main/LICENSE) file for more details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-This project was realized during an internship at **TeraByte Software** (Kénitra, Morocco), under the supervision of **Mr. Mouhcine Karbach**. I thank the entire team for their guidance and expertise in SDaaS and Agile methodologies.
+This project was realized during an internship at **[TeraByte Software](https://terabyte-software.com/)** (Kénitra, Morocco), under the supervision of **Mr. Mouhcine Karbach**. I thank the entire team for their guidance and expertise in SDaaS and Agile methodologies.
 
 ---
 
 <p align="center">
-  <strong>Built by Abdelali Kholty with ❤️ for TeraByte Software</strong>
+  <strong>Built by Abdelali Kholty with ❤️ for <a href="https://terabyte-software.com/" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">TeraByte Software</a></strong>
   <br>
   <sub>Version 1.0.0 | Last Updated: October 2026</sub>
 </p>
